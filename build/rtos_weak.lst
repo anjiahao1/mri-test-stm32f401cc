@@ -1,0 +1,301 @@
+ARM GAS  /tmp/ccAobpmo.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"rtos_weak.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/rtos/rtos_weak.c"
+  20              		.section	.text.mriPlatform_RtosGetHaltedThreadId,"ax",%progbits
+  21              		.align	1
+  22              		.weak	mriPlatform_RtosGetHaltedThreadId
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	mriPlatform_RtosGetHaltedThreadId:
+  28              	.LFB3:
+   1:mri/rtos/rtos_weak.c **** /* Copyright 2020 Adam Green (https://github.com/adamgreen/)
+   2:mri/rtos/rtos_weak.c **** 
+   3:mri/rtos/rtos_weak.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/rtos/rtos_weak.c ****    you may not use this file except in compliance with the License.
+   5:mri/rtos/rtos_weak.c ****    You may obtain a copy of the License at
+   6:mri/rtos/rtos_weak.c **** 
+   7:mri/rtos/rtos_weak.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/rtos/rtos_weak.c **** 
+   9:mri/rtos/rtos_weak.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/rtos/rtos_weak.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/rtos/rtos_weak.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/rtos/rtos_weak.c ****    See the License for the specific language governing permissions and
+  13:mri/rtos/rtos_weak.c ****    limitations under the License.
+  14:mri/rtos/rtos_weak.c **** */
+  15:mri/rtos/rtos_weak.c **** #include <core/platforms.h>
+  16:mri/rtos/rtos_weak.c **** 
+  17:mri/rtos/rtos_weak.c **** 
+  18:mri/rtos/rtos_weak.c **** __attribute__((weak)) uint32_t Platform_RtosGetHaltedThreadId(void)
+  19:mri/rtos/rtos_weak.c **** {
+  29              		.loc 1 19 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  20:mri/rtos/rtos_weak.c ****     return 0;
+  34              		.loc 1 20 5 view .LVU1
+  21:mri/rtos/rtos_weak.c **** }
+  35              		.loc 1 21 1 is_stmt 0 view .LVU2
+  36 0000 0020     		movs	r0, #0
+  37 0002 7047     		bx	lr
+ARM GAS  /tmp/ccAobpmo.s 			page 2
+
+
+  38              		.cfi_endproc
+  39              	.LFE3:
+  41              		.section	.text.mriPlatform_RtosGetFirstThreadId,"ax",%progbits
+  42              		.align	1
+  43              		.weak	mriPlatform_RtosGetFirstThreadId
+  44              		.syntax unified
+  45              		.thumb
+  46              		.thumb_func
+  48              	mriPlatform_RtosGetFirstThreadId:
+  49              	.LFB4:
+  22:mri/rtos/rtos_weak.c **** 
+  23:mri/rtos/rtos_weak.c **** __attribute__((weak)) uint32_t Platform_RtosGetFirstThreadId(void)
+  24:mri/rtos/rtos_weak.c **** {
+  50              		.loc 1 24 1 is_stmt 1 view -0
+  51              		.cfi_startproc
+  52              		@ args = 0, pretend = 0, frame = 0
+  53              		@ frame_needed = 0, uses_anonymous_args = 0
+  54              		@ link register save eliminated.
+  25:mri/rtos/rtos_weak.c ****     return 0;
+  55              		.loc 1 25 5 view .LVU4
+  26:mri/rtos/rtos_weak.c **** }
+  56              		.loc 1 26 1 is_stmt 0 view .LVU5
+  57 0000 0020     		movs	r0, #0
+  58 0002 7047     		bx	lr
+  59              		.cfi_endproc
+  60              	.LFE4:
+  62              		.section	.text.mriPlatform_RtosGetNextThreadId,"ax",%progbits
+  63              		.align	1
+  64              		.weak	mriPlatform_RtosGetNextThreadId
+  65              		.syntax unified
+  66              		.thumb
+  67              		.thumb_func
+  69              	mriPlatform_RtosGetNextThreadId:
+  70              	.LFB5:
+  27:mri/rtos/rtos_weak.c **** 
+  28:mri/rtos/rtos_weak.c **** __attribute__((weak)) uint32_t Platform_RtosGetNextThreadId(void)
+  29:mri/rtos/rtos_weak.c **** {
+  71              		.loc 1 29 1 is_stmt 1 view -0
+  72              		.cfi_startproc
+  73              		@ args = 0, pretend = 0, frame = 0
+  74              		@ frame_needed = 0, uses_anonymous_args = 0
+  75              		@ link register save eliminated.
+  30:mri/rtos/rtos_weak.c ****     return 0;
+  76              		.loc 1 30 5 view .LVU7
+  31:mri/rtos/rtos_weak.c **** }
+  77              		.loc 1 31 1 is_stmt 0 view .LVU8
+  78 0000 0020     		movs	r0, #0
+  79 0002 7047     		bx	lr
+  80              		.cfi_endproc
+  81              	.LFE5:
+  83              		.section	.text.mriPlatform_RtosGetExtraThreadInfo,"ax",%progbits
+  84              		.align	1
+  85              		.weak	mriPlatform_RtosGetExtraThreadInfo
+  86              		.syntax unified
+  87              		.thumb
+  88              		.thumb_func
+  90              	mriPlatform_RtosGetExtraThreadInfo:
+ARM GAS  /tmp/ccAobpmo.s 			page 3
+
+
+  91              	.LVL0:
+  92              	.LFB6:
+  32:mri/rtos/rtos_weak.c **** 
+  33:mri/rtos/rtos_weak.c **** __attribute__((weak)) const char* Platform_RtosGetExtraThreadInfo(uint32_t threadId)
+  34:mri/rtos/rtos_weak.c **** {
+  93              		.loc 1 34 1 is_stmt 1 view -0
+  94              		.cfi_startproc
+  95              		@ args = 0, pretend = 0, frame = 0
+  96              		@ frame_needed = 0, uses_anonymous_args = 0
+  97              		@ link register save eliminated.
+  35:mri/rtos/rtos_weak.c ****     return NULL;
+  98              		.loc 1 35 5 view .LVU10
+  36:mri/rtos/rtos_weak.c **** }
+  99              		.loc 1 36 1 is_stmt 0 view .LVU11
+ 100 0000 0020     		movs	r0, #0
+ 101              	.LVL1:
+ 102              		.loc 1 36 1 view .LVU12
+ 103 0002 7047     		bx	lr
+ 104              		.cfi_endproc
+ 105              	.LFE6:
+ 107              		.section	.text.mriPlatform_RtosGetThreadContext,"ax",%progbits
+ 108              		.align	1
+ 109              		.weak	mriPlatform_RtosGetThreadContext
+ 110              		.syntax unified
+ 111              		.thumb
+ 112              		.thumb_func
+ 114              	mriPlatform_RtosGetThreadContext:
+ 115              	.LVL2:
+ 116              	.LFB7:
+  37:mri/rtos/rtos_weak.c **** 
+  38:mri/rtos/rtos_weak.c **** __attribute__((weak)) MriContext* Platform_RtosGetThreadContext(uint32_t threadId)
+  39:mri/rtos/rtos_weak.c **** {
+ 117              		.loc 1 39 1 is_stmt 1 view -0
+ 118              		.cfi_startproc
+ 119              		@ args = 0, pretend = 0, frame = 0
+ 120              		@ frame_needed = 0, uses_anonymous_args = 0
+ 121              		@ link register save eliminated.
+  40:mri/rtos/rtos_weak.c ****     return NULL;
+ 122              		.loc 1 40 5 view .LVU14
+  41:mri/rtos/rtos_weak.c **** }
+ 123              		.loc 1 41 1 is_stmt 0 view .LVU15
+ 124 0000 0020     		movs	r0, #0
+ 125              	.LVL3:
+ 126              		.loc 1 41 1 view .LVU16
+ 127 0002 7047     		bx	lr
+ 128              		.cfi_endproc
+ 129              	.LFE7:
+ 131              		.section	.text.mriPlatform_RtosIsThreadActive,"ax",%progbits
+ 132              		.align	1
+ 133              		.weak	mriPlatform_RtosIsThreadActive
+ 134              		.syntax unified
+ 135              		.thumb
+ 136              		.thumb_func
+ 138              	mriPlatform_RtosIsThreadActive:
+ 139              	.LVL4:
+ 140              	.LFB8:
+  42:mri/rtos/rtos_weak.c **** 
+ARM GAS  /tmp/ccAobpmo.s 			page 4
+
+
+  43:mri/rtos/rtos_weak.c **** __attribute__((weak)) int Platform_RtosIsThreadActive(uint32_t threadId)
+  44:mri/rtos/rtos_weak.c **** {
+ 141              		.loc 1 44 1 is_stmt 1 view -0
+ 142              		.cfi_startproc
+ 143              		@ args = 0, pretend = 0, frame = 0
+ 144              		@ frame_needed = 0, uses_anonymous_args = 0
+ 145              		@ link register save eliminated.
+  45:mri/rtos/rtos_weak.c ****     return 0;
+ 146              		.loc 1 45 5 view .LVU18
+  46:mri/rtos/rtos_weak.c **** }
+ 147              		.loc 1 46 1 is_stmt 0 view .LVU19
+ 148 0000 0020     		movs	r0, #0
+ 149              	.LVL5:
+ 150              		.loc 1 46 1 view .LVU20
+ 151 0002 7047     		bx	lr
+ 152              		.cfi_endproc
+ 153              	.LFE8:
+ 155              		.section	.text.mriPlatform_RtosIsSetThreadStateSupported,"ax",%progbits
+ 156              		.align	1
+ 157              		.weak	mriPlatform_RtosIsSetThreadStateSupported
+ 158              		.syntax unified
+ 159              		.thumb
+ 160              		.thumb_func
+ 162              	mriPlatform_RtosIsSetThreadStateSupported:
+ 163              	.LFB9:
+  47:mri/rtos/rtos_weak.c **** 
+  48:mri/rtos/rtos_weak.c **** __attribute__((weak)) int Platform_RtosIsSetThreadStateSupported(void)
+  49:mri/rtos/rtos_weak.c **** {
+ 164              		.loc 1 49 1 is_stmt 1 view -0
+ 165              		.cfi_startproc
+ 166              		@ args = 0, pretend = 0, frame = 0
+ 167              		@ frame_needed = 0, uses_anonymous_args = 0
+ 168              		@ link register save eliminated.
+  50:mri/rtos/rtos_weak.c ****     return 0;
+ 169              		.loc 1 50 5 view .LVU22
+  51:mri/rtos/rtos_weak.c **** }
+ 170              		.loc 1 51 1 is_stmt 0 view .LVU23
+ 171 0000 0020     		movs	r0, #0
+ 172 0002 7047     		bx	lr
+ 173              		.cfi_endproc
+ 174              	.LFE9:
+ 176              		.section	.text.mriPlatform_RtosSetThreadState,"ax",%progbits
+ 177              		.align	1
+ 178              		.weak	mriPlatform_RtosSetThreadState
+ 179              		.syntax unified
+ 180              		.thumb
+ 181              		.thumb_func
+ 183              	mriPlatform_RtosSetThreadState:
+ 184              	.LVL6:
+ 185              	.LFB10:
+  52:mri/rtos/rtos_weak.c **** 
+  53:mri/rtos/rtos_weak.c **** __attribute__((weak)) void Platform_RtosSetThreadState(uint32_t threadId, PlatformThreadState state
+  54:mri/rtos/rtos_weak.c **** {
+ 186              		.loc 1 54 1 is_stmt 1 view -0
+ 187              		.cfi_startproc
+ 188              		@ args = 0, pretend = 0, frame = 0
+ 189              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccAobpmo.s 			page 5
+
+
+ 190              		@ link register save eliminated.
+  55:mri/rtos/rtos_weak.c **** }
+ 191              		.loc 1 55 1 view .LVU25
+ 192 0000 7047     		bx	lr
+ 193              		.cfi_endproc
+ 194              	.LFE10:
+ 196              		.section	.text.mriPlatform_RtosRestorePrevThreadState,"ax",%progbits
+ 197              		.align	1
+ 198              		.weak	mriPlatform_RtosRestorePrevThreadState
+ 199              		.syntax unified
+ 200              		.thumb
+ 201              		.thumb_func
+ 203              	mriPlatform_RtosRestorePrevThreadState:
+ 204              	.LFB11:
+  56:mri/rtos/rtos_weak.c **** 
+  57:mri/rtos/rtos_weak.c **** __attribute__((weak)) void Platform_RtosRestorePrevThreadState(void)
+  58:mri/rtos/rtos_weak.c **** {
+ 205              		.loc 1 58 1 view -0
+ 206              		.cfi_startproc
+ 207              		@ args = 0, pretend = 0, frame = 0
+ 208              		@ frame_needed = 0, uses_anonymous_args = 0
+ 209              		@ link register save eliminated.
+  59:mri/rtos/rtos_weak.c **** }
+ 210              		.loc 1 59 1 view .LVU27
+ 211 0000 7047     		bx	lr
+ 212              		.cfi_endproc
+ 213              	.LFE11:
+ 215              		.text
+ 216              	.Letext0:
+ 217              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 218              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 219              		.file 4 "mri/core/context.h"
+ 220              		.file 5 "mri/core/platforms.h"
+ARM GAS  /tmp/ccAobpmo.s 			page 6
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 rtos_weak.c
+     /tmp/ccAobpmo.s:21     .text.mriPlatform_RtosGetHaltedThreadId:0000000000000000 $t
+     /tmp/ccAobpmo.s:27     .text.mriPlatform_RtosGetHaltedThreadId:0000000000000000 mriPlatform_RtosGetHaltedThreadId
+     /tmp/ccAobpmo.s:42     .text.mriPlatform_RtosGetFirstThreadId:0000000000000000 $t
+     /tmp/ccAobpmo.s:48     .text.mriPlatform_RtosGetFirstThreadId:0000000000000000 mriPlatform_RtosGetFirstThreadId
+     /tmp/ccAobpmo.s:63     .text.mriPlatform_RtosGetNextThreadId:0000000000000000 $t
+     /tmp/ccAobpmo.s:69     .text.mriPlatform_RtosGetNextThreadId:0000000000000000 mriPlatform_RtosGetNextThreadId
+     /tmp/ccAobpmo.s:84     .text.mriPlatform_RtosGetExtraThreadInfo:0000000000000000 $t
+     /tmp/ccAobpmo.s:90     .text.mriPlatform_RtosGetExtraThreadInfo:0000000000000000 mriPlatform_RtosGetExtraThreadInfo
+     /tmp/ccAobpmo.s:108    .text.mriPlatform_RtosGetThreadContext:0000000000000000 $t
+     /tmp/ccAobpmo.s:114    .text.mriPlatform_RtosGetThreadContext:0000000000000000 mriPlatform_RtosGetThreadContext
+     /tmp/ccAobpmo.s:132    .text.mriPlatform_RtosIsThreadActive:0000000000000000 $t
+     /tmp/ccAobpmo.s:138    .text.mriPlatform_RtosIsThreadActive:0000000000000000 mriPlatform_RtosIsThreadActive
+     /tmp/ccAobpmo.s:156    .text.mriPlatform_RtosIsSetThreadStateSupported:0000000000000000 $t
+     /tmp/ccAobpmo.s:162    .text.mriPlatform_RtosIsSetThreadStateSupported:0000000000000000 mriPlatform_RtosIsSetThreadStateSupported
+     /tmp/ccAobpmo.s:177    .text.mriPlatform_RtosSetThreadState:0000000000000000 $t
+     /tmp/ccAobpmo.s:183    .text.mriPlatform_RtosSetThreadState:0000000000000000 mriPlatform_RtosSetThreadState
+     /tmp/ccAobpmo.s:197    .text.mriPlatform_RtosRestorePrevThreadState:0000000000000000 $t
+     /tmp/ccAobpmo.s:203    .text.mriPlatform_RtosRestorePrevThreadState:0000000000000000 mriPlatform_RtosRestorePrevThreadState
+
+NO UNDEFINED SYMBOLS

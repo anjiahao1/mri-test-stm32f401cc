@@ -1,0 +1,1613 @@
+ARM GAS  /tmp/cc1tqFSF.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"cmd_file.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/cmd_file.c"
+  20              		.section	.text.processGdbFileResponseCommands,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	processGdbFileResponseCommands:
+  27              	.LFB13:
+   1:mri/core/cmd_file.c **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/cmd_file.c **** 
+   3:mri/core/cmd_file.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/cmd_file.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/cmd_file.c ****    You may obtain a copy of the License at
+   6:mri/core/cmd_file.c **** 
+   7:mri/core/cmd_file.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/cmd_file.c **** 
+   9:mri/core/cmd_file.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/cmd_file.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/cmd_file.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/cmd_file.c ****    See the License for the specific language governing permissions and
+  13:mri/core/cmd_file.c ****    limitations under the License.
+  14:mri/core/cmd_file.c **** */
+  15:mri/core/cmd_file.c **** /* Handling and issuing routines for gdb file commands. */
+  16:mri/core/cmd_file.c **** #include <string.h>
+  17:mri/core/cmd_file.c **** #include <core/signal.h>
+  18:mri/core/cmd_file.c **** #include <core/fileio.h>
+  19:mri/core/cmd_file.c **** #include <core/core.h>
+  20:mri/core/cmd_file.c **** #include <core/cmd_common.h>
+  21:mri/core/cmd_file.c **** #include <core/cmd_file.h>
+  22:mri/core/cmd_file.c **** 
+  23:mri/core/cmd_file.c **** 
+  24:mri/core/cmd_file.c **** static int processGdbFileResponseCommands(void);
+  25:mri/core/cmd_file.c **** /* Send file open request to gdb on behalf of mbed LocalFileSystem.
+  26:mri/core/cmd_file.c **** 
+  27:mri/core/cmd_file.c ****     Data Format: Fopen,ff/nn,gg,mm
+  28:mri/core/cmd_file.c **** 
+  29:mri/core/cmd_file.c ****     Where ff is the hex representation of the address of the filename to be opened.
+  30:mri/core/cmd_file.c ****           nn is the hex value of the count of characters in the filename pointed to by ff.
+  31:mri/core/cmd_file.c ****           gg is the hex value of the flags to be used for the file open.
+ARM GAS  /tmp/cc1tqFSF.s 			page 2
+
+
+  32:mri/core/cmd_file.c ****           mm is the hex value of the mode to be used for the file open.
+  33:mri/core/cmd_file.c **** */
+  34:mri/core/cmd_file.c **** int IssueGdbFileOpenRequest(const OpenParameters* pParameters)
+  35:mri/core/cmd_file.c **** {
+  36:mri/core/cmd_file.c ****     static const char  gdbOpenCommand[] = "Fopen,";
+  37:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+  38:mri/core/cmd_file.c **** 
+  39:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbOpenCommand);
+  40:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameAddress);
+  41:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+  42:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameLength);
+  43:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+  44:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->flags);
+  45:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+  46:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->mode);
+  47:mri/core/cmd_file.c **** 
+  48:mri/core/cmd_file.c ****     SendPacketToGdb();
+  49:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+  50:mri/core/cmd_file.c **** }
+  51:mri/core/cmd_file.c **** 
+  52:mri/core/cmd_file.c **** 
+  53:mri/core/cmd_file.c **** /* Send file write request to gdb on behalf of mbed LocalFileSystem or stdout/stderr.
+  54:mri/core/cmd_file.c **** 
+  55:mri/core/cmd_file.c ****     Data Format: Fwrite,ff,pp,cc
+  56:mri/core/cmd_file.c **** 
+  57:mri/core/cmd_file.c ****     Where ff is the hex value of the file descriptor of the file to which the data should be writte
+  58:mri/core/cmd_file.c ****           pp is the hex representation of the buffer to be written to the specified file.
+  59:mri/core/cmd_file.c ****           cc is the hex value of the count of bytes in the buffer to be written to the specified fi
+  60:mri/core/cmd_file.c **** */
+  61:mri/core/cmd_file.c **** int IssueGdbFileWriteRequest(const TransferParameters* pParameters)
+  62:mri/core/cmd_file.c **** {
+  63:mri/core/cmd_file.c ****     static const char  gdbWriteCommand[] = "Fwrite,";
+  64:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+  65:mri/core/cmd_file.c **** 
+  66:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbWriteCommand);
+  67:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileDescriptor);
+  68:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+  69:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferAddress);
+  70:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+  71:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferSize);
+  72:mri/core/cmd_file.c **** 
+  73:mri/core/cmd_file.c ****     SendPacketToGdb();
+  74:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+  75:mri/core/cmd_file.c **** }
+  76:mri/core/cmd_file.c **** 
+  77:mri/core/cmd_file.c **** 
+  78:mri/core/cmd_file.c **** /* Send file read request to gdb on behalf of mbed LocalFileSystem or stdin.
+  79:mri/core/cmd_file.c **** 
+  80:mri/core/cmd_file.c ****     Data Format: Fread,ff,pp,cc
+  81:mri/core/cmd_file.c **** 
+  82:mri/core/cmd_file.c ****     Where ff is the hex value of the file descriptor of the file from which the data should be read
+  83:mri/core/cmd_file.c ****           pp is the hex representation of the buffer to be read into.
+  84:mri/core/cmd_file.c ****           cc is the hex value of the count of bytes in the buffer to be read from the specified fil
+  85:mri/core/cmd_file.c **** */
+  86:mri/core/cmd_file.c **** int IssueGdbFileReadRequest(const TransferParameters* pParameters)
+  87:mri/core/cmd_file.c **** {
+  88:mri/core/cmd_file.c ****     static const char  gdbReadCommand[] = "Fread,";
+ARM GAS  /tmp/cc1tqFSF.s 			page 3
+
+
+  89:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+  90:mri/core/cmd_file.c **** 
+  91:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbReadCommand);
+  92:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileDescriptor);
+  93:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+  94:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferAddress);
+  95:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+  96:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferSize);
+  97:mri/core/cmd_file.c **** 
+  98:mri/core/cmd_file.c ****     SendPacketToGdb();
+  99:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 100:mri/core/cmd_file.c **** }
+ 101:mri/core/cmd_file.c **** 
+ 102:mri/core/cmd_file.c **** 
+ 103:mri/core/cmd_file.c **** /* Send file close request to gdb on behalf of mbed LocalFileSystem.
+ 104:mri/core/cmd_file.c **** 
+ 105:mri/core/cmd_file.c ****     Data Format: Fclose,ff
+ 106:mri/core/cmd_file.c **** 
+ 107:mri/core/cmd_file.c ****     Where ff is the hex value of the file descriptor to be closed.
+ 108:mri/core/cmd_file.c **** */
+ 109:mri/core/cmd_file.c **** int IssueGdbFileCloseRequest(uint32_t fileDescriptor)
+ 110:mri/core/cmd_file.c **** {
+ 111:mri/core/cmd_file.c ****     static const char  gdbCloseCommand[] = "Fclose,";
+ 112:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 113:mri/core/cmd_file.c **** 
+ 114:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbCloseCommand);
+ 115:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, fileDescriptor);
+ 116:mri/core/cmd_file.c **** 
+ 117:mri/core/cmd_file.c ****     SendPacketToGdb();
+ 118:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 119:mri/core/cmd_file.c **** }
+ 120:mri/core/cmd_file.c **** 
+ 121:mri/core/cmd_file.c **** 
+ 122:mri/core/cmd_file.c **** /* Send file seek request to gdb on behalf of mbed LocalFileSystem.
+ 123:mri/core/cmd_file.c **** 
+ 124:mri/core/cmd_file.c ****     Data Format: Flseek,ff,oo,ww
+ 125:mri/core/cmd_file.c **** 
+ 126:mri/core/cmd_file.c ****     Where ff is the hex value of the file descriptor to be seeked within.
+ 127:mri/core/cmd_file.c ****           oo is the hex value of the signed offset for the seek.
+ 128:mri/core/cmd_file.c ****           ww is the hex value of the flag indicating from where the seek should be conducted (whenc
+ 129:mri/core/cmd_file.c **** */
+ 130:mri/core/cmd_file.c **** int IssueGdbFileSeekRequest(const SeekParameters* pParameters)
+ 131:mri/core/cmd_file.c **** {
+ 132:mri/core/cmd_file.c ****     static const char  gdbSeekCommand[] = "Flseek,";
+ 133:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 134:mri/core/cmd_file.c **** 
+ 135:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbSeekCommand);
+ 136:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileDescriptor);
+ 137:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 138:mri/core/cmd_file.c ****     Buffer_WriteIntegerAsHex(pBuffer, pParameters->offset);
+ 139:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 140:mri/core/cmd_file.c ****     Buffer_WriteIntegerAsHex(pBuffer, pParameters->whence);
+ 141:mri/core/cmd_file.c **** 
+ 142:mri/core/cmd_file.c ****     SendPacketToGdb();
+ 143:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 144:mri/core/cmd_file.c **** }
+ 145:mri/core/cmd_file.c **** 
+ARM GAS  /tmp/cc1tqFSF.s 			page 4
+
+
+ 146:mri/core/cmd_file.c **** 
+ 147:mri/core/cmd_file.c **** /* Send file stat request to gdb on behalf of mbed LocalFileSystem to get file length.
+ 148:mri/core/cmd_file.c **** 
+ 149:mri/core/cmd_file.c ****     Data Format: Ffstat,ff,bb
+ 150:mri/core/cmd_file.c **** 
+ 151:mri/core/cmd_file.c ****     Where ff is the hex value of the file descriptor to be closed.
+ 152:mri/core/cmd_file.c ****           bb is the hex representation of the address of the stat structure to be filled in.
+ 153:mri/core/cmd_file.c **** */
+ 154:mri/core/cmd_file.c **** int IssueGdbFileFStatRequest(uint32_t fileDescriptor, uint32_t fileStatBuffer)
+ 155:mri/core/cmd_file.c **** {
+ 156:mri/core/cmd_file.c ****     static const char  gdbStatCommand[] = "Ffstat,";
+ 157:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 158:mri/core/cmd_file.c **** 
+ 159:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbStatCommand);
+ 160:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, fileDescriptor);
+ 161:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 162:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, fileStatBuffer);
+ 163:mri/core/cmd_file.c **** 
+ 164:mri/core/cmd_file.c ****     SendPacketToGdb();
+ 165:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 166:mri/core/cmd_file.c **** }
+ 167:mri/core/cmd_file.c **** 
+ 168:mri/core/cmd_file.c **** 
+ 169:mri/core/cmd_file.c **** /* Send file unlink request to gdb on behalf of mbed LocalFileSystem.
+ 170:mri/core/cmd_file.c **** 
+ 171:mri/core/cmd_file.c ****     Data Format: Funlink,ff/nn
+ 172:mri/core/cmd_file.c **** 
+ 173:mri/core/cmd_file.c ****     Where ff is the hex representation of the address of the filename to be deleted.
+ 174:mri/core/cmd_file.c ****           nn is the hex value of the count of characters in the filename pointed to by ff.
+ 175:mri/core/cmd_file.c **** */
+ 176:mri/core/cmd_file.c **** int IssueGdbFileUnlinkRequest(const RemoveParameters* pParameters)
+ 177:mri/core/cmd_file.c **** {
+ 178:mri/core/cmd_file.c ****     static const char  gdbUnlinkCommand[] = "Funlink,";
+ 179:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 180:mri/core/cmd_file.c **** 
+ 181:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbUnlinkCommand);
+ 182:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameAddress);
+ 183:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 184:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameLength);
+ 185:mri/core/cmd_file.c **** 
+ 186:mri/core/cmd_file.c ****     SendPacketToGdb();
+ 187:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 188:mri/core/cmd_file.c **** }
+ 189:mri/core/cmd_file.c **** 
+ 190:mri/core/cmd_file.c **** 
+ 191:mri/core/cmd_file.c **** /* Send file system level stat request to gdb.
+ 192:mri/core/cmd_file.c **** 
+ 193:mri/core/cmd_file.c ****     Data Format: Fstat,ff/nn,bb
+ 194:mri/core/cmd_file.c **** 
+ 195:mri/core/cmd_file.c ****     Where ff is the hex representation of the address of the filename.
+ 196:mri/core/cmd_file.c ****           nn is the hex value of the count of characters in the filename pointed to by ff.
+ 197:mri/core/cmd_file.c ****           bb is the hex representation of the address of the stat structure to be filled in.
+ 198:mri/core/cmd_file.c **** */
+ 199:mri/core/cmd_file.c **** int IssueGdbFileStatRequest(const StatParameters* pParameters)
+ 200:mri/core/cmd_file.c **** {
+ 201:mri/core/cmd_file.c ****     static const char  gdbStatCommand[] = "Fstat,";
+ 202:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ARM GAS  /tmp/cc1tqFSF.s 			page 5
+
+
+ 203:mri/core/cmd_file.c **** 
+ 204:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbStatCommand);
+ 205:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameAddress);
+ 206:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 207:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameLength);
+ 208:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 209:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileStatBuffer);
+ 210:mri/core/cmd_file.c **** 
+ 211:mri/core/cmd_file.c ****     SendPacketToGdb();
+ 212:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 213:mri/core/cmd_file.c **** }
+ 214:mri/core/cmd_file.c **** 
+ 215:mri/core/cmd_file.c **** 
+ 216:mri/core/cmd_file.c **** /* Send file rename request to gdb.
+ 217:mri/core/cmd_file.c **** 
+ 218:mri/core/cmd_file.c ****     Data Format: Frename,oo/aa,nn/bb
+ 219:mri/core/cmd_file.c **** 
+ 220:mri/core/cmd_file.c ****     Where oo is the hex representation of the address of the original filename.
+ 221:mri/core/cmd_file.c ****           aa is the hex value of the count of characters in the original filename pointed to by oo.
+ 222:mri/core/cmd_file.c ****           nn is the hex representation of the address of the new filename.
+ 223:mri/core/cmd_file.c ****           bb is the hex value of the count of characters in the new filename pointed to by nn.
+ 224:mri/core/cmd_file.c **** */
+ 225:mri/core/cmd_file.c **** int IssueGdbFileRenameRequest(const RenameParameters* pParameters)
+ 226:mri/core/cmd_file.c **** {
+ 227:mri/core/cmd_file.c ****     static const char  gdbCommand[] = "Frename,";
+ 228:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 229:mri/core/cmd_file.c **** 
+ 230:mri/core/cmd_file.c ****     Buffer_WriteString(pBuffer, gdbCommand);
+ 231:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->origFilenameAddress);
+ 232:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 233:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->origFilenameLength);
+ 234:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 235:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->newFilenameAddress);
+ 236:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 237:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->newFilenameLength);
+ 238:mri/core/cmd_file.c **** 
+ 239:mri/core/cmd_file.c ****     SendPacketToGdb();
+ 240:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 241:mri/core/cmd_file.c **** }
+ 242:mri/core/cmd_file.c **** 
+ 243:mri/core/cmd_file.c **** 
+ 244:mri/core/cmd_file.c **** /* Handle the 'F' command which is sent from gdb in response to a previously sent File I/O command 
+ 245:mri/core/cmd_file.c **** 
+ 246:mri/core/cmd_file.c ****     Command Format:     Frr[,ee[,C]]
+ 247:mri/core/cmd_file.c **** 
+ 248:mri/core/cmd_file.c ****     Where rr is the signed hexadecimal representation of the return code from the last requested fi
+ 249:mri/core/cmd_file.c ****           ee is the optional signed hexadecimal value for the errorno associated with the call if r
+ 250:mri/core/cmd_file.c ****           C is the optional 'C' character sent by gdb to indicate that CTRL+C was pressed by user w
+ 251:mri/core/cmd_file.c ****             was processing the current file I/O request.
+ 252:mri/core/cmd_file.c **** */
+ 253:mri/core/cmd_file.c **** uint32_t HandleFileIOCommand(void)
+ 254:mri/core/cmd_file.c **** {
+ 255:mri/core/cmd_file.c ****     static const char controlCFlag[] = ",C";
+ 256:mri/core/cmd_file.c ****     Buffer*           pBuffer = GetBuffer();
+ 257:mri/core/cmd_file.c ****     int               returnCode = -1;
+ 258:mri/core/cmd_file.c ****     int               errNo = 0;
+ 259:mri/core/cmd_file.c ****     int               controlC = 0;
+ARM GAS  /tmp/cc1tqFSF.s 			page 6
+
+
+ 260:mri/core/cmd_file.c **** 
+ 261:mri/core/cmd_file.c ****     returnCode = Buffer_ReadIntegerAsHex(pBuffer);
+ 262:mri/core/cmd_file.c ****     if (Buffer_IsNextCharEqualTo(pBuffer, ','))
+ 263:mri/core/cmd_file.c ****     {
+ 264:mri/core/cmd_file.c ****         errNo = Buffer_ReadIntegerAsHex(pBuffer);
+ 265:mri/core/cmd_file.c ****         controlC = Buffer_MatchesString(pBuffer, controlCFlag, sizeof(controlCFlag)-1);
+ 266:mri/core/cmd_file.c ****     }
+ 267:mri/core/cmd_file.c **** 
+ 268:mri/core/cmd_file.c ****     SetSemihostReturnValues(returnCode, errNo);
+ 269:mri/core/cmd_file.c ****     RecordControlCFlagSentFromGdb(controlC);
+ 270:mri/core/cmd_file.c ****     clearExceptionCode();
+ 271:mri/core/cmd_file.c **** 
+ 272:mri/core/cmd_file.c ****     return (HANDLER_RETURN_RESUME_PROGRAM | HANDLER_RETURN_RETURN_IMMEDIATELY);
+ 273:mri/core/cmd_file.c **** }
+ 274:mri/core/cmd_file.c **** 
+ 275:mri/core/cmd_file.c **** static int processGdbFileResponseCommands(void)
+ 276:mri/core/cmd_file.c **** {
+  28              		.loc 1 276 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32 0000 08B5     		push	{r3, lr}
+  33              	.LCFI0:
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 3, -8
+  36              		.cfi_offset 14, -4
+ 277:mri/core/cmd_file.c ****     GdbCommandHandlingLoop();
+  37              		.loc 1 277 5 view .LVU1
+  38 0002 FFF7FEFF 		bl	mriCore_GdbCommandHandlingLoop
+  39              	.LVL0:
+ 278:mri/core/cmd_file.c **** 
+ 279:mri/core/cmd_file.c ****     if (WasControlCFlagSentFromGdb())
+  40              		.loc 1 279 5 view .LVU2
+  41              		.loc 1 279 9 is_stmt 0 view .LVU3
+  42 0006 FFF7FEFF 		bl	mriCore_WasControlCFlagSentFromGdb
+  43              	.LVL1:
+  44              		.loc 1 279 8 view .LVU4
+  45 000a 50B1     		cbz	r0, .L2
+ 280:mri/core/cmd_file.c ****     {
+ 281:mri/core/cmd_file.c ****         if (!WasSemihostCallCancelledByGdb())
+  46              		.loc 1 281 9 is_stmt 1 view .LVU5
+  47              		.loc 1 281 14 is_stmt 0 view .LVU6
+  48 000c FFF7FEFF 		bl	mriCore_WasSemihostCallCancelledByGdb
+  49              	.LVL2:
+  50              		.loc 1 281 12 view .LVU7
+  51 0010 20B1     		cbz	r0, .L6
+  52              	.L3:
+ 282:mri/core/cmd_file.c ****             FlagSemihostCallAsHandled();
+ 283:mri/core/cmd_file.c **** 
+ 284:mri/core/cmd_file.c ****         SetSignalValue(SIGINT);
+  53              		.loc 1 284 9 is_stmt 1 view .LVU8
+  54 0012 0220     		movs	r0, #2
+  55 0014 FFF7FEFF 		bl	mriCore_SetSignalValue
+  56              	.LVL3:
+ 285:mri/core/cmd_file.c ****         return 0;
+  57              		.loc 1 285 9 view .LVU9
+  58              		.loc 1 285 16 is_stmt 0 view .LVU10
+ARM GAS  /tmp/cc1tqFSF.s 			page 7
+
+
+  59 0018 0020     		movs	r0, #0
+  60              	.L1:
+ 286:mri/core/cmd_file.c ****     }
+ 287:mri/core/cmd_file.c ****     else
+ 288:mri/core/cmd_file.c ****     {
+ 289:mri/core/cmd_file.c ****         FlagSemihostCallAsHandled();
+ 290:mri/core/cmd_file.c ****         return 1;
+ 291:mri/core/cmd_file.c ****     }
+ 292:mri/core/cmd_file.c **** }
+  61              		.loc 1 292 1 view .LVU11
+  62 001a 08BD     		pop	{r3, pc}
+  63              	.L6:
+ 282:mri/core/cmd_file.c **** 
+  64              		.loc 1 282 13 is_stmt 1 view .LVU12
+  65 001c FFF7FEFF 		bl	mriCore_FlagSemihostCallAsHandled
+  66              	.LVL4:
+  67 0020 F7E7     		b	.L3
+  68              	.L2:
+ 289:mri/core/cmd_file.c ****         return 1;
+  69              		.loc 1 289 9 view .LVU13
+  70 0022 FFF7FEFF 		bl	mriCore_FlagSemihostCallAsHandled
+  71              	.LVL5:
+ 290:mri/core/cmd_file.c ****     }
+  72              		.loc 1 290 9 view .LVU14
+ 290:mri/core/cmd_file.c ****     }
+  73              		.loc 1 290 16 is_stmt 0 view .LVU15
+  74 0026 0120     		movs	r0, #1
+  75 0028 F7E7     		b	.L1
+  76              		.cfi_endproc
+  77              	.LFE13:
+  79              		.section	.text.mriIssueGdbFileOpenRequest,"ax",%progbits
+  80              		.align	1
+  81              		.global	mriIssueGdbFileOpenRequest
+  82              		.syntax unified
+  83              		.thumb
+  84              		.thumb_func
+  86              	mriIssueGdbFileOpenRequest:
+  87              	.LVL6:
+  88              	.LFB3:
+  35:mri/core/cmd_file.c ****     static const char  gdbOpenCommand[] = "Fopen,";
+  89              		.loc 1 35 1 is_stmt 1 view -0
+  90              		.cfi_startproc
+  91              		@ args = 0, pretend = 0, frame = 0
+  92              		@ frame_needed = 0, uses_anonymous_args = 0
+  35:mri/core/cmd_file.c ****     static const char  gdbOpenCommand[] = "Fopen,";
+  93              		.loc 1 35 1 is_stmt 0 view .LVU17
+  94 0000 38B5     		push	{r3, r4, r5, lr}
+  95              	.LCFI1:
+  96              		.cfi_def_cfa_offset 16
+  97              		.cfi_offset 3, -16
+  98              		.cfi_offset 4, -12
+  99              		.cfi_offset 5, -8
+ 100              		.cfi_offset 14, -4
+ 101 0002 0546     		mov	r5, r0
+  36:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 102              		.loc 1 36 5 is_stmt 1 view .LVU18
+  37:mri/core/cmd_file.c **** 
+ARM GAS  /tmp/cc1tqFSF.s 			page 8
+
+
+ 103              		.loc 1 37 5 view .LVU19
+  37:mri/core/cmd_file.c **** 
+ 104              		.loc 1 37 34 is_stmt 0 view .LVU20
+ 105 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 106              	.LVL7:
+  37:mri/core/cmd_file.c **** 
+ 107              		.loc 1 37 34 view .LVU21
+ 108 0008 0446     		mov	r4, r0
+ 109              	.LVL8:
+  39:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameAddress);
+ 110              		.loc 1 39 5 is_stmt 1 view .LVU22
+ 111 000a 1249     		ldr	r1, .L9
+ 112 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 113              	.LVL9:
+  40:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 114              		.loc 1 40 5 view .LVU23
+ 115 0010 2968     		ldr	r1, [r5]
+ 116 0012 2046     		mov	r0, r4
+ 117 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 118              	.LVL10:
+  41:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameLength);
+ 119              		.loc 1 41 5 view .LVU24
+ 120 0018 2F21     		movs	r1, #47
+ 121 001a 2046     		mov	r0, r4
+ 122 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 123              	.LVL11:
+  42:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 124              		.loc 1 42 5 view .LVU25
+ 125 0020 6968     		ldr	r1, [r5, #4]
+ 126 0022 2046     		mov	r0, r4
+ 127 0024 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 128              	.LVL12:
+  43:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->flags);
+ 129              		.loc 1 43 5 view .LVU26
+ 130 0028 2C21     		movs	r1, #44
+ 131 002a 2046     		mov	r0, r4
+ 132 002c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 133              	.LVL13:
+  44:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 134              		.loc 1 44 5 view .LVU27
+ 135 0030 A968     		ldr	r1, [r5, #8]
+ 136 0032 2046     		mov	r0, r4
+ 137 0034 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 138              	.LVL14:
+  45:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->mode);
+ 139              		.loc 1 45 5 view .LVU28
+ 140 0038 2C21     		movs	r1, #44
+ 141 003a 2046     		mov	r0, r4
+ 142 003c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 143              	.LVL15:
+  46:mri/core/cmd_file.c **** 
+ 144              		.loc 1 46 5 view .LVU29
+ 145 0040 E968     		ldr	r1, [r5, #12]
+ 146 0042 2046     		mov	r0, r4
+ 147 0044 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 148              	.LVL16:
+  48:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ARM GAS  /tmp/cc1tqFSF.s 			page 9
+
+
+ 149              		.loc 1 48 5 view .LVU30
+ 150 0048 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 151              	.LVL17:
+  49:mri/core/cmd_file.c **** }
+ 152              		.loc 1 49 5 view .LVU31
+  49:mri/core/cmd_file.c **** }
+ 153              		.loc 1 49 12 is_stmt 0 view .LVU32
+ 154 004c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 155              	.LVL18:
+  50:mri/core/cmd_file.c **** 
+ 156              		.loc 1 50 1 view .LVU33
+ 157 0050 38BD     		pop	{r3, r4, r5, pc}
+ 158              	.LVL19:
+ 159              	.L10:
+  50:mri/core/cmd_file.c **** 
+ 160              		.loc 1 50 1 view .LVU34
+ 161 0052 00BF     		.align	2
+ 162              	.L9:
+ 163 0054 00000000 		.word	gdbOpenCommand.9
+ 164              		.cfi_endproc
+ 165              	.LFE3:
+ 167              		.section	.text.mriIssueGdbFileWriteRequest,"ax",%progbits
+ 168              		.align	1
+ 169              		.global	mriIssueGdbFileWriteRequest
+ 170              		.syntax unified
+ 171              		.thumb
+ 172              		.thumb_func
+ 174              	mriIssueGdbFileWriteRequest:
+ 175              	.LVL20:
+ 176              	.LFB4:
+  62:mri/core/cmd_file.c ****     static const char  gdbWriteCommand[] = "Fwrite,";
+ 177              		.loc 1 62 1 is_stmt 1 view -0
+ 178              		.cfi_startproc
+ 179              		@ args = 0, pretend = 0, frame = 0
+ 180              		@ frame_needed = 0, uses_anonymous_args = 0
+  62:mri/core/cmd_file.c ****     static const char  gdbWriteCommand[] = "Fwrite,";
+ 181              		.loc 1 62 1 is_stmt 0 view .LVU36
+ 182 0000 38B5     		push	{r3, r4, r5, lr}
+ 183              	.LCFI2:
+ 184              		.cfi_def_cfa_offset 16
+ 185              		.cfi_offset 3, -16
+ 186              		.cfi_offset 4, -12
+ 187              		.cfi_offset 5, -8
+ 188              		.cfi_offset 14, -4
+ 189 0002 0546     		mov	r5, r0
+  63:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 190              		.loc 1 63 5 is_stmt 1 view .LVU37
+  64:mri/core/cmd_file.c **** 
+ 191              		.loc 1 64 5 view .LVU38
+  64:mri/core/cmd_file.c **** 
+ 192              		.loc 1 64 34 is_stmt 0 view .LVU39
+ 193 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 194              	.LVL21:
+  64:mri/core/cmd_file.c **** 
+ 195              		.loc 1 64 34 view .LVU40
+ 196 0008 0446     		mov	r4, r0
+ 197              	.LVL22:
+ARM GAS  /tmp/cc1tqFSF.s 			page 10
+
+
+  66:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileDescriptor);
+ 198              		.loc 1 66 5 is_stmt 1 view .LVU41
+ 199 000a 0E49     		ldr	r1, .L13
+ 200 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 201              	.LVL23:
+  67:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 202              		.loc 1 67 5 view .LVU42
+ 203 0010 2968     		ldr	r1, [r5]
+ 204 0012 2046     		mov	r0, r4
+ 205 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 206              	.LVL24:
+  68:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferAddress);
+ 207              		.loc 1 68 5 view .LVU43
+ 208 0018 2C21     		movs	r1, #44
+ 209 001a 2046     		mov	r0, r4
+ 210 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 211              	.LVL25:
+  69:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 212              		.loc 1 69 5 view .LVU44
+ 213 0020 6968     		ldr	r1, [r5, #4]
+ 214 0022 2046     		mov	r0, r4
+ 215 0024 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 216              	.LVL26:
+  70:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferSize);
+ 217              		.loc 1 70 5 view .LVU45
+ 218 0028 2C21     		movs	r1, #44
+ 219 002a 2046     		mov	r0, r4
+ 220 002c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 221              	.LVL27:
+  71:mri/core/cmd_file.c **** 
+ 222              		.loc 1 71 5 view .LVU46
+ 223 0030 A968     		ldr	r1, [r5, #8]
+ 224 0032 2046     		mov	r0, r4
+ 225 0034 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 226              	.LVL28:
+  73:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 227              		.loc 1 73 5 view .LVU47
+ 228 0038 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 229              	.LVL29:
+  74:mri/core/cmd_file.c **** }
+ 230              		.loc 1 74 5 view .LVU48
+  74:mri/core/cmd_file.c **** }
+ 231              		.loc 1 74 12 is_stmt 0 view .LVU49
+ 232 003c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 233              	.LVL30:
+  75:mri/core/cmd_file.c **** 
+ 234              		.loc 1 75 1 view .LVU50
+ 235 0040 38BD     		pop	{r3, r4, r5, pc}
+ 236              	.LVL31:
+ 237              	.L14:
+  75:mri/core/cmd_file.c **** 
+ 238              		.loc 1 75 1 view .LVU51
+ 239 0042 00BF     		.align	2
+ 240              	.L13:
+ 241 0044 00000000 		.word	gdbWriteCommand.8
+ 242              		.cfi_endproc
+ 243              	.LFE4:
+ARM GAS  /tmp/cc1tqFSF.s 			page 11
+
+
+ 245              		.section	.text.mriIssueGdbFileReadRequest,"ax",%progbits
+ 246              		.align	1
+ 247              		.global	mriIssueGdbFileReadRequest
+ 248              		.syntax unified
+ 249              		.thumb
+ 250              		.thumb_func
+ 252              	mriIssueGdbFileReadRequest:
+ 253              	.LVL32:
+ 254              	.LFB5:
+  87:mri/core/cmd_file.c ****     static const char  gdbReadCommand[] = "Fread,";
+ 255              		.loc 1 87 1 is_stmt 1 view -0
+ 256              		.cfi_startproc
+ 257              		@ args = 0, pretend = 0, frame = 0
+ 258              		@ frame_needed = 0, uses_anonymous_args = 0
+  87:mri/core/cmd_file.c ****     static const char  gdbReadCommand[] = "Fread,";
+ 259              		.loc 1 87 1 is_stmt 0 view .LVU53
+ 260 0000 38B5     		push	{r3, r4, r5, lr}
+ 261              	.LCFI3:
+ 262              		.cfi_def_cfa_offset 16
+ 263              		.cfi_offset 3, -16
+ 264              		.cfi_offset 4, -12
+ 265              		.cfi_offset 5, -8
+ 266              		.cfi_offset 14, -4
+ 267 0002 0546     		mov	r5, r0
+  88:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 268              		.loc 1 88 5 is_stmt 1 view .LVU54
+  89:mri/core/cmd_file.c **** 
+ 269              		.loc 1 89 5 view .LVU55
+  89:mri/core/cmd_file.c **** 
+ 270              		.loc 1 89 34 is_stmt 0 view .LVU56
+ 271 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 272              	.LVL33:
+  89:mri/core/cmd_file.c **** 
+ 273              		.loc 1 89 34 view .LVU57
+ 274 0008 0446     		mov	r4, r0
+ 275              	.LVL34:
+  91:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileDescriptor);
+ 276              		.loc 1 91 5 is_stmt 1 view .LVU58
+ 277 000a 0E49     		ldr	r1, .L17
+ 278 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 279              	.LVL35:
+  92:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 280              		.loc 1 92 5 view .LVU59
+ 281 0010 2968     		ldr	r1, [r5]
+ 282 0012 2046     		mov	r0, r4
+ 283 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 284              	.LVL36:
+  93:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferAddress);
+ 285              		.loc 1 93 5 view .LVU60
+ 286 0018 2C21     		movs	r1, #44
+ 287 001a 2046     		mov	r0, r4
+ 288 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 289              	.LVL37:
+  94:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 290              		.loc 1 94 5 view .LVU61
+ 291 0020 6968     		ldr	r1, [r5, #4]
+ 292 0022 2046     		mov	r0, r4
+ARM GAS  /tmp/cc1tqFSF.s 			page 12
+
+
+ 293 0024 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 294              	.LVL38:
+  95:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->bufferSize);
+ 295              		.loc 1 95 5 view .LVU62
+ 296 0028 2C21     		movs	r1, #44
+ 297 002a 2046     		mov	r0, r4
+ 298 002c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 299              	.LVL39:
+  96:mri/core/cmd_file.c **** 
+ 300              		.loc 1 96 5 view .LVU63
+ 301 0030 A968     		ldr	r1, [r5, #8]
+ 302 0032 2046     		mov	r0, r4
+ 303 0034 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 304              	.LVL40:
+  98:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 305              		.loc 1 98 5 view .LVU64
+ 306 0038 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 307              	.LVL41:
+  99:mri/core/cmd_file.c **** }
+ 308              		.loc 1 99 5 view .LVU65
+  99:mri/core/cmd_file.c **** }
+ 309              		.loc 1 99 12 is_stmt 0 view .LVU66
+ 310 003c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 311              	.LVL42:
+ 100:mri/core/cmd_file.c **** 
+ 312              		.loc 1 100 1 view .LVU67
+ 313 0040 38BD     		pop	{r3, r4, r5, pc}
+ 314              	.LVL43:
+ 315              	.L18:
+ 100:mri/core/cmd_file.c **** 
+ 316              		.loc 1 100 1 view .LVU68
+ 317 0042 00BF     		.align	2
+ 318              	.L17:
+ 319 0044 00000000 		.word	gdbReadCommand.7
+ 320              		.cfi_endproc
+ 321              	.LFE5:
+ 323              		.section	.text.mriIssueGdbFileCloseRequest,"ax",%progbits
+ 324              		.align	1
+ 325              		.global	mriIssueGdbFileCloseRequest
+ 326              		.syntax unified
+ 327              		.thumb
+ 328              		.thumb_func
+ 330              	mriIssueGdbFileCloseRequest:
+ 331              	.LVL44:
+ 332              	.LFB6:
+ 110:mri/core/cmd_file.c ****     static const char  gdbCloseCommand[] = "Fclose,";
+ 333              		.loc 1 110 1 is_stmt 1 view -0
+ 334              		.cfi_startproc
+ 335              		@ args = 0, pretend = 0, frame = 0
+ 336              		@ frame_needed = 0, uses_anonymous_args = 0
+ 110:mri/core/cmd_file.c ****     static const char  gdbCloseCommand[] = "Fclose,";
+ 337              		.loc 1 110 1 is_stmt 0 view .LVU70
+ 338 0000 38B5     		push	{r3, r4, r5, lr}
+ 339              	.LCFI4:
+ 340              		.cfi_def_cfa_offset 16
+ 341              		.cfi_offset 3, -16
+ 342              		.cfi_offset 4, -12
+ARM GAS  /tmp/cc1tqFSF.s 			page 13
+
+
+ 343              		.cfi_offset 5, -8
+ 344              		.cfi_offset 14, -4
+ 345 0002 0546     		mov	r5, r0
+ 111:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 346              		.loc 1 111 5 is_stmt 1 view .LVU71
+ 112:mri/core/cmd_file.c **** 
+ 347              		.loc 1 112 5 view .LVU72
+ 112:mri/core/cmd_file.c **** 
+ 348              		.loc 1 112 34 is_stmt 0 view .LVU73
+ 349 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 350              	.LVL45:
+ 112:mri/core/cmd_file.c **** 
+ 351              		.loc 1 112 34 view .LVU74
+ 352 0008 0446     		mov	r4, r0
+ 353              	.LVL46:
+ 114:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, fileDescriptor);
+ 354              		.loc 1 114 5 is_stmt 1 view .LVU75
+ 355 000a 0649     		ldr	r1, .L21
+ 356 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 357              	.LVL47:
+ 115:mri/core/cmd_file.c **** 
+ 358              		.loc 1 115 5 view .LVU76
+ 359 0010 2946     		mov	r1, r5
+ 360 0012 2046     		mov	r0, r4
+ 361 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 362              	.LVL48:
+ 117:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 363              		.loc 1 117 5 view .LVU77
+ 364 0018 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 365              	.LVL49:
+ 118:mri/core/cmd_file.c **** }
+ 366              		.loc 1 118 5 view .LVU78
+ 118:mri/core/cmd_file.c **** }
+ 367              		.loc 1 118 12 is_stmt 0 view .LVU79
+ 368 001c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 369              	.LVL50:
+ 119:mri/core/cmd_file.c **** 
+ 370              		.loc 1 119 1 view .LVU80
+ 371 0020 38BD     		pop	{r3, r4, r5, pc}
+ 372              	.LVL51:
+ 373              	.L22:
+ 119:mri/core/cmd_file.c **** 
+ 374              		.loc 1 119 1 view .LVU81
+ 375 0022 00BF     		.align	2
+ 376              	.L21:
+ 377 0024 00000000 		.word	gdbCloseCommand.6
+ 378              		.cfi_endproc
+ 379              	.LFE6:
+ 381              		.section	.text.mriIssueGdbFileSeekRequest,"ax",%progbits
+ 382              		.align	1
+ 383              		.global	mriIssueGdbFileSeekRequest
+ 384              		.syntax unified
+ 385              		.thumb
+ 386              		.thumb_func
+ 388              	mriIssueGdbFileSeekRequest:
+ 389              	.LVL52:
+ 390              	.LFB7:
+ARM GAS  /tmp/cc1tqFSF.s 			page 14
+
+
+ 131:mri/core/cmd_file.c ****     static const char  gdbSeekCommand[] = "Flseek,";
+ 391              		.loc 1 131 1 is_stmt 1 view -0
+ 392              		.cfi_startproc
+ 393              		@ args = 0, pretend = 0, frame = 0
+ 394              		@ frame_needed = 0, uses_anonymous_args = 0
+ 131:mri/core/cmd_file.c ****     static const char  gdbSeekCommand[] = "Flseek,";
+ 395              		.loc 1 131 1 is_stmt 0 view .LVU83
+ 396 0000 38B5     		push	{r3, r4, r5, lr}
+ 397              	.LCFI5:
+ 398              		.cfi_def_cfa_offset 16
+ 399              		.cfi_offset 3, -16
+ 400              		.cfi_offset 4, -12
+ 401              		.cfi_offset 5, -8
+ 402              		.cfi_offset 14, -4
+ 403 0002 0546     		mov	r5, r0
+ 132:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 404              		.loc 1 132 5 is_stmt 1 view .LVU84
+ 133:mri/core/cmd_file.c **** 
+ 405              		.loc 1 133 5 view .LVU85
+ 133:mri/core/cmd_file.c **** 
+ 406              		.loc 1 133 34 is_stmt 0 view .LVU86
+ 407 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 408              	.LVL53:
+ 133:mri/core/cmd_file.c **** 
+ 409              		.loc 1 133 34 view .LVU87
+ 410 0008 0446     		mov	r4, r0
+ 411              	.LVL54:
+ 135:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileDescriptor);
+ 412              		.loc 1 135 5 is_stmt 1 view .LVU88
+ 413 000a 0E49     		ldr	r1, .L25
+ 414 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 415              	.LVL55:
+ 136:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 416              		.loc 1 136 5 view .LVU89
+ 417 0010 2968     		ldr	r1, [r5]
+ 418 0012 2046     		mov	r0, r4
+ 419 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 420              	.LVL56:
+ 137:mri/core/cmd_file.c ****     Buffer_WriteIntegerAsHex(pBuffer, pParameters->offset);
+ 421              		.loc 1 137 5 view .LVU90
+ 422 0018 2C21     		movs	r1, #44
+ 423 001a 2046     		mov	r0, r4
+ 424 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 425              	.LVL57:
+ 138:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 426              		.loc 1 138 5 view .LVU91
+ 427 0020 6968     		ldr	r1, [r5, #4]
+ 428 0022 2046     		mov	r0, r4
+ 429 0024 FFF7FEFF 		bl	mriBuffer_WriteIntegerAsHex
+ 430              	.LVL58:
+ 139:mri/core/cmd_file.c ****     Buffer_WriteIntegerAsHex(pBuffer, pParameters->whence);
+ 431              		.loc 1 139 5 view .LVU92
+ 432 0028 2C21     		movs	r1, #44
+ 433 002a 2046     		mov	r0, r4
+ 434 002c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 435              	.LVL59:
+ 140:mri/core/cmd_file.c **** 
+ARM GAS  /tmp/cc1tqFSF.s 			page 15
+
+
+ 436              		.loc 1 140 5 view .LVU93
+ 437 0030 A968     		ldr	r1, [r5, #8]
+ 438 0032 2046     		mov	r0, r4
+ 439 0034 FFF7FEFF 		bl	mriBuffer_WriteIntegerAsHex
+ 440              	.LVL60:
+ 142:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 441              		.loc 1 142 5 view .LVU94
+ 442 0038 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 443              	.LVL61:
+ 143:mri/core/cmd_file.c **** }
+ 444              		.loc 1 143 5 view .LVU95
+ 143:mri/core/cmd_file.c **** }
+ 445              		.loc 1 143 12 is_stmt 0 view .LVU96
+ 446 003c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 447              	.LVL62:
+ 144:mri/core/cmd_file.c **** 
+ 448              		.loc 1 144 1 view .LVU97
+ 449 0040 38BD     		pop	{r3, r4, r5, pc}
+ 450              	.LVL63:
+ 451              	.L26:
+ 144:mri/core/cmd_file.c **** 
+ 452              		.loc 1 144 1 view .LVU98
+ 453 0042 00BF     		.align	2
+ 454              	.L25:
+ 455 0044 00000000 		.word	gdbSeekCommand.5
+ 456              		.cfi_endproc
+ 457              	.LFE7:
+ 459              		.section	.text.mriIssueGdbFileFStatRequest,"ax",%progbits
+ 460              		.align	1
+ 461              		.global	mriIssueGdbFileFStatRequest
+ 462              		.syntax unified
+ 463              		.thumb
+ 464              		.thumb_func
+ 466              	mriIssueGdbFileFStatRequest:
+ 467              	.LVL64:
+ 468              	.LFB8:
+ 155:mri/core/cmd_file.c ****     static const char  gdbStatCommand[] = "Ffstat,";
+ 469              		.loc 1 155 1 is_stmt 1 view -0
+ 470              		.cfi_startproc
+ 471              		@ args = 0, pretend = 0, frame = 0
+ 472              		@ frame_needed = 0, uses_anonymous_args = 0
+ 155:mri/core/cmd_file.c ****     static const char  gdbStatCommand[] = "Ffstat,";
+ 473              		.loc 1 155 1 is_stmt 0 view .LVU100
+ 474 0000 70B5     		push	{r4, r5, r6, lr}
+ 475              	.LCFI6:
+ 476              		.cfi_def_cfa_offset 16
+ 477              		.cfi_offset 4, -16
+ 478              		.cfi_offset 5, -12
+ 479              		.cfi_offset 6, -8
+ 480              		.cfi_offset 14, -4
+ 481 0002 0646     		mov	r6, r0
+ 482 0004 0D46     		mov	r5, r1
+ 156:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 483              		.loc 1 156 5 is_stmt 1 view .LVU101
+ 157:mri/core/cmd_file.c **** 
+ 484              		.loc 1 157 5 view .LVU102
+ 157:mri/core/cmd_file.c **** 
+ARM GAS  /tmp/cc1tqFSF.s 			page 16
+
+
+ 485              		.loc 1 157 34 is_stmt 0 view .LVU103
+ 486 0006 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 487              	.LVL65:
+ 157:mri/core/cmd_file.c **** 
+ 488              		.loc 1 157 34 view .LVU104
+ 489 000a 0446     		mov	r4, r0
+ 490              	.LVL66:
+ 159:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, fileDescriptor);
+ 491              		.loc 1 159 5 is_stmt 1 view .LVU105
+ 492 000c 0949     		ldr	r1, .L29
+ 493 000e FFF7FEFF 		bl	mriBuffer_WriteString
+ 494              	.LVL67:
+ 160:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 495              		.loc 1 160 5 view .LVU106
+ 496 0012 3146     		mov	r1, r6
+ 497 0014 2046     		mov	r0, r4
+ 498 0016 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 499              	.LVL68:
+ 161:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, fileStatBuffer);
+ 500              		.loc 1 161 5 view .LVU107
+ 501 001a 2C21     		movs	r1, #44
+ 502 001c 2046     		mov	r0, r4
+ 503 001e FFF7FEFF 		bl	mriBuffer_WriteChar
+ 504              	.LVL69:
+ 162:mri/core/cmd_file.c **** 
+ 505              		.loc 1 162 5 view .LVU108
+ 506 0022 2946     		mov	r1, r5
+ 507 0024 2046     		mov	r0, r4
+ 508 0026 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 509              	.LVL70:
+ 164:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 510              		.loc 1 164 5 view .LVU109
+ 511 002a FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 512              	.LVL71:
+ 165:mri/core/cmd_file.c **** }
+ 513              		.loc 1 165 5 view .LVU110
+ 165:mri/core/cmd_file.c **** }
+ 514              		.loc 1 165 12 is_stmt 0 view .LVU111
+ 515 002e FFF7FEFF 		bl	processGdbFileResponseCommands
+ 516              	.LVL72:
+ 166:mri/core/cmd_file.c **** 
+ 517              		.loc 1 166 1 view .LVU112
+ 518 0032 70BD     		pop	{r4, r5, r6, pc}
+ 519              	.LVL73:
+ 520              	.L30:
+ 166:mri/core/cmd_file.c **** 
+ 521              		.loc 1 166 1 view .LVU113
+ 522              		.align	2
+ 523              	.L29:
+ 524 0034 00000000 		.word	gdbStatCommand.4
+ 525              		.cfi_endproc
+ 526              	.LFE8:
+ 528              		.section	.text.mriIssueGdbFileUnlinkRequest,"ax",%progbits
+ 529              		.align	1
+ 530              		.global	mriIssueGdbFileUnlinkRequest
+ 531              		.syntax unified
+ 532              		.thumb
+ARM GAS  /tmp/cc1tqFSF.s 			page 17
+
+
+ 533              		.thumb_func
+ 535              	mriIssueGdbFileUnlinkRequest:
+ 536              	.LVL74:
+ 537              	.LFB9:
+ 177:mri/core/cmd_file.c ****     static const char  gdbUnlinkCommand[] = "Funlink,";
+ 538              		.loc 1 177 1 is_stmt 1 view -0
+ 539              		.cfi_startproc
+ 540              		@ args = 0, pretend = 0, frame = 0
+ 541              		@ frame_needed = 0, uses_anonymous_args = 0
+ 177:mri/core/cmd_file.c ****     static const char  gdbUnlinkCommand[] = "Funlink,";
+ 542              		.loc 1 177 1 is_stmt 0 view .LVU115
+ 543 0000 38B5     		push	{r3, r4, r5, lr}
+ 544              	.LCFI7:
+ 545              		.cfi_def_cfa_offset 16
+ 546              		.cfi_offset 3, -16
+ 547              		.cfi_offset 4, -12
+ 548              		.cfi_offset 5, -8
+ 549              		.cfi_offset 14, -4
+ 550 0002 0546     		mov	r5, r0
+ 178:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 551              		.loc 1 178 5 is_stmt 1 view .LVU116
+ 179:mri/core/cmd_file.c **** 
+ 552              		.loc 1 179 5 view .LVU117
+ 179:mri/core/cmd_file.c **** 
+ 553              		.loc 1 179 34 is_stmt 0 view .LVU118
+ 554 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 555              	.LVL75:
+ 179:mri/core/cmd_file.c **** 
+ 556              		.loc 1 179 34 view .LVU119
+ 557 0008 0446     		mov	r4, r0
+ 558              	.LVL76:
+ 181:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameAddress);
+ 559              		.loc 1 181 5 is_stmt 1 view .LVU120
+ 560 000a 0A49     		ldr	r1, .L33
+ 561 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 562              	.LVL77:
+ 182:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 563              		.loc 1 182 5 view .LVU121
+ 564 0010 2968     		ldr	r1, [r5]
+ 565 0012 2046     		mov	r0, r4
+ 566 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 567              	.LVL78:
+ 183:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameLength);
+ 568              		.loc 1 183 5 view .LVU122
+ 569 0018 2F21     		movs	r1, #47
+ 570 001a 2046     		mov	r0, r4
+ 571 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 572              	.LVL79:
+ 184:mri/core/cmd_file.c **** 
+ 573              		.loc 1 184 5 view .LVU123
+ 574 0020 6968     		ldr	r1, [r5, #4]
+ 575 0022 2046     		mov	r0, r4
+ 576 0024 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 577              	.LVL80:
+ 186:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 578              		.loc 1 186 5 view .LVU124
+ 579 0028 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ARM GAS  /tmp/cc1tqFSF.s 			page 18
+
+
+ 580              	.LVL81:
+ 187:mri/core/cmd_file.c **** }
+ 581              		.loc 1 187 5 view .LVU125
+ 187:mri/core/cmd_file.c **** }
+ 582              		.loc 1 187 12 is_stmt 0 view .LVU126
+ 583 002c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 584              	.LVL82:
+ 188:mri/core/cmd_file.c **** 
+ 585              		.loc 1 188 1 view .LVU127
+ 586 0030 38BD     		pop	{r3, r4, r5, pc}
+ 587              	.LVL83:
+ 588              	.L34:
+ 188:mri/core/cmd_file.c **** 
+ 589              		.loc 1 188 1 view .LVU128
+ 590 0032 00BF     		.align	2
+ 591              	.L33:
+ 592 0034 00000000 		.word	gdbUnlinkCommand.3
+ 593              		.cfi_endproc
+ 594              	.LFE9:
+ 596              		.section	.text.mriIssueGdbFileStatRequest,"ax",%progbits
+ 597              		.align	1
+ 598              		.global	mriIssueGdbFileStatRequest
+ 599              		.syntax unified
+ 600              		.thumb
+ 601              		.thumb_func
+ 603              	mriIssueGdbFileStatRequest:
+ 604              	.LVL84:
+ 605              	.LFB10:
+ 200:mri/core/cmd_file.c ****     static const char  gdbStatCommand[] = "Fstat,";
+ 606              		.loc 1 200 1 is_stmt 1 view -0
+ 607              		.cfi_startproc
+ 608              		@ args = 0, pretend = 0, frame = 0
+ 609              		@ frame_needed = 0, uses_anonymous_args = 0
+ 200:mri/core/cmd_file.c ****     static const char  gdbStatCommand[] = "Fstat,";
+ 610              		.loc 1 200 1 is_stmt 0 view .LVU130
+ 611 0000 38B5     		push	{r3, r4, r5, lr}
+ 612              	.LCFI8:
+ 613              		.cfi_def_cfa_offset 16
+ 614              		.cfi_offset 3, -16
+ 615              		.cfi_offset 4, -12
+ 616              		.cfi_offset 5, -8
+ 617              		.cfi_offset 14, -4
+ 618 0002 0546     		mov	r5, r0
+ 201:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 619              		.loc 1 201 5 is_stmt 1 view .LVU131
+ 202:mri/core/cmd_file.c **** 
+ 620              		.loc 1 202 5 view .LVU132
+ 202:mri/core/cmd_file.c **** 
+ 621              		.loc 1 202 34 is_stmt 0 view .LVU133
+ 622 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 623              	.LVL85:
+ 202:mri/core/cmd_file.c **** 
+ 624              		.loc 1 202 34 view .LVU134
+ 625 0008 0446     		mov	r4, r0
+ 626              	.LVL86:
+ 204:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameAddress);
+ 627              		.loc 1 204 5 is_stmt 1 view .LVU135
+ARM GAS  /tmp/cc1tqFSF.s 			page 19
+
+
+ 628 000a 0E49     		ldr	r1, .L37
+ 629 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 630              	.LVL87:
+ 205:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 631              		.loc 1 205 5 view .LVU136
+ 632 0010 2968     		ldr	r1, [r5]
+ 633 0012 2046     		mov	r0, r4
+ 634 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 635              	.LVL88:
+ 206:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->filenameLength);
+ 636              		.loc 1 206 5 view .LVU137
+ 637 0018 2F21     		movs	r1, #47
+ 638 001a 2046     		mov	r0, r4
+ 639 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 640              	.LVL89:
+ 207:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 641              		.loc 1 207 5 view .LVU138
+ 642 0020 6968     		ldr	r1, [r5, #4]
+ 643 0022 2046     		mov	r0, r4
+ 644 0024 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 645              	.LVL90:
+ 208:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->fileStatBuffer);
+ 646              		.loc 1 208 5 view .LVU139
+ 647 0028 2C21     		movs	r1, #44
+ 648 002a 2046     		mov	r0, r4
+ 649 002c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 650              	.LVL91:
+ 209:mri/core/cmd_file.c **** 
+ 651              		.loc 1 209 5 view .LVU140
+ 652 0030 A968     		ldr	r1, [r5, #8]
+ 653 0032 2046     		mov	r0, r4
+ 654 0034 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 655              	.LVL92:
+ 211:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 656              		.loc 1 211 5 view .LVU141
+ 657 0038 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 658              	.LVL93:
+ 212:mri/core/cmd_file.c **** }
+ 659              		.loc 1 212 5 view .LVU142
+ 212:mri/core/cmd_file.c **** }
+ 660              		.loc 1 212 12 is_stmt 0 view .LVU143
+ 661 003c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 662              	.LVL94:
+ 213:mri/core/cmd_file.c **** 
+ 663              		.loc 1 213 1 view .LVU144
+ 664 0040 38BD     		pop	{r3, r4, r5, pc}
+ 665              	.LVL95:
+ 666              	.L38:
+ 213:mri/core/cmd_file.c **** 
+ 667              		.loc 1 213 1 view .LVU145
+ 668 0042 00BF     		.align	2
+ 669              	.L37:
+ 670 0044 00000000 		.word	gdbStatCommand.2
+ 671              		.cfi_endproc
+ 672              	.LFE10:
+ 674              		.section	.text.mriIssueGdbFileRenameRequest,"ax",%progbits
+ 675              		.align	1
+ARM GAS  /tmp/cc1tqFSF.s 			page 20
+
+
+ 676              		.global	mriIssueGdbFileRenameRequest
+ 677              		.syntax unified
+ 678              		.thumb
+ 679              		.thumb_func
+ 681              	mriIssueGdbFileRenameRequest:
+ 682              	.LVL96:
+ 683              	.LFB11:
+ 226:mri/core/cmd_file.c ****     static const char  gdbCommand[] = "Frename,";
+ 684              		.loc 1 226 1 is_stmt 1 view -0
+ 685              		.cfi_startproc
+ 686              		@ args = 0, pretend = 0, frame = 0
+ 687              		@ frame_needed = 0, uses_anonymous_args = 0
+ 226:mri/core/cmd_file.c ****     static const char  gdbCommand[] = "Frename,";
+ 688              		.loc 1 226 1 is_stmt 0 view .LVU147
+ 689 0000 38B5     		push	{r3, r4, r5, lr}
+ 690              	.LCFI9:
+ 691              		.cfi_def_cfa_offset 16
+ 692              		.cfi_offset 3, -16
+ 693              		.cfi_offset 4, -12
+ 694              		.cfi_offset 5, -8
+ 695              		.cfi_offset 14, -4
+ 696 0002 0546     		mov	r5, r0
+ 227:mri/core/cmd_file.c ****     Buffer*            pBuffer = GetInitializedBuffer();
+ 697              		.loc 1 227 5 is_stmt 1 view .LVU148
+ 228:mri/core/cmd_file.c **** 
+ 698              		.loc 1 228 5 view .LVU149
+ 228:mri/core/cmd_file.c **** 
+ 699              		.loc 1 228 34 is_stmt 0 view .LVU150
+ 700 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 701              	.LVL97:
+ 228:mri/core/cmd_file.c **** 
+ 702              		.loc 1 228 34 view .LVU151
+ 703 0008 0446     		mov	r4, r0
+ 704              	.LVL98:
+ 230:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->origFilenameAddress);
+ 705              		.loc 1 230 5 is_stmt 1 view .LVU152
+ 706 000a 1249     		ldr	r1, .L41
+ 707 000c FFF7FEFF 		bl	mriBuffer_WriteString
+ 708              	.LVL99:
+ 231:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 709              		.loc 1 231 5 view .LVU153
+ 710 0010 2968     		ldr	r1, [r5]
+ 711 0012 2046     		mov	r0, r4
+ 712 0014 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 713              	.LVL100:
+ 232:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->origFilenameLength);
+ 714              		.loc 1 232 5 view .LVU154
+ 715 0018 2F21     		movs	r1, #47
+ 716 001a 2046     		mov	r0, r4
+ 717 001c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 718              	.LVL101:
+ 233:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, ',');
+ 719              		.loc 1 233 5 view .LVU155
+ 720 0020 6968     		ldr	r1, [r5, #4]
+ 721 0022 2046     		mov	r0, r4
+ 722 0024 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 723              	.LVL102:
+ARM GAS  /tmp/cc1tqFSF.s 			page 21
+
+
+ 234:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->newFilenameAddress);
+ 724              		.loc 1 234 5 view .LVU156
+ 725 0028 2C21     		movs	r1, #44
+ 726 002a 2046     		mov	r0, r4
+ 727 002c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 728              	.LVL103:
+ 235:mri/core/cmd_file.c ****     Buffer_WriteChar(pBuffer, '/');
+ 729              		.loc 1 235 5 view .LVU157
+ 730 0030 A968     		ldr	r1, [r5, #8]
+ 731 0032 2046     		mov	r0, r4
+ 732 0034 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 733              	.LVL104:
+ 236:mri/core/cmd_file.c ****     Buffer_WriteUIntegerAsHex(pBuffer, pParameters->newFilenameLength);
+ 734              		.loc 1 236 5 view .LVU158
+ 735 0038 2F21     		movs	r1, #47
+ 736 003a 2046     		mov	r0, r4
+ 737 003c FFF7FEFF 		bl	mriBuffer_WriteChar
+ 738              	.LVL105:
+ 237:mri/core/cmd_file.c **** 
+ 739              		.loc 1 237 5 view .LVU159
+ 740 0040 E968     		ldr	r1, [r5, #12]
+ 741 0042 2046     		mov	r0, r4
+ 742 0044 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 743              	.LVL106:
+ 239:mri/core/cmd_file.c ****     return processGdbFileResponseCommands();
+ 744              		.loc 1 239 5 view .LVU160
+ 745 0048 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 746              	.LVL107:
+ 240:mri/core/cmd_file.c **** }
+ 747              		.loc 1 240 5 view .LVU161
+ 240:mri/core/cmd_file.c **** }
+ 748              		.loc 1 240 12 is_stmt 0 view .LVU162
+ 749 004c FFF7FEFF 		bl	processGdbFileResponseCommands
+ 750              	.LVL108:
+ 241:mri/core/cmd_file.c **** 
+ 751              		.loc 1 241 1 view .LVU163
+ 752 0050 38BD     		pop	{r3, r4, r5, pc}
+ 753              	.LVL109:
+ 754              	.L42:
+ 241:mri/core/cmd_file.c **** 
+ 755              		.loc 1 241 1 view .LVU164
+ 756 0052 00BF     		.align	2
+ 757              	.L41:
+ 758 0054 00000000 		.word	gdbCommand.1
+ 759              		.cfi_endproc
+ 760              	.LFE11:
+ 762              		.section	.text.mriHandleFileIOCommand,"ax",%progbits
+ 763              		.align	1
+ 764              		.global	mriHandleFileIOCommand
+ 765              		.syntax unified
+ 766              		.thumb
+ 767              		.thumb_func
+ 769              	mriHandleFileIOCommand:
+ 770              	.LFB12:
+ 254:mri/core/cmd_file.c ****     static const char controlCFlag[] = ",C";
+ 771              		.loc 1 254 1 is_stmt 1 view -0
+ 772              		.cfi_startproc
+ARM GAS  /tmp/cc1tqFSF.s 			page 22
+
+
+ 773              		@ args = 0, pretend = 0, frame = 0
+ 774              		@ frame_needed = 0, uses_anonymous_args = 0
+ 775 0000 70B5     		push	{r4, r5, r6, lr}
+ 776              	.LCFI10:
+ 777              		.cfi_def_cfa_offset 16
+ 778              		.cfi_offset 4, -16
+ 779              		.cfi_offset 5, -12
+ 780              		.cfi_offset 6, -8
+ 781              		.cfi_offset 14, -4
+ 255:mri/core/cmd_file.c ****     Buffer*           pBuffer = GetBuffer();
+ 782              		.loc 1 255 5 view .LVU166
+ 256:mri/core/cmd_file.c ****     int               returnCode = -1;
+ 783              		.loc 1 256 5 view .LVU167
+ 256:mri/core/cmd_file.c ****     int               returnCode = -1;
+ 784              		.loc 1 256 33 is_stmt 0 view .LVU168
+ 785 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 786              	.LVL110:
+ 787 0006 0446     		mov	r4, r0
+ 788              	.LVL111:
+ 257:mri/core/cmd_file.c ****     int               errNo = 0;
+ 789              		.loc 1 257 5 is_stmt 1 view .LVU169
+ 258:mri/core/cmd_file.c ****     int               controlC = 0;
+ 790              		.loc 1 258 5 view .LVU170
+ 259:mri/core/cmd_file.c **** 
+ 791              		.loc 1 259 5 view .LVU171
+ 261:mri/core/cmd_file.c ****     if (Buffer_IsNextCharEqualTo(pBuffer, ','))
+ 792              		.loc 1 261 5 view .LVU172
+ 261:mri/core/cmd_file.c ****     if (Buffer_IsNextCharEqualTo(pBuffer, ','))
+ 793              		.loc 1 261 18 is_stmt 0 view .LVU173
+ 794 0008 FFF7FEFF 		bl	mriBuffer_ReadIntegerAsHex
+ 795              	.LVL112:
+ 261:mri/core/cmd_file.c ****     if (Buffer_IsNextCharEqualTo(pBuffer, ','))
+ 796              		.loc 1 261 18 view .LVU174
+ 797 000c 0546     		mov	r5, r0
+ 798              	.LVL113:
+ 262:mri/core/cmd_file.c ****     {
+ 799              		.loc 1 262 5 is_stmt 1 view .LVU175
+ 262:mri/core/cmd_file.c ****     {
+ 800              		.loc 1 262 9 is_stmt 0 view .LVU176
+ 801 000e 2C21     		movs	r1, #44
+ 802 0010 2046     		mov	r0, r4
+ 803              	.LVL114:
+ 262:mri/core/cmd_file.c ****     {
+ 804              		.loc 1 262 9 view .LVU177
+ 805 0012 FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 806              	.LVL115:
+ 262:mri/core/cmd_file.c ****     {
+ 807              		.loc 1 262 8 view .LVU178
+ 808 0016 68B9     		cbnz	r0, .L47
+ 809 0018 0646     		mov	r6, r0
+ 259:mri/core/cmd_file.c **** 
+ 810              		.loc 1 259 23 view .LVU179
+ 811 001a 0446     		mov	r4, r0
+ 812              	.LVL116:
+ 813              	.L44:
+ 268:mri/core/cmd_file.c ****     RecordControlCFlagSentFromGdb(controlC);
+ 814              		.loc 1 268 5 is_stmt 1 view .LVU180
+ARM GAS  /tmp/cc1tqFSF.s 			page 23
+
+
+ 815 001c 3146     		mov	r1, r6
+ 816 001e 2846     		mov	r0, r5
+ 817 0020 FFF7FEFF 		bl	mriCore_SetSemihostReturnValues
+ 818              	.LVL117:
+ 269:mri/core/cmd_file.c ****     clearExceptionCode();
+ 819              		.loc 1 269 5 view .LVU181
+ 820 0024 2046     		mov	r0, r4
+ 821 0026 FFF7FEFF 		bl	mriCore_RecordControlCFlagSentFromGdb
+ 822              	.LVL118:
+ 270:mri/core/cmd_file.c **** 
+ 823              		.loc 1 270 5 view .LVU182
+ 824              	.LBB4:
+ 825              	.LBI4:
+ 826              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+ARM GAS  /tmp/cc1tqFSF.s 			page 24
+
+
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+ 827              		.loc 2 76 20 view .LVU183
+ 828              	.LBB5:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+ 829              		.loc 2 78 5 view .LVU184
+ 830              		.loc 2 78 22 is_stmt 0 view .LVU185
+ 831 002a 084B     		ldr	r3, .L48
+ 832 002c 0022     		movs	r2, #0
+ 833 002e 1A60     		str	r2, [r3]
+ 834              	.LBE5:
+ 835              	.LBE4:
+ 272:mri/core/cmd_file.c **** }
+ 836              		.loc 1 272 5 is_stmt 1 view .LVU186
+ 273:mri/core/cmd_file.c **** 
+ 837              		.loc 1 273 1 is_stmt 0 view .LVU187
+ 838 0030 0320     		movs	r0, #3
+ 839 0032 70BD     		pop	{r4, r5, r6, pc}
+ 840              	.LVL119:
+ 841              	.L47:
+ 264:mri/core/cmd_file.c ****         controlC = Buffer_MatchesString(pBuffer, controlCFlag, sizeof(controlCFlag)-1);
+ 842              		.loc 1 264 9 is_stmt 1 view .LVU188
+ 264:mri/core/cmd_file.c ****         controlC = Buffer_MatchesString(pBuffer, controlCFlag, sizeof(controlCFlag)-1);
+ 843              		.loc 1 264 17 is_stmt 0 view .LVU189
+ 844 0034 2046     		mov	r0, r4
+ARM GAS  /tmp/cc1tqFSF.s 			page 25
+
+
+ 845 0036 FFF7FEFF 		bl	mriBuffer_ReadIntegerAsHex
+ 846              	.LVL120:
+ 847 003a 0646     		mov	r6, r0
+ 848              	.LVL121:
+ 265:mri/core/cmd_file.c ****     }
+ 849              		.loc 1 265 9 is_stmt 1 view .LVU190
+ 265:mri/core/cmd_file.c ****     }
+ 850              		.loc 1 265 20 is_stmt 0 view .LVU191
+ 851 003c 0222     		movs	r2, #2
+ 852 003e 0449     		ldr	r1, .L48+4
+ 853 0040 2046     		mov	r0, r4
+ 854              	.LVL122:
+ 265:mri/core/cmd_file.c ****     }
+ 855              		.loc 1 265 20 view .LVU192
+ 856 0042 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 857              	.LVL123:
+ 858 0046 0446     		mov	r4, r0
+ 859              	.LVL124:
+ 265:mri/core/cmd_file.c ****     }
+ 860              		.loc 1 265 20 view .LVU193
+ 861 0048 E8E7     		b	.L44
+ 862              	.L49:
+ 863 004a 00BF     		.align	2
+ 864              	.L48:
+ 865 004c 00000000 		.word	mriExceptionCode
+ 866 0050 00000000 		.word	controlCFlag.0
+ 867              		.cfi_endproc
+ 868              	.LFE12:
+ 870              		.section	.rodata.controlCFlag.0,"a"
+ 871              		.align	2
+ 874              	controlCFlag.0:
+ 875 0000 2C4300   		.ascii	",C\000"
+ 876              		.section	.rodata.gdbCommand.1,"a"
+ 877              		.align	2
+ 880              	gdbCommand.1:
+ 881 0000 4672656E 		.ascii	"Frename,\000"
+ 881      616D652C 
+ 881      00
+ 882              		.section	.rodata.gdbStatCommand.2,"a"
+ 883              		.align	2
+ 886              	gdbStatCommand.2:
+ 887 0000 46737461 		.ascii	"Fstat,\000"
+ 887      742C00
+ 888              		.section	.rodata.gdbUnlinkCommand.3,"a"
+ 889              		.align	2
+ 892              	gdbUnlinkCommand.3:
+ 893 0000 46756E6C 		.ascii	"Funlink,\000"
+ 893      696E6B2C 
+ 893      00
+ 894              		.section	.rodata.gdbStatCommand.4,"a"
+ 895              		.align	2
+ 898              	gdbStatCommand.4:
+ 899 0000 46667374 		.ascii	"Ffstat,\000"
+ 899      61742C00 
+ 900              		.section	.rodata.gdbSeekCommand.5,"a"
+ 901              		.align	2
+ 904              	gdbSeekCommand.5:
+ARM GAS  /tmp/cc1tqFSF.s 			page 26
+
+
+ 905 0000 466C7365 		.ascii	"Flseek,\000"
+ 905      656B2C00 
+ 906              		.section	.rodata.gdbCloseCommand.6,"a"
+ 907              		.align	2
+ 910              	gdbCloseCommand.6:
+ 911 0000 46636C6F 		.ascii	"Fclose,\000"
+ 911      73652C00 
+ 912              		.section	.rodata.gdbReadCommand.7,"a"
+ 913              		.align	2
+ 916              	gdbReadCommand.7:
+ 917 0000 46726561 		.ascii	"Fread,\000"
+ 917      642C00
+ 918              		.section	.rodata.gdbWriteCommand.8,"a"
+ 919              		.align	2
+ 922              	gdbWriteCommand.8:
+ 923 0000 46777269 		.ascii	"Fwrite,\000"
+ 923      74652C00 
+ 924              		.section	.rodata.gdbOpenCommand.9,"a"
+ 925              		.align	2
+ 928              	gdbOpenCommand.9:
+ 929 0000 466F7065 		.ascii	"Fopen,\000"
+ 929      6E2C00
+ 930              		.text
+ 931              	.Letext0:
+ 932              		.file 3 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 933              		.file 4 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 934              		.file 5 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 935              		.file 6 "mri/core/buffer.h"
+ 936              		.file 7 "mri/core/cmd_file.h"
+ 937              		.file 8 "mri/core/core.h"
+ARM GAS  /tmp/cc1tqFSF.s 			page 27
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cmd_file.c
+     /tmp/cc1tqFSF.s:21     .text.processGdbFileResponseCommands:0000000000000000 $t
+     /tmp/cc1tqFSF.s:26     .text.processGdbFileResponseCommands:0000000000000000 processGdbFileResponseCommands
+     /tmp/cc1tqFSF.s:80     .text.mriIssueGdbFileOpenRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:86     .text.mriIssueGdbFileOpenRequest:0000000000000000 mriIssueGdbFileOpenRequest
+     /tmp/cc1tqFSF.s:163    .text.mriIssueGdbFileOpenRequest:0000000000000054 $d
+     /tmp/cc1tqFSF.s:928    .rodata.gdbOpenCommand.9:0000000000000000 gdbOpenCommand.9
+     /tmp/cc1tqFSF.s:168    .text.mriIssueGdbFileWriteRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:174    .text.mriIssueGdbFileWriteRequest:0000000000000000 mriIssueGdbFileWriteRequest
+     /tmp/cc1tqFSF.s:241    .text.mriIssueGdbFileWriteRequest:0000000000000044 $d
+     /tmp/cc1tqFSF.s:922    .rodata.gdbWriteCommand.8:0000000000000000 gdbWriteCommand.8
+     /tmp/cc1tqFSF.s:246    .text.mriIssueGdbFileReadRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:252    .text.mriIssueGdbFileReadRequest:0000000000000000 mriIssueGdbFileReadRequest
+     /tmp/cc1tqFSF.s:319    .text.mriIssueGdbFileReadRequest:0000000000000044 $d
+     /tmp/cc1tqFSF.s:916    .rodata.gdbReadCommand.7:0000000000000000 gdbReadCommand.7
+     /tmp/cc1tqFSF.s:324    .text.mriIssueGdbFileCloseRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:330    .text.mriIssueGdbFileCloseRequest:0000000000000000 mriIssueGdbFileCloseRequest
+     /tmp/cc1tqFSF.s:377    .text.mriIssueGdbFileCloseRequest:0000000000000024 $d
+     /tmp/cc1tqFSF.s:910    .rodata.gdbCloseCommand.6:0000000000000000 gdbCloseCommand.6
+     /tmp/cc1tqFSF.s:382    .text.mriIssueGdbFileSeekRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:388    .text.mriIssueGdbFileSeekRequest:0000000000000000 mriIssueGdbFileSeekRequest
+     /tmp/cc1tqFSF.s:455    .text.mriIssueGdbFileSeekRequest:0000000000000044 $d
+     /tmp/cc1tqFSF.s:904    .rodata.gdbSeekCommand.5:0000000000000000 gdbSeekCommand.5
+     /tmp/cc1tqFSF.s:460    .text.mriIssueGdbFileFStatRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:466    .text.mriIssueGdbFileFStatRequest:0000000000000000 mriIssueGdbFileFStatRequest
+     /tmp/cc1tqFSF.s:524    .text.mriIssueGdbFileFStatRequest:0000000000000034 $d
+     /tmp/cc1tqFSF.s:898    .rodata.gdbStatCommand.4:0000000000000000 gdbStatCommand.4
+     /tmp/cc1tqFSF.s:529    .text.mriIssueGdbFileUnlinkRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:535    .text.mriIssueGdbFileUnlinkRequest:0000000000000000 mriIssueGdbFileUnlinkRequest
+     /tmp/cc1tqFSF.s:592    .text.mriIssueGdbFileUnlinkRequest:0000000000000034 $d
+     /tmp/cc1tqFSF.s:892    .rodata.gdbUnlinkCommand.3:0000000000000000 gdbUnlinkCommand.3
+     /tmp/cc1tqFSF.s:597    .text.mriIssueGdbFileStatRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:603    .text.mriIssueGdbFileStatRequest:0000000000000000 mriIssueGdbFileStatRequest
+     /tmp/cc1tqFSF.s:670    .text.mriIssueGdbFileStatRequest:0000000000000044 $d
+     /tmp/cc1tqFSF.s:886    .rodata.gdbStatCommand.2:0000000000000000 gdbStatCommand.2
+     /tmp/cc1tqFSF.s:675    .text.mriIssueGdbFileRenameRequest:0000000000000000 $t
+     /tmp/cc1tqFSF.s:681    .text.mriIssueGdbFileRenameRequest:0000000000000000 mriIssueGdbFileRenameRequest
+     /tmp/cc1tqFSF.s:758    .text.mriIssueGdbFileRenameRequest:0000000000000054 $d
+     /tmp/cc1tqFSF.s:880    .rodata.gdbCommand.1:0000000000000000 gdbCommand.1
+     /tmp/cc1tqFSF.s:763    .text.mriHandleFileIOCommand:0000000000000000 $t
+     /tmp/cc1tqFSF.s:769    .text.mriHandleFileIOCommand:0000000000000000 mriHandleFileIOCommand
+     /tmp/cc1tqFSF.s:865    .text.mriHandleFileIOCommand:000000000000004c $d
+     /tmp/cc1tqFSF.s:874    .rodata.controlCFlag.0:0000000000000000 controlCFlag.0
+     /tmp/cc1tqFSF.s:871    .rodata.controlCFlag.0:0000000000000000 $d
+     /tmp/cc1tqFSF.s:877    .rodata.gdbCommand.1:0000000000000000 $d
+     /tmp/cc1tqFSF.s:883    .rodata.gdbStatCommand.2:0000000000000000 $d
+     /tmp/cc1tqFSF.s:889    .rodata.gdbUnlinkCommand.3:0000000000000000 $d
+     /tmp/cc1tqFSF.s:895    .rodata.gdbStatCommand.4:0000000000000000 $d
+     /tmp/cc1tqFSF.s:901    .rodata.gdbSeekCommand.5:0000000000000000 $d
+     /tmp/cc1tqFSF.s:907    .rodata.gdbCloseCommand.6:0000000000000000 $d
+     /tmp/cc1tqFSF.s:913    .rodata.gdbReadCommand.7:0000000000000000 $d
+     /tmp/cc1tqFSF.s:919    .rodata.gdbWriteCommand.8:0000000000000000 $d
+     /tmp/cc1tqFSF.s:925    .rodata.gdbOpenCommand.9:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+mriCore_GdbCommandHandlingLoop
+ARM GAS  /tmp/cc1tqFSF.s 			page 28
+
+
+mriCore_WasControlCFlagSentFromGdb
+mriCore_WasSemihostCallCancelledByGdb
+mriCore_SetSignalValue
+mriCore_FlagSemihostCallAsHandled
+mriCore_GetInitializedBuffer
+mriBuffer_WriteString
+mriBuffer_WriteUIntegerAsHex
+mriBuffer_WriteChar
+mriCore_SendPacketToGdb
+mriBuffer_WriteIntegerAsHex
+mriCore_GetBuffer
+mriBuffer_ReadIntegerAsHex
+mriBuffer_IsNextCharEqualTo
+mriCore_SetSemihostReturnValues
+mriCore_RecordControlCFlagSentFromGdb
+mriBuffer_MatchesString
+mriExceptionCode

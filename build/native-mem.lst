@@ -1,0 +1,230 @@
+ARM GAS  /tmp/cc7Wmniy.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"native-mem.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/memory/native/native-mem.c"
+  20              		.section	.text.mriPlatform_MemRead32,"ax",%progbits
+  21              		.align	1
+  22              		.global	mriPlatform_MemRead32
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	mriPlatform_MemRead32:
+  28              	.LVL0:
+  29              	.LFB3:
+   1:mri/memory/native/native-mem.c **** /* Copyright 2013 Adam Green (https://github.com/adamgreen/)
+   2:mri/memory/native/native-mem.c **** 
+   3:mri/memory/native/native-mem.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/memory/native/native-mem.c ****    you may not use this file except in compliance with the License.
+   5:mri/memory/native/native-mem.c ****    You may obtain a copy of the License at
+   6:mri/memory/native/native-mem.c **** 
+   7:mri/memory/native/native-mem.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/memory/native/native-mem.c **** 
+   9:mri/memory/native/native-mem.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/memory/native/native-mem.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/memory/native/native-mem.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/memory/native/native-mem.c ****    See the License for the specific language governing permissions and
+  13:mri/memory/native/native-mem.c ****    limitations under the License.
+  14:mri/memory/native/native-mem.c **** */
+  15:mri/memory/native/native-mem.c **** /* Routines to access memory on target device when running on target itself. */
+  16:mri/memory/native/native-mem.c **** #include <core/platforms.h>
+  17:mri/memory/native/native-mem.c **** 
+  18:mri/memory/native/native-mem.c **** uint32_t Platform_MemRead32(const void* pv)
+  19:mri/memory/native/native-mem.c **** {
+  30              		.loc 1 19 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  20:mri/memory/native/native-mem.c ****     return  *(volatile const uint32_t*)pv;
+  35              		.loc 1 20 5 view .LVU1
+  36              		.loc 1 20 13 is_stmt 0 view .LVU2
+  37 0000 0068     		ldr	r0, [r0]
+  38              	.LVL1:
+ARM GAS  /tmp/cc7Wmniy.s 			page 2
+
+
+  21:mri/memory/native/native-mem.c **** }
+  39              		.loc 1 21 1 view .LVU3
+  40 0002 7047     		bx	lr
+  41              		.cfi_endproc
+  42              	.LFE3:
+  44              		.section	.text.mriPlatform_MemRead16,"ax",%progbits
+  45              		.align	1
+  46              		.global	mriPlatform_MemRead16
+  47              		.syntax unified
+  48              		.thumb
+  49              		.thumb_func
+  51              	mriPlatform_MemRead16:
+  52              	.LVL2:
+  53              	.LFB4:
+  22:mri/memory/native/native-mem.c **** 
+  23:mri/memory/native/native-mem.c **** uint16_t Platform_MemRead16(const void* pv)
+  24:mri/memory/native/native-mem.c **** {
+  54              		.loc 1 24 1 is_stmt 1 view -0
+  55              		.cfi_startproc
+  56              		@ args = 0, pretend = 0, frame = 0
+  57              		@ frame_needed = 0, uses_anonymous_args = 0
+  58              		@ link register save eliminated.
+  25:mri/memory/native/native-mem.c ****     return  *(volatile const uint16_t*)pv;
+  59              		.loc 1 25 5 view .LVU5
+  60              		.loc 1 25 13 is_stmt 0 view .LVU6
+  61 0000 0088     		ldrh	r0, [r0]
+  62              	.LVL3:
+  26:mri/memory/native/native-mem.c **** }
+  63              		.loc 1 26 1 view .LVU7
+  64 0002 80B2     		uxth	r0, r0
+  65 0004 7047     		bx	lr
+  66              		.cfi_endproc
+  67              	.LFE4:
+  69              		.section	.text.mriPlatform_MemRead8,"ax",%progbits
+  70              		.align	1
+  71              		.global	mriPlatform_MemRead8
+  72              		.syntax unified
+  73              		.thumb
+  74              		.thumb_func
+  76              	mriPlatform_MemRead8:
+  77              	.LVL4:
+  78              	.LFB5:
+  27:mri/memory/native/native-mem.c **** 
+  28:mri/memory/native/native-mem.c **** uint8_t Platform_MemRead8(const void* pv)
+  29:mri/memory/native/native-mem.c **** {
+  79              		.loc 1 29 1 is_stmt 1 view -0
+  80              		.cfi_startproc
+  81              		@ args = 0, pretend = 0, frame = 0
+  82              		@ frame_needed = 0, uses_anonymous_args = 0
+  83              		@ link register save eliminated.
+  30:mri/memory/native/native-mem.c ****     return  *(volatile const uint8_t*)pv;
+  84              		.loc 1 30 5 view .LVU9
+  85              		.loc 1 30 13 is_stmt 0 view .LVU10
+  86 0000 0078     		ldrb	r0, [r0]	@ zero_extendqisi2
+  87              	.LVL5:
+  31:mri/memory/native/native-mem.c **** }
+  88              		.loc 1 31 1 view .LVU11
+ARM GAS  /tmp/cc7Wmniy.s 			page 3
+
+
+  89 0002 7047     		bx	lr
+  90              		.cfi_endproc
+  91              	.LFE5:
+  93              		.section	.text.mriPlatform_MemWrite32,"ax",%progbits
+  94              		.align	1
+  95              		.global	mriPlatform_MemWrite32
+  96              		.syntax unified
+  97              		.thumb
+  98              		.thumb_func
+ 100              	mriPlatform_MemWrite32:
+ 101              	.LVL6:
+ 102              	.LFB6:
+  32:mri/memory/native/native-mem.c **** 
+  33:mri/memory/native/native-mem.c **** void Platform_MemWrite32(void* pv, uint32_t value)
+  34:mri/memory/native/native-mem.c **** {
+ 103              		.loc 1 34 1 is_stmt 1 view -0
+ 104              		.cfi_startproc
+ 105              		@ args = 0, pretend = 0, frame = 0
+ 106              		@ frame_needed = 0, uses_anonymous_args = 0
+ 107              		@ link register save eliminated.
+  35:mri/memory/native/native-mem.c ****     *(volatile uint32_t*)pv = value;
+ 108              		.loc 1 35 5 view .LVU13
+ 109              		.loc 1 35 29 is_stmt 0 view .LVU14
+ 110 0000 0160     		str	r1, [r0]
+  36:mri/memory/native/native-mem.c **** }
+ 111              		.loc 1 36 1 view .LVU15
+ 112 0002 7047     		bx	lr
+ 113              		.cfi_endproc
+ 114              	.LFE6:
+ 116              		.section	.text.mriPlatform_MemWrite16,"ax",%progbits
+ 117              		.align	1
+ 118              		.global	mriPlatform_MemWrite16
+ 119              		.syntax unified
+ 120              		.thumb
+ 121              		.thumb_func
+ 123              	mriPlatform_MemWrite16:
+ 124              	.LVL7:
+ 125              	.LFB7:
+  37:mri/memory/native/native-mem.c **** 
+  38:mri/memory/native/native-mem.c **** void Platform_MemWrite16(void* pv, uint16_t value)
+  39:mri/memory/native/native-mem.c **** {
+ 126              		.loc 1 39 1 is_stmt 1 view -0
+ 127              		.cfi_startproc
+ 128              		@ args = 0, pretend = 0, frame = 0
+ 129              		@ frame_needed = 0, uses_anonymous_args = 0
+ 130              		@ link register save eliminated.
+  40:mri/memory/native/native-mem.c ****     *(volatile uint16_t*)pv = value;
+ 131              		.loc 1 40 5 view .LVU17
+ 132              		.loc 1 40 29 is_stmt 0 view .LVU18
+ 133 0000 0180     		strh	r1, [r0]	@ movhi
+  41:mri/memory/native/native-mem.c **** }
+ 134              		.loc 1 41 1 view .LVU19
+ 135 0002 7047     		bx	lr
+ 136              		.cfi_endproc
+ 137              	.LFE7:
+ 139              		.section	.text.mriPlatform_MemWrite8,"ax",%progbits
+ 140              		.align	1
+ARM GAS  /tmp/cc7Wmniy.s 			page 4
+
+
+ 141              		.global	mriPlatform_MemWrite8
+ 142              		.syntax unified
+ 143              		.thumb
+ 144              		.thumb_func
+ 146              	mriPlatform_MemWrite8:
+ 147              	.LVL8:
+ 148              	.LFB8:
+  42:mri/memory/native/native-mem.c **** 
+  43:mri/memory/native/native-mem.c **** void Platform_MemWrite8(void* pv, uint8_t value)
+  44:mri/memory/native/native-mem.c **** {
+ 149              		.loc 1 44 1 is_stmt 1 view -0
+ 150              		.cfi_startproc
+ 151              		@ args = 0, pretend = 0, frame = 0
+ 152              		@ frame_needed = 0, uses_anonymous_args = 0
+ 153              		@ link register save eliminated.
+  45:mri/memory/native/native-mem.c ****     *(volatile uint8_t*)pv = value;
+ 154              		.loc 1 45 5 view .LVU21
+ 155              		.loc 1 45 28 is_stmt 0 view .LVU22
+ 156 0000 0170     		strb	r1, [r0]
+  46:mri/memory/native/native-mem.c **** }
+ 157              		.loc 1 46 1 view .LVU23
+ 158 0002 7047     		bx	lr
+ 159              		.cfi_endproc
+ 160              	.LFE8:
+ 162              		.text
+ 163              	.Letext0:
+ 164              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 165              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ARM GAS  /tmp/cc7Wmniy.s 			page 5
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 native-mem.c
+     /tmp/cc7Wmniy.s:21     .text.mriPlatform_MemRead32:0000000000000000 $t
+     /tmp/cc7Wmniy.s:27     .text.mriPlatform_MemRead32:0000000000000000 mriPlatform_MemRead32
+     /tmp/cc7Wmniy.s:45     .text.mriPlatform_MemRead16:0000000000000000 $t
+     /tmp/cc7Wmniy.s:51     .text.mriPlatform_MemRead16:0000000000000000 mriPlatform_MemRead16
+     /tmp/cc7Wmniy.s:70     .text.mriPlatform_MemRead8:0000000000000000 $t
+     /tmp/cc7Wmniy.s:76     .text.mriPlatform_MemRead8:0000000000000000 mriPlatform_MemRead8
+     /tmp/cc7Wmniy.s:94     .text.mriPlatform_MemWrite32:0000000000000000 $t
+     /tmp/cc7Wmniy.s:100    .text.mriPlatform_MemWrite32:0000000000000000 mriPlatform_MemWrite32
+     /tmp/cc7Wmniy.s:117    .text.mriPlatform_MemWrite16:0000000000000000 $t
+     /tmp/cc7Wmniy.s:123    .text.mriPlatform_MemWrite16:0000000000000000 mriPlatform_MemWrite16
+     /tmp/cc7Wmniy.s:140    .text.mriPlatform_MemWrite8:0000000000000000 $t
+     /tmp/cc7Wmniy.s:146    .text.mriPlatform_MemWrite8:0000000000000000 mriPlatform_MemWrite8
+
+NO UNDEFINED SYMBOLS

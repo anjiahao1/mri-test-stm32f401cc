@@ -1,0 +1,378 @@
+ARM GAS  /tmp/ccmHAPcC.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"cmd_step.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/cmd_step.c"
+  20              		.section	.text.justAdvancedPastBreakpoint,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	justAdvancedPastBreakpoint:
+  27              	.LVL0:
+  28              	.LFB4:
+   1:mri/core/cmd_step.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/cmd_step.c **** 
+   3:mri/core/cmd_step.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/cmd_step.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/cmd_step.c ****    You may obtain a copy of the License at
+   6:mri/core/cmd_step.c **** 
+   7:mri/core/cmd_step.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/cmd_step.c **** 
+   9:mri/core/cmd_step.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/cmd_step.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/cmd_step.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/cmd_step.c ****    See the License for the specific language governing permissions and
+  13:mri/core/cmd_step.c ****    limitations under the License.
+  14:mri/core/cmd_step.c **** */
+  15:mri/core/cmd_step.c **** /* Handler for single step gdb command. */
+  16:mri/core/cmd_step.c **** #include <core/platforms.h>
+  17:mri/core/cmd_step.c **** #include <core/cmd_common.h>
+  18:mri/core/cmd_step.c **** #include <core/cmd_continue.h>
+  19:mri/core/cmd_step.c **** #include <core/cmd_registers.h>
+  20:mri/core/cmd_step.c **** #include <core/cmd_step.h>
+  21:mri/core/cmd_step.c **** 
+  22:mri/core/cmd_step.c **** 
+  23:mri/core/cmd_step.c **** static uint32_t justAdvancedPastBreakpoint(uint32_t continueReturn);
+  24:mri/core/cmd_step.c **** /* Handle the 's' command which is sent from gdb to tell the debugger to single step over the next 
+  25:mri/core/cmd_step.c ****    currently halted program.
+  26:mri/core/cmd_step.c **** 
+  27:mri/core/cmd_step.c ****     Command Format:     sAAAAAAAA
+  28:mri/core/cmd_step.c ****     Response Format:    Blank until the next exception, at which time a 'T' stop response packet wi
+  29:mri/core/cmd_step.c **** 
+  30:mri/core/cmd_step.c ****     Where AAAAAAAA is an optional value to be used for the Program Counter when restarting the prog
+ARM GAS  /tmp/ccmHAPcC.s 			page 2
+
+
+  31:mri/core/cmd_step.c **** */
+  32:mri/core/cmd_step.c **** uint32_t HandleSingleStepCommand(void)
+  33:mri/core/cmd_step.c **** {
+  34:mri/core/cmd_step.c ****     /* Single step is pretty much like continue except processor is told to only execute 1 instruct
+  35:mri/core/cmd_step.c ****     uint32_t returnValue = HandleContinueCommand();
+  36:mri/core/cmd_step.c ****     if (justAdvancedPastBreakpoint(returnValue))
+  37:mri/core/cmd_step.c ****     {
+  38:mri/core/cmd_step.c ****         /* Treat the advance as the single step and don't resume execution. */
+  39:mri/core/cmd_step.c ****         return Send_T_StopResponse();
+  40:mri/core/cmd_step.c ****     }
+  41:mri/core/cmd_step.c **** 
+  42:mri/core/cmd_step.c ****     if (returnValue)
+  43:mri/core/cmd_step.c ****     {
+  44:mri/core/cmd_step.c ****         uint32_t pcBefore = Platform_GetProgramCounter();
+  45:mri/core/cmd_step.c ****         Platform_EnableSingleStep();
+  46:mri/core/cmd_step.c ****         if (Platform_GetProgramCounter() != pcBefore)
+  47:mri/core/cmd_step.c ****         {
+  48:mri/core/cmd_step.c ****             /* Platform code ended up advancing the program counter instead of enabling single step
+  49:mri/core/cmd_step.c ****                stop response to GDB. */
+  50:mri/core/cmd_step.c ****             return Send_T_StopResponse();
+  51:mri/core/cmd_step.c ****         }
+  52:mri/core/cmd_step.c ****         if (Platform_RtosIsSetThreadStateSupported())
+  53:mri/core/cmd_step.c ****         {
+  54:mri/core/cmd_step.c ****             Platform_RtosSetThreadState(Platform_RtosGetHaltedThreadId(), MRI_PLATFORM_THREAD_SINGL
+  55:mri/core/cmd_step.c ****         }
+  56:mri/core/cmd_step.c ****     }
+  57:mri/core/cmd_step.c **** 
+  58:mri/core/cmd_step.c ****     return returnValue;
+  59:mri/core/cmd_step.c **** }
+  60:mri/core/cmd_step.c **** 
+  61:mri/core/cmd_step.c **** static uint32_t justAdvancedPastBreakpoint(uint32_t continueReturn)
+  62:mri/core/cmd_step.c **** {
+  29              		.loc 1 62 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  63:mri/core/cmd_step.c ****     return continueReturn & HANDLER_RETURN_SKIPPED_OVER_BREAK;
+  34              		.loc 1 63 5 view .LVU1
+  64:mri/core/cmd_step.c **** }
+  35              		.loc 1 64 1 is_stmt 0 view .LVU2
+  36 0000 00F00400 		and	r0, r0, #4
+  37              	.LVL1:
+  38              		.loc 1 64 1 view .LVU3
+  39 0004 7047     		bx	lr
+  40              		.cfi_endproc
+  41              	.LFE4:
+  43              		.section	.text.mriCmd_HandleSingleStepCommand,"ax",%progbits
+  44              		.align	1
+  45              		.global	mriCmd_HandleSingleStepCommand
+  46              		.syntax unified
+  47              		.thumb
+  48              		.thumb_func
+  50              	mriCmd_HandleSingleStepCommand:
+  51              	.LFB3:
+  33:mri/core/cmd_step.c ****     /* Single step is pretty much like continue except processor is told to only execute 1 instruct
+  52              		.loc 1 33 1 is_stmt 1 view -0
+ARM GAS  /tmp/ccmHAPcC.s 			page 3
+
+
+  53              		.cfi_startproc
+  54              		@ args = 0, pretend = 0, frame = 0
+  55              		@ frame_needed = 0, uses_anonymous_args = 0
+  56 0000 38B5     		push	{r3, r4, r5, lr}
+  57              	.LCFI0:
+  58              		.cfi_def_cfa_offset 16
+  59              		.cfi_offset 3, -16
+  60              		.cfi_offset 4, -12
+  61              		.cfi_offset 5, -8
+  62              		.cfi_offset 14, -4
+  35:mri/core/cmd_step.c ****     if (justAdvancedPastBreakpoint(returnValue))
+  63              		.loc 1 35 5 view .LVU5
+  35:mri/core/cmd_step.c ****     if (justAdvancedPastBreakpoint(returnValue))
+  64              		.loc 1 35 28 is_stmt 0 view .LVU6
+  65 0002 FFF7FEFF 		bl	mriCmd_HandleContinueCommand
+  66              	.LVL2:
+  67 0006 0446     		mov	r4, r0
+  68              	.LVL3:
+  36:mri/core/cmd_step.c ****     {
+  69              		.loc 1 36 5 is_stmt 1 view .LVU7
+  36:mri/core/cmd_step.c ****     {
+  70              		.loc 1 36 9 is_stmt 0 view .LVU8
+  71 0008 FFF7FEFF 		bl	justAdvancedPastBreakpoint
+  72              	.LVL4:
+  36:mri/core/cmd_step.c ****     {
+  73              		.loc 1 36 8 view .LVU9
+  74 000c 10B9     		cbnz	r0, .L7
+  42:mri/core/cmd_step.c ****     {
+  75              		.loc 1 42 5 is_stmt 1 view .LVU10
+  42:mri/core/cmd_step.c ****     {
+  76              		.loc 1 42 8 is_stmt 0 view .LVU11
+  77 000e 2CB9     		cbnz	r4, .L8
+  78              	.LVL5:
+  79              	.L2:
+  59:mri/core/cmd_step.c **** 
+  80              		.loc 1 59 1 view .LVU12
+  81 0010 2046     		mov	r0, r4
+  82 0012 38BD     		pop	{r3, r4, r5, pc}
+  83              	.LVL6:
+  84              	.L7:
+  39:mri/core/cmd_step.c ****     }
+  85              		.loc 1 39 9 is_stmt 1 view .LVU13
+  39:mri/core/cmd_step.c ****     }
+  86              		.loc 1 39 16 is_stmt 0 view .LVU14
+  87 0014 FFF7FEFF 		bl	mriCmd_Send_T_StopResponse
+  88              	.LVL7:
+  89 0018 0446     		mov	r4, r0
+  90              	.LVL8:
+  39:mri/core/cmd_step.c ****     }
+  91              		.loc 1 39 16 view .LVU15
+  92 001a F9E7     		b	.L2
+  93              	.LVL9:
+  94              	.L8:
+  95              	.LBB2:
+  44:mri/core/cmd_step.c ****         Platform_EnableSingleStep();
+  96              		.loc 1 44 9 is_stmt 1 view .LVU16
+  44:mri/core/cmd_step.c ****         Platform_EnableSingleStep();
+ARM GAS  /tmp/ccmHAPcC.s 			page 4
+
+
+  97              		.loc 1 44 29 is_stmt 0 view .LVU17
+  98 001c FFF7FEFF 		bl	mriPlatform_GetProgramCounter
+  99              	.LVL10:
+ 100 0020 0546     		mov	r5, r0
+ 101              	.LVL11:
+  45:mri/core/cmd_step.c ****         if (Platform_GetProgramCounter() != pcBefore)
+ 102              		.loc 1 45 9 is_stmt 1 view .LVU18
+ 103 0022 FFF7FEFF 		bl	mriPlatform_EnableSingleStep
+ 104              	.LVL12:
+  46:mri/core/cmd_step.c ****         {
+ 105              		.loc 1 46 9 view .LVU19
+  46:mri/core/cmd_step.c ****         {
+ 106              		.loc 1 46 13 is_stmt 0 view .LVU20
+ 107 0026 FFF7FEFF 		bl	mriPlatform_GetProgramCounter
+ 108              	.LVL13:
+  46:mri/core/cmd_step.c ****         {
+ 109              		.loc 1 46 12 view .LVU21
+ 110 002a A842     		cmp	r0, r5
+ 111 002c 03D0     		beq	.L5
+  50:mri/core/cmd_step.c ****         }
+ 112              		.loc 1 50 13 is_stmt 1 view .LVU22
+  50:mri/core/cmd_step.c ****         }
+ 113              		.loc 1 50 20 is_stmt 0 view .LVU23
+ 114 002e FFF7FEFF 		bl	mriCmd_Send_T_StopResponse
+ 115              	.LVL14:
+ 116 0032 0446     		mov	r4, r0
+ 117              	.LVL15:
+  50:mri/core/cmd_step.c ****         }
+ 118              		.loc 1 50 20 view .LVU24
+ 119 0034 ECE7     		b	.L2
+ 120              	.LVL16:
+ 121              	.L5:
+  52:mri/core/cmd_step.c ****         {
+ 122              		.loc 1 52 9 is_stmt 1 view .LVU25
+  52:mri/core/cmd_step.c ****         {
+ 123              		.loc 1 52 13 is_stmt 0 view .LVU26
+ 124 0036 FFF7FEFF 		bl	mriPlatform_RtosIsSetThreadStateSupported
+ 125              	.LVL17:
+  52:mri/core/cmd_step.c ****         {
+ 126              		.loc 1 52 12 view .LVU27
+ 127 003a 0028     		cmp	r0, #0
+ 128 003c E8D0     		beq	.L2
+  54:mri/core/cmd_step.c ****         }
+ 129              		.loc 1 54 13 is_stmt 1 view .LVU28
+ 130 003e FFF7FEFF 		bl	mriPlatform_RtosGetHaltedThreadId
+ 131              	.LVL18:
+ 132 0042 0221     		movs	r1, #2
+ 133 0044 FFF7FEFF 		bl	mriPlatform_RtosSetThreadState
+ 134              	.LVL19:
+ 135 0048 E2E7     		b	.L2
+ 136              	.LBE2:
+ 137              		.cfi_endproc
+ 138              	.LFE3:
+ 140              		.section	.text.mriCmd_HandleSingleStepWithSignalCommand,"ax",%progbits
+ 141              		.align	1
+ 142              		.global	mriCmd_HandleSingleStepWithSignalCommand
+ 143              		.syntax unified
+ARM GAS  /tmp/ccmHAPcC.s 			page 5
+
+
+ 144              		.thumb
+ 145              		.thumb_func
+ 147              	mriCmd_HandleSingleStepWithSignalCommand:
+ 148              	.LFB5:
+  65:mri/core/cmd_step.c **** 
+  66:mri/core/cmd_step.c **** 
+  67:mri/core/cmd_step.c **** /* Handle the 'S' command which is sent from gdb to tell the debugger to single step over the next 
+  68:mri/core/cmd_step.c ****    currently halted program. It is similar to the 's' command but it also provides a signal, which 
+  69:mri/core/cmd_step.c **** 
+  70:mri/core/cmd_step.c ****     Command Format:     sAA;BBBBBBBB
+  71:mri/core/cmd_step.c ****     Response Format:    Blank until the next exception, at which time a 'T' stop response packet wi
+  72:mri/core/cmd_step.c **** 
+  73:mri/core/cmd_step.c ****     Where AA is the signal to be set
+  74:mri/core/cmd_step.c ****           BBBBBBBB is an optional value to be used for the Program Counter when restarting the prog
+  75:mri/core/cmd_step.c **** */
+  76:mri/core/cmd_step.c **** uint32_t HandleSingleStepWithSignalCommand(void)
+  77:mri/core/cmd_step.c **** {
+ 149              		.loc 1 77 1 view -0
+ 150              		.cfi_startproc
+ 151              		@ args = 0, pretend = 0, frame = 0
+ 152              		@ frame_needed = 0, uses_anonymous_args = 0
+ 153 0000 10B5     		push	{r4, lr}
+ 154              	.LCFI1:
+ 155              		.cfi_def_cfa_offset 8
+ 156              		.cfi_offset 4, -8
+ 157              		.cfi_offset 14, -4
+  78:mri/core/cmd_step.c ****     /* Single step is pretty much like continue except processor is told to only execute 1 instruct
+  79:mri/core/cmd_step.c ****     uint32_t returnValue = HandleContinueWithSignalCommand();
+ 158              		.loc 1 79 5 view .LVU30
+ 159              		.loc 1 79 28 is_stmt 0 view .LVU31
+ 160 0002 FFF7FEFF 		bl	mriCmd_HandleContinueWithSignalCommand
+ 161              	.LVL20:
+ 162 0006 0446     		mov	r4, r0
+ 163              	.LVL21:
+  80:mri/core/cmd_step.c ****     if (justAdvancedPastBreakpoint(returnValue))
+ 164              		.loc 1 80 5 is_stmt 1 view .LVU32
+ 165              		.loc 1 80 9 is_stmt 0 view .LVU33
+ 166 0008 FFF7FEFF 		bl	justAdvancedPastBreakpoint
+ 167              	.LVL22:
+ 168              		.loc 1 80 8 view .LVU34
+ 169 000c 10B9     		cbnz	r0, .L14
+  81:mri/core/cmd_step.c ****     {
+  82:mri/core/cmd_step.c ****         /* Treat the advance as the single step and don't resume execution. */
+  83:mri/core/cmd_step.c ****         return Send_T_StopResponse();
+  84:mri/core/cmd_step.c ****     }
+  85:mri/core/cmd_step.c **** 
+  86:mri/core/cmd_step.c ****     if (returnValue)
+ 170              		.loc 1 86 5 is_stmt 1 view .LVU35
+ 171              		.loc 1 86 8 is_stmt 0 view .LVU36
+ 172 000e 2CB9     		cbnz	r4, .L15
+ 173              	.LVL23:
+ 174              	.L9:
+  87:mri/core/cmd_step.c ****     {
+  88:mri/core/cmd_step.c ****         if (Platform_RtosIsSetThreadStateSupported())
+  89:mri/core/cmd_step.c ****             Platform_RtosSetThreadState(Platform_RtosGetHaltedThreadId(), MRI_PLATFORM_THREAD_SINGL
+  90:mri/core/cmd_step.c ****         Platform_EnableSingleStep();
+  91:mri/core/cmd_step.c ****     }
+ARM GAS  /tmp/ccmHAPcC.s 			page 6
+
+
+  92:mri/core/cmd_step.c **** 
+  93:mri/core/cmd_step.c ****     return returnValue;
+  94:mri/core/cmd_step.c **** }
+ 175              		.loc 1 94 1 view .LVU37
+ 176 0010 2046     		mov	r0, r4
+ 177 0012 10BD     		pop	{r4, pc}
+ 178              	.LVL24:
+ 179              	.L14:
+  83:mri/core/cmd_step.c ****     }
+ 180              		.loc 1 83 9 is_stmt 1 view .LVU38
+  83:mri/core/cmd_step.c ****     }
+ 181              		.loc 1 83 16 is_stmt 0 view .LVU39
+ 182 0014 FFF7FEFF 		bl	mriCmd_Send_T_StopResponse
+ 183              	.LVL25:
+ 184 0018 0446     		mov	r4, r0
+ 185              	.LVL26:
+  83:mri/core/cmd_step.c ****     }
+ 186              		.loc 1 83 16 view .LVU40
+ 187 001a F9E7     		b	.L9
+ 188              	.LVL27:
+ 189              	.L15:
+  88:mri/core/cmd_step.c ****             Platform_RtosSetThreadState(Platform_RtosGetHaltedThreadId(), MRI_PLATFORM_THREAD_SINGL
+ 190              		.loc 1 88 9 is_stmt 1 view .LVU41
+  88:mri/core/cmd_step.c ****             Platform_RtosSetThreadState(Platform_RtosGetHaltedThreadId(), MRI_PLATFORM_THREAD_SINGL
+ 191              		.loc 1 88 13 is_stmt 0 view .LVU42
+ 192 001c FFF7FEFF 		bl	mriPlatform_RtosIsSetThreadStateSupported
+ 193              	.LVL28:
+  88:mri/core/cmd_step.c ****             Platform_RtosSetThreadState(Platform_RtosGetHaltedThreadId(), MRI_PLATFORM_THREAD_SINGL
+ 194              		.loc 1 88 12 view .LVU43
+ 195 0020 10B9     		cbnz	r0, .L16
+ 196              	.L12:
+  90:mri/core/cmd_step.c ****     }
+ 197              		.loc 1 90 9 is_stmt 1 view .LVU44
+ 198 0022 FFF7FEFF 		bl	mriPlatform_EnableSingleStep
+ 199              	.LVL29:
+ 200 0026 F3E7     		b	.L9
+ 201              	.L16:
+  89:mri/core/cmd_step.c ****         Platform_EnableSingleStep();
+ 202              		.loc 1 89 13 view .LVU45
+ 203 0028 FFF7FEFF 		bl	mriPlatform_RtosGetHaltedThreadId
+ 204              	.LVL30:
+ 205 002c 0221     		movs	r1, #2
+ 206 002e FFF7FEFF 		bl	mriPlatform_RtosSetThreadState
+ 207              	.LVL31:
+ 208 0032 F6E7     		b	.L12
+ 209              		.cfi_endproc
+ 210              	.LFE5:
+ 212              		.text
+ 213              	.Letext0:
+ 214              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 215              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 216              		.file 4 "mri/core/platforms.h"
+ 217              		.file 5 "mri/core/cmd_continue.h"
+ 218              		.file 6 "mri/core/cmd_registers.h"
+ARM GAS  /tmp/ccmHAPcC.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cmd_step.c
+     /tmp/ccmHAPcC.s:21     .text.justAdvancedPastBreakpoint:0000000000000000 $t
+     /tmp/ccmHAPcC.s:26     .text.justAdvancedPastBreakpoint:0000000000000000 justAdvancedPastBreakpoint
+     /tmp/ccmHAPcC.s:44     .text.mriCmd_HandleSingleStepCommand:0000000000000000 $t
+     /tmp/ccmHAPcC.s:50     .text.mriCmd_HandleSingleStepCommand:0000000000000000 mriCmd_HandleSingleStepCommand
+     /tmp/ccmHAPcC.s:141    .text.mriCmd_HandleSingleStepWithSignalCommand:0000000000000000 $t
+     /tmp/ccmHAPcC.s:147    .text.mriCmd_HandleSingleStepWithSignalCommand:0000000000000000 mriCmd_HandleSingleStepWithSignalCommand
+
+UNDEFINED SYMBOLS
+mriCmd_HandleContinueCommand
+mriCmd_Send_T_StopResponse
+mriPlatform_GetProgramCounter
+mriPlatform_EnableSingleStep
+mriPlatform_RtosIsSetThreadStateSupported
+mriPlatform_RtosGetHaltedThreadId
+mriPlatform_RtosSetThreadState
+mriCmd_HandleContinueWithSignalCommand

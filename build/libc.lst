@@ -1,0 +1,643 @@
+ARM GAS  /tmp/ccCFCgW5.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"libc.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/libc.c"
+  20              		.section	.text.mri_memcpy,"ax",%progbits
+  21              		.align	1
+  22              		.global	mri_memcpy
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	mri_memcpy:
+  28              	.LVL0:
+  29              	.LFB0:
+   1:mri/core/libc.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/libc.c **** 
+   3:mri/core/libc.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/libc.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/libc.c ****    You may obtain a copy of the License at
+   6:mri/core/libc.c **** 
+   7:mri/core/libc.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/libc.c **** 
+   9:mri/core/libc.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/libc.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/libc.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/libc.c ****    See the License for the specific language governing permissions and
+  13:mri/core/libc.c ****    limitations under the License.
+  14:mri/core/libc.c **** */
+  15:mri/core/libc.c **** /*  Implementation of Standard C Library functions that MRI makes use of.
+  16:mri/core/libc.c **** 
+  17:mri/core/libc.c ****     Having its own implementation of these means that users won't hit difficulties if they try to s
+  18:mri/core/libc.c ****     through the real Standard C Library.
+  19:mri/core/libc.c **** 
+  20:mri/core/libc.c ****     NOTE: The debuggee shouldn't call these versions as that would defeat their purpose.
+  21:mri/core/libc.c **** */
+  22:mri/core/libc.c **** #include <stdint.h>
+  23:mri/core/libc.c **** #include <core/libc.h>
+  24:mri/core/libc.c **** 
+  25:mri/core/libc.c **** void* mri_memcpy(void* pvDest, const void* pvSrc, size_t len)
+  26:mri/core/libc.c **** {
+  30              		.loc 1 26 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /tmp/ccCFCgW5.s 			page 2
+
+
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  27:mri/core/libc.c ****     uint8_t* pDest = (uint8_t*)pvDest;
+  35              		.loc 1 27 5 view .LVU1
+  28:mri/core/libc.c ****     const uint8_t* pSrc = (const uint8_t*)pvSrc;
+  36              		.loc 1 28 5 view .LVU2
+  29:mri/core/libc.c **** 
+  30:mri/core/libc.c ****     while (len--)
+  37              		.loc 1 30 5 view .LVU3
+  27:mri/core/libc.c ****     const uint8_t* pSrc = (const uint8_t*)pvSrc;
+  38              		.loc 1 27 14 is_stmt 0 view .LVU4
+  39 0000 0346     		mov	r3, r0
+  40              		.loc 1 30 11 view .LVU5
+  41 0002 04E0     		b	.L2
+  42              	.LVL1:
+  43              	.L3:
+  31:mri/core/libc.c ****     {
+  32:mri/core/libc.c ****         *pDest++ = *pSrc++;
+  44              		.loc 1 32 9 is_stmt 1 view .LVU6
+  45              		.loc 1 32 20 is_stmt 0 view .LVU7
+  46 0004 11F8012B 		ldrb	r2, [r1], #1	@ zero_extendqisi2
+  47              	.LVL2:
+  48              		.loc 1 32 18 view .LVU8
+  49 0008 03F8012B 		strb	r2, [r3], #1
+  50              	.LVL3:
+  30:mri/core/libc.c ****     {
+  51              		.loc 1 30 15 view .LVU9
+  52 000c 6246     		mov	r2, ip
+  53              	.LVL4:
+  54              	.L2:
+  30:mri/core/libc.c ****     {
+  55              		.loc 1 30 12 is_stmt 1 view .LVU10
+  30:mri/core/libc.c ****     {
+  56              		.loc 1 30 15 is_stmt 0 view .LVU11
+  57 000e 02F1FF3C 		add	ip, r2, #-1
+  58              	.LVL5:
+  30:mri/core/libc.c ****     {
+  59              		.loc 1 30 12 view .LVU12
+  60 0012 002A     		cmp	r2, #0
+  61 0014 F6D1     		bne	.L3
+  33:mri/core/libc.c ****     }
+  34:mri/core/libc.c ****     return pvDest;
+  62              		.loc 1 34 5 is_stmt 1 view .LVU13
+  35:mri/core/libc.c **** }
+  63              		.loc 1 35 1 is_stmt 0 view .LVU14
+  64 0016 7047     		bx	lr
+  65              		.cfi_endproc
+  66              	.LFE0:
+  68              		.section	.text.mri_memset,"ax",%progbits
+  69              		.align	1
+  70              		.global	mri_memset
+  71              		.syntax unified
+  72              		.thumb
+  73              		.thumb_func
+  75              	mri_memset:
+  76              	.LVL6:
+  77              	.LFB1:
+ARM GAS  /tmp/ccCFCgW5.s 			page 3
+
+
+  36:mri/core/libc.c **** 
+  37:mri/core/libc.c **** 
+  38:mri/core/libc.c **** 
+  39:mri/core/libc.c **** void* mri_memset(void *pvDest, int val, size_t len)
+  40:mri/core/libc.c **** {
+  78              		.loc 1 40 1 is_stmt 1 view -0
+  79              		.cfi_startproc
+  80              		@ args = 0, pretend = 0, frame = 0
+  81              		@ frame_needed = 0, uses_anonymous_args = 0
+  82              		@ link register save eliminated.
+  41:mri/core/libc.c ****     uint8_t* pDest = (uint8_t*)pvDest;
+  83              		.loc 1 41 5 view .LVU16
+  42:mri/core/libc.c ****     while (len--)
+  84              		.loc 1 42 5 view .LVU17
+  41:mri/core/libc.c ****     uint8_t* pDest = (uint8_t*)pvDest;
+  85              		.loc 1 41 14 is_stmt 0 view .LVU18
+  86 0000 0346     		mov	r3, r0
+  87              		.loc 1 42 11 view .LVU19
+  88 0002 02E0     		b	.L5
+  89              	.LVL7:
+  90              	.L6:
+  43:mri/core/libc.c ****     {
+  44:mri/core/libc.c ****         *pDest++ = (uint8_t)val;
+  91              		.loc 1 44 9 is_stmt 1 view .LVU20
+  92              		.loc 1 44 18 is_stmt 0 view .LVU21
+  93 0004 03F8011B 		strb	r1, [r3], #1
+  94              	.LVL8:
+  42:mri/core/libc.c ****     while (len--)
+  95              		.loc 1 42 15 view .LVU22
+  96 0008 6246     		mov	r2, ip
+  97              	.LVL9:
+  98              	.L5:
+  42:mri/core/libc.c ****     while (len--)
+  99              		.loc 1 42 12 is_stmt 1 view .LVU23
+  42:mri/core/libc.c ****     while (len--)
+ 100              		.loc 1 42 15 is_stmt 0 view .LVU24
+ 101 000a 02F1FF3C 		add	ip, r2, #-1
+ 102              	.LVL10:
+  42:mri/core/libc.c ****     while (len--)
+ 103              		.loc 1 42 12 view .LVU25
+ 104 000e 002A     		cmp	r2, #0
+ 105 0010 F8D1     		bne	.L6
+  45:mri/core/libc.c ****     }
+  46:mri/core/libc.c ****     return pvDest;
+ 106              		.loc 1 46 5 is_stmt 1 view .LVU26
+  47:mri/core/libc.c **** }
+ 107              		.loc 1 47 1 is_stmt 0 view .LVU27
+ 108 0012 7047     		bx	lr
+ 109              		.cfi_endproc
+ 110              	.LFE1:
+ 112              		.section	.text.mri_strcmp,"ax",%progbits
+ 113              		.align	1
+ 114              		.global	mri_strcmp
+ 115              		.syntax unified
+ 116              		.thumb
+ 117              		.thumb_func
+ 119              	mri_strcmp:
+ARM GAS  /tmp/ccCFCgW5.s 			page 4
+
+
+ 120              	.LVL11:
+ 121              	.LFB2:
+  48:mri/core/libc.c **** 
+  49:mri/core/libc.c **** 
+  50:mri/core/libc.c **** 
+  51:mri/core/libc.c **** int mri_strcmp(const char* pc1, const char* pc2)
+  52:mri/core/libc.c **** {
+ 122              		.loc 1 52 1 is_stmt 1 view -0
+ 123              		.cfi_startproc
+ 124              		@ args = 0, pretend = 0, frame = 0
+ 125              		@ frame_needed = 0, uses_anonymous_args = 0
+ 126              		@ link register save eliminated.
+ 127              		.loc 1 52 1 is_stmt 0 view .LVU29
+ 128 0000 8446     		mov	ip, r0
+  53:mri/core/libc.c ****     uint8_t* p1 = (uint8_t*)pc1;
+ 129              		.loc 1 53 5 is_stmt 1 view .LVU30
+ 130              	.LVL12:
+  54:mri/core/libc.c ****     uint8_t* p2 = (uint8_t*)pc2;
+ 131              		.loc 1 54 5 view .LVU31
+  55:mri/core/libc.c ****     int      cmp = 0;
+ 132              		.loc 1 55 5 view .LVU32
+ 133              	.L9:
+  56:mri/core/libc.c **** 
+  57:mri/core/libc.c ****     do
+ 134              		.loc 1 57 5 discriminator 2 view .LVU33
+  58:mri/core/libc.c ****     {
+  59:mri/core/libc.c ****         cmp = *p1 - *p2++;
+ 135              		.loc 1 59 9 discriminator 2 view .LVU34
+ 136              		.loc 1 59 15 is_stmt 0 discriminator 2 view .LVU35
+ 137 0002 9CF80020 		ldrb	r2, [ip]	@ zero_extendqisi2
+ 138              		.loc 1 59 21 discriminator 2 view .LVU36
+ 139 0006 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 140 0008 0131     		adds	r1, r1, #1
+ 141              	.LVL13:
+  60:mri/core/libc.c ****     } while (cmp == 0 && *p1++);
+ 142              		.loc 1 60 23 is_stmt 1 discriminator 2 view .LVU37
+ 143 000a D01A     		subs	r0, r2, r3
+ 144              	.LVL14:
+ 145              		.loc 1 60 23 is_stmt 0 discriminator 2 view .LVU38
+ 146 000c 03D1     		bne	.L7
+ 147              		.loc 1 60 29 discriminator 1 view .LVU39
+ 148 000e 0CF1010C 		add	ip, ip, #1
+ 149              	.LVL15:
+ 150              		.loc 1 60 23 discriminator 1 view .LVU40
+ 151 0012 002A     		cmp	r2, #0
+ 152 0014 F5D1     		bne	.L9
+ 153              	.L7:
+  61:mri/core/libc.c ****     return cmp;
+  62:mri/core/libc.c **** }
+ 154              		.loc 1 62 1 view .LVU41
+ 155 0016 7047     		bx	lr
+ 156              		.cfi_endproc
+ 157              	.LFE2:
+ 159              		.section	.text.mri_strncmp,"ax",%progbits
+ 160              		.align	1
+ 161              		.global	mri_strncmp
+ 162              		.syntax unified
+ARM GAS  /tmp/ccCFCgW5.s 			page 5
+
+
+ 163              		.thumb
+ 164              		.thumb_func
+ 166              	mri_strncmp:
+ 167              	.LVL16:
+ 168              	.LFB3:
+  63:mri/core/libc.c **** 
+  64:mri/core/libc.c **** 
+  65:mri/core/libc.c **** 
+  66:mri/core/libc.c **** 
+  67:mri/core/libc.c **** int mri_strncmp(const char* pc1, const char* pc2, size_t len)
+  68:mri/core/libc.c **** {
+ 169              		.loc 1 68 1 is_stmt 1 view -0
+ 170              		.cfi_startproc
+ 171              		@ args = 0, pretend = 0, frame = 0
+ 172              		@ frame_needed = 0, uses_anonymous_args = 0
+ 173              		.loc 1 68 1 is_stmt 0 view .LVU43
+ 174 0000 00B5     		push	{lr}
+ 175              	.LCFI0:
+ 176              		.cfi_def_cfa_offset 4
+ 177              		.cfi_offset 14, -4
+ 178 0002 8446     		mov	ip, r0
+  69:mri/core/libc.c ****     uint8_t* p1 = (uint8_t*)pc1;
+ 179              		.loc 1 69 5 is_stmt 1 view .LVU44
+ 180              	.LVL17:
+  70:mri/core/libc.c ****     uint8_t* p2 = (uint8_t*)pc2;
+ 181              		.loc 1 70 5 view .LVU45
+  71:mri/core/libc.c ****     int      cmp = 0;
+ 182              		.loc 1 71 5 view .LVU46
+  72:mri/core/libc.c **** 
+  73:mri/core/libc.c ****     if (len == 0)
+ 183              		.loc 1 73 5 view .LVU47
+ 184              		.loc 1 73 8 is_stmt 0 view .LVU48
+ 185 0004 9646     		mov	lr, r2
+ 186 0006 6AB1     		cbz	r2, .L13
+ 187              	.LVL18:
+ 188              	.L12:
+  74:mri/core/libc.c ****     {
+  75:mri/core/libc.c ****         return 0;
+  76:mri/core/libc.c ****     }
+  77:mri/core/libc.c **** 
+  78:mri/core/libc.c ****     do
+ 189              		.loc 1 78 5 is_stmt 1 discriminator 3 view .LVU49
+  79:mri/core/libc.c ****     {
+  80:mri/core/libc.c ****         cmp = *p1 - *p2++;
+ 190              		.loc 1 80 9 discriminator 3 view .LVU50
+ 191              		.loc 1 80 15 is_stmt 0 discriminator 3 view .LVU51
+ 192 0008 9CF80020 		ldrb	r2, [ip]	@ zero_extendqisi2
+ 193              		.loc 1 80 21 discriminator 3 view .LVU52
+ 194 000c 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 195 000e 0131     		adds	r1, r1, #1
+ 196              	.LVL19:
+  81:mri/core/libc.c ****     } while (cmp == 0 && --len > 0 && *p1++);
+ 197              		.loc 1 81 36 is_stmt 1 discriminator 3 view .LVU53
+ 198 0010 D01A     		subs	r0, r2, r3
+ 199              	.LVL20:
+ 200              		.loc 1 81 36 is_stmt 0 discriminator 3 view .LVU54
+ 201 0012 08D1     		bne	.L10
+ARM GAS  /tmp/ccCFCgW5.s 			page 6
+
+
+ 202              	.LVL21:
+ 203              		.loc 1 81 23 discriminator 1 view .LVU55
+ 204 0014 BEF1010E 		subs	lr, lr, #1
+ 205              	.LVL22:
+ 206              		.loc 1 81 23 discriminator 1 view .LVU56
+ 207 0018 05D0     		beq	.L10
+ 208              		.loc 1 81 42 discriminator 2 view .LVU57
+ 209 001a 0CF1010C 		add	ip, ip, #1
+ 210              	.LVL23:
+ 211              		.loc 1 81 36 discriminator 2 view .LVU58
+ 212 001e 002A     		cmp	r2, #0
+ 213 0020 F2D1     		bne	.L12
+ 214 0022 00E0     		b	.L10
+ 215              	.LVL24:
+ 216              	.L13:
+  75:mri/core/libc.c ****     }
+ 217              		.loc 1 75 16 view .LVU59
+ 218 0024 0020     		movs	r0, #0
+ 219              	.LVL25:
+ 220              	.L10:
+  82:mri/core/libc.c ****     return cmp;
+  83:mri/core/libc.c **** }
+ 221              		.loc 1 83 1 view .LVU60
+ 222 0026 5DF804FB 		ldr	pc, [sp], #4
+ 223              		.cfi_endproc
+ 224              	.LFE3:
+ 226              		.section	.text.mri_strlen,"ax",%progbits
+ 227              		.align	1
+ 228              		.global	mri_strlen
+ 229              		.syntax unified
+ 230              		.thumb
+ 231              		.thumb_func
+ 233              	mri_strlen:
+ 234              	.LVL26:
+ 235              	.LFB4:
+  84:mri/core/libc.c **** 
+  85:mri/core/libc.c **** 
+  86:mri/core/libc.c **** 
+  87:mri/core/libc.c **** size_t mri_strlen(const char* p)
+  88:mri/core/libc.c **** {
+ 236              		.loc 1 88 1 is_stmt 1 view -0
+ 237              		.cfi_startproc
+ 238              		@ args = 0, pretend = 0, frame = 0
+ 239              		@ frame_needed = 0, uses_anonymous_args = 0
+ 240              		@ link register save eliminated.
+  89:mri/core/libc.c ****     const char* pStart = p;
+ 241              		.loc 1 89 5 view .LVU62
+  90:mri/core/libc.c ****     while (*p)
+ 242              		.loc 1 90 5 view .LVU63
+ 243              		.loc 1 90 11 is_stmt 0 view .LVU64
+ 244 0000 0346     		mov	r3, r0
+ 245 0002 00E0     		b	.L16
+ 246              	.LVL27:
+ 247              	.L17:
+  91:mri/core/libc.c ****     {
+  92:mri/core/libc.c ****         p++;
+ 248              		.loc 1 92 9 is_stmt 1 view .LVU65
+ARM GAS  /tmp/ccCFCgW5.s 			page 7
+
+
+ 249              		.loc 1 92 10 is_stmt 0 view .LVU66
+ 250 0004 0133     		adds	r3, r3, #1
+ 251              	.LVL28:
+ 252              	.L16:
+  90:mri/core/libc.c ****     while (*p)
+ 253              		.loc 1 90 12 is_stmt 1 view .LVU67
+ 254 0006 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 255 0008 002A     		cmp	r2, #0
+ 256 000a FBD1     		bne	.L17
+  93:mri/core/libc.c ****     }
+  94:mri/core/libc.c ****     return p - pStart;
+ 257              		.loc 1 94 5 view .LVU68
+  95:mri/core/libc.c **** }
+ 258              		.loc 1 95 1 is_stmt 0 view .LVU69
+ 259 000c 181A     		subs	r0, r3, r0
+ 260              	.LVL29:
+ 261              		.loc 1 95 1 view .LVU70
+ 262 000e 7047     		bx	lr
+ 263              		.cfi_endproc
+ 264              	.LFE4:
+ 266              		.section	.text.mri_strstr,"ax",%progbits
+ 267              		.align	1
+ 268              		.global	mri_strstr
+ 269              		.syntax unified
+ 270              		.thumb
+ 271              		.thumb_func
+ 273              	mri_strstr:
+ 274              	.LVL30:
+ 275              	.LFB5:
+  96:mri/core/libc.c **** 
+  97:mri/core/libc.c **** 
+  98:mri/core/libc.c **** 
+  99:mri/core/libc.c **** char* mri_strstr(const char* pHaystack, const char* pNeedle)
+ 100:mri/core/libc.c **** {
+ 276              		.loc 1 100 1 is_stmt 1 view -0
+ 277              		.cfi_startproc
+ 278              		@ args = 0, pretend = 0, frame = 0
+ 279              		@ frame_needed = 0, uses_anonymous_args = 0
+ 280              		.loc 1 100 1 is_stmt 0 view .LVU72
+ 281 0000 70B5     		push	{r4, r5, r6, lr}
+ 282              	.LCFI1:
+ 283              		.cfi_def_cfa_offset 16
+ 284              		.cfi_offset 4, -16
+ 285              		.cfi_offset 5, -12
+ 286              		.cfi_offset 6, -8
+ 287              		.cfi_offset 14, -4
+ 288 0002 0446     		mov	r4, r0
+ 289 0004 0D46     		mov	r5, r1
+ 101:mri/core/libc.c ****     size_t len = mri_strlen(pNeedle);
+ 290              		.loc 1 101 5 is_stmt 1 view .LVU73
+ 291              		.loc 1 101 18 is_stmt 0 view .LVU74
+ 292 0006 0846     		mov	r0, r1
+ 293              	.LVL31:
+ 294              		.loc 1 101 18 view .LVU75
+ 295 0008 FFF7FEFF 		bl	mri_strlen
+ 296              	.LVL32:
+ 297              		.loc 1 101 18 view .LVU76
+ARM GAS  /tmp/ccCFCgW5.s 			page 8
+
+
+ 298 000c 0646     		mov	r6, r0
+ 299              	.LVL33:
+ 102:mri/core/libc.c **** 
+ 103:mri/core/libc.c ****     while (*pHaystack)
+ 300              		.loc 1 103 5 is_stmt 1 view .LVU77
+ 301              		.loc 1 103 11 is_stmt 0 view .LVU78
+ 302 000e 00E0     		b	.L19
+ 303              	.LVL34:
+ 304              	.L25:
+ 104:mri/core/libc.c ****     {
+ 105:mri/core/libc.c ****         if (mri_strncmp(pHaystack, pNeedle, len) == 0)
+ 106:mri/core/libc.c ****         {
+ 107:mri/core/libc.c ****             return (char*)pHaystack;
+ 108:mri/core/libc.c ****         }
+ 109:mri/core/libc.c ****         pHaystack++;
+ 305              		.loc 1 109 9 is_stmt 1 view .LVU79
+ 306              		.loc 1 109 18 is_stmt 0 view .LVU80
+ 307 0010 0134     		adds	r4, r4, #1
+ 308              	.LVL35:
+ 309              	.L19:
+ 103:mri/core/libc.c ****     {
+ 310              		.loc 1 103 12 is_stmt 1 view .LVU81
+ 311 0012 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 312 0014 43B1     		cbz	r3, .L24
+ 105:mri/core/libc.c ****         {
+ 313              		.loc 1 105 9 view .LVU82
+ 105:mri/core/libc.c ****         {
+ 314              		.loc 1 105 13 is_stmt 0 view .LVU83
+ 315 0016 3246     		mov	r2, r6
+ 316 0018 2946     		mov	r1, r5
+ 317 001a 2046     		mov	r0, r4
+ 318 001c FFF7FEFF 		bl	mri_strncmp
+ 319              	.LVL36:
+ 105:mri/core/libc.c ****         {
+ 320              		.loc 1 105 12 view .LVU84
+ 321 0020 0028     		cmp	r0, #0
+ 322 0022 F5D1     		bne	.L25
+ 107:mri/core/libc.c ****         }
+ 323              		.loc 1 107 20 view .LVU85
+ 324 0024 2046     		mov	r0, r4
+ 325 0026 00E0     		b	.L18
+ 326              	.L24:
+ 110:mri/core/libc.c ****     }
+ 111:mri/core/libc.c ****     return NULL;
+ 327              		.loc 1 111 12 view .LVU86
+ 328 0028 0020     		movs	r0, #0
+ 329              	.L18:
+ 112:mri/core/libc.c **** }
+ 330              		.loc 1 112 1 view .LVU87
+ 331 002a 70BD     		pop	{r4, r5, r6, pc}
+ 332              		.loc 1 112 1 view .LVU88
+ 333              		.cfi_endproc
+ 334              	.LFE5:
+ 336              		.section	.text.mri_memmove,"ax",%progbits
+ 337              		.align	1
+ 338              		.global	mri_memmove
+ 339              		.syntax unified
+ARM GAS  /tmp/ccCFCgW5.s 			page 9
+
+
+ 340              		.thumb
+ 341              		.thumb_func
+ 343              	mri_memmove:
+ 344              	.LVL37:
+ 345              	.LFB6:
+ 113:mri/core/libc.c **** 
+ 114:mri/core/libc.c **** 
+ 115:mri/core/libc.c **** 
+ 116:mri/core/libc.c **** void* mri_memmove(void* pvDest, const void* pvSrc, size_t len)
+ 117:mri/core/libc.c **** {
+ 346              		.loc 1 117 1 is_stmt 1 view -0
+ 347              		.cfi_startproc
+ 348              		@ args = 0, pretend = 0, frame = 0
+ 349              		@ frame_needed = 0, uses_anonymous_args = 0
+ 350              		.loc 1 117 1 is_stmt 0 view .LVU90
+ 351 0000 00B5     		push	{lr}
+ 352              	.LCFI2:
+ 353              		.cfi_def_cfa_offset 4
+ 354              		.cfi_offset 14, -4
+ 118:mri/core/libc.c ****     uint8_t* pDest = (uint8_t*)pvDest;
+ 355              		.loc 1 118 5 is_stmt 1 view .LVU91
+ 356              	.LVL38:
+ 119:mri/core/libc.c ****     uint8_t* pDestEnd = pDest + len;
+ 357              		.loc 1 119 5 view .LVU92
+ 120:mri/core/libc.c ****     uint8_t* pSrc = (uint8_t*)pvSrc;
+ 358              		.loc 1 120 5 view .LVU93
+ 121:mri/core/libc.c ****     uint8_t* pSrcEnd = pSrc + len;
+ 359              		.loc 1 121 5 view .LVU94
+ 360              		.loc 1 121 14 is_stmt 0 view .LVU95
+ 361 0002 01EB020C 		add	ip, r1, r2
+ 362              	.LVL39:
+ 122:mri/core/libc.c ****     int dir = 1;
+ 363              		.loc 1 122 5 is_stmt 1 view .LVU96
+ 123:mri/core/libc.c ****     uint8_t* pDestCurr = pDest;
+ 364              		.loc 1 123 5 view .LVU97
+ 124:mri/core/libc.c ****     uint8_t* pSrcCurr = pSrc;
+ 365              		.loc 1 124 5 view .LVU98
+ 125:mri/core/libc.c **** 
+ 126:mri/core/libc.c ****     if (pDest > pSrc && pDest < pSrcEnd)
+ 366              		.loc 1 126 5 view .LVU99
+ 367              		.loc 1 126 8 is_stmt 0 view .LVU100
+ 368 0006 8842     		cmp	r0, r1
+ 369 0008 13D9     		bls	.L30
+ 370              		.loc 1 126 22 discriminator 1 view .LVU101
+ 371 000a 6045     		cmp	r0, ip
+ 372 000c 15D2     		bcs	.L31
+ 127:mri/core/libc.c ****     {
+ 128:mri/core/libc.c ****         dir = -1;
+ 373              		.loc 1 128 9 is_stmt 1 view .LVU102
+ 374              	.LVL40:
+ 129:mri/core/libc.c ****         pDestCurr = pDestEnd - 1;
+ 375              		.loc 1 129 9 view .LVU103
+ 376              		.loc 1 129 19 is_stmt 0 view .LVU104
+ 377 000e 531E     		subs	r3, r2, #1
+ 378 0010 0344     		add	r3, r3, r0
+ 379              	.LVL41:
+ 130:mri/core/libc.c ****         pSrcCurr = pSrcEnd - 1;
+ARM GAS  /tmp/ccCFCgW5.s 			page 10
+
+
+ 380              		.loc 1 130 9 is_stmt 1 view .LVU105
+ 381              		.loc 1 130 18 is_stmt 0 view .LVU106
+ 382 0012 0CF1FF31 		add	r1, ip, #-1
+ 383              	.LVL42:
+ 128:mri/core/libc.c ****         pDestCurr = pDestEnd - 1;
+ 384              		.loc 1 128 13 view .LVU107
+ 385 0016 4FF0FF3E 		mov	lr, #-1
+ 386 001a 04E0     		b	.L28
+ 387              	.LVL43:
+ 388              	.L29:
+ 131:mri/core/libc.c ****     }
+ 132:mri/core/libc.c **** 
+ 133:mri/core/libc.c ****     while (len--)
+ 134:mri/core/libc.c ****     {
+ 135:mri/core/libc.c ****         *pDestCurr = *pSrcCurr;
+ 389              		.loc 1 135 9 is_stmt 1 view .LVU108
+ 390              		.loc 1 135 22 is_stmt 0 view .LVU109
+ 391 001c 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+ 392              		.loc 1 135 20 view .LVU110
+ 393 001e 1A70     		strb	r2, [r3]
+ 136:mri/core/libc.c ****         pDestCurr += dir;
+ 394              		.loc 1 136 9 is_stmt 1 view .LVU111
+ 395              		.loc 1 136 19 is_stmt 0 view .LVU112
+ 396 0020 7344     		add	r3, r3, lr
+ 397              	.LVL44:
+ 137:mri/core/libc.c ****         pSrcCurr += dir;
+ 398              		.loc 1 137 9 is_stmt 1 view .LVU113
+ 399              		.loc 1 137 18 is_stmt 0 view .LVU114
+ 400 0022 7144     		add	r1, r1, lr
+ 401              	.LVL45:
+ 133:mri/core/libc.c ****     {
+ 402              		.loc 1 133 15 view .LVU115
+ 403 0024 6246     		mov	r2, ip
+ 404              	.LVL46:
+ 405              	.L28:
+ 133:mri/core/libc.c ****     {
+ 406              		.loc 1 133 12 is_stmt 1 view .LVU116
+ 133:mri/core/libc.c ****     {
+ 407              		.loc 1 133 15 is_stmt 0 view .LVU117
+ 408 0026 02F1FF3C 		add	ip, r2, #-1
+ 409              	.LVL47:
+ 133:mri/core/libc.c ****     {
+ 410              		.loc 1 133 12 view .LVU118
+ 411 002a 002A     		cmp	r2, #0
+ 412 002c F6D1     		bne	.L29
+ 138:mri/core/libc.c ****     }
+ 139:mri/core/libc.c **** 
+ 140:mri/core/libc.c ****     return pvDest;
+ 413              		.loc 1 140 5 is_stmt 1 view .LVU119
+ 141:mri/core/libc.c **** }
+ 414              		.loc 1 141 1 is_stmt 0 view .LVU120
+ 415 002e 5DF804FB 		ldr	pc, [sp], #4
+ 416              	.LVL48:
+ 417              	.L30:
+ 123:mri/core/libc.c ****     uint8_t* pSrcCurr = pSrc;
+ 418              		.loc 1 123 14 view .LVU121
+ 419 0032 0346     		mov	r3, r0
+ARM GAS  /tmp/ccCFCgW5.s 			page 11
+
+
+ 122:mri/core/libc.c ****     uint8_t* pDestCurr = pDest;
+ 420              		.loc 1 122 9 view .LVU122
+ 421 0034 4FF0010E 		mov	lr, #1
+ 422 0038 F5E7     		b	.L28
+ 423              	.L31:
+ 123:mri/core/libc.c ****     uint8_t* pSrcCurr = pSrc;
+ 424              		.loc 1 123 14 view .LVU123
+ 425 003a 0346     		mov	r3, r0
+ 122:mri/core/libc.c ****     uint8_t* pDestCurr = pDest;
+ 426              		.loc 1 122 9 view .LVU124
+ 427 003c 4FF0010E 		mov	lr, #1
+ 428 0040 F1E7     		b	.L28
+ 429              		.cfi_endproc
+ 430              	.LFE6:
+ 432              		.text
+ 433              	.Letext0:
+ 434              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 435              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 436              		.file 4 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ARM GAS  /tmp/ccCFCgW5.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 libc.c
+     /tmp/ccCFCgW5.s:21     .text.mri_memcpy:0000000000000000 $t
+     /tmp/ccCFCgW5.s:27     .text.mri_memcpy:0000000000000000 mri_memcpy
+     /tmp/ccCFCgW5.s:69     .text.mri_memset:0000000000000000 $t
+     /tmp/ccCFCgW5.s:75     .text.mri_memset:0000000000000000 mri_memset
+     /tmp/ccCFCgW5.s:113    .text.mri_strcmp:0000000000000000 $t
+     /tmp/ccCFCgW5.s:119    .text.mri_strcmp:0000000000000000 mri_strcmp
+     /tmp/ccCFCgW5.s:160    .text.mri_strncmp:0000000000000000 $t
+     /tmp/ccCFCgW5.s:166    .text.mri_strncmp:0000000000000000 mri_strncmp
+     /tmp/ccCFCgW5.s:227    .text.mri_strlen:0000000000000000 $t
+     /tmp/ccCFCgW5.s:233    .text.mri_strlen:0000000000000000 mri_strlen
+     /tmp/ccCFCgW5.s:267    .text.mri_strstr:0000000000000000 $t
+     /tmp/ccCFCgW5.s:273    .text.mri_strstr:0000000000000000 mri_strstr
+     /tmp/ccCFCgW5.s:337    .text.mri_memmove:0000000000000000 $t
+     /tmp/ccCFCgW5.s:343    .text.mri_memmove:0000000000000000 mri_memmove
+
+NO UNDEFINED SYMBOLS

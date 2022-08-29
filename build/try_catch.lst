@@ -1,0 +1,39 @@
+ARM GAS  /tmp/ccujAwBh.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"try_catch.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/try_catch.c"
+  20              		.global	mriExceptionCode
+  21              		.section	.bss.mriExceptionCode,"aw",%nobits
+  22              		.align	2
+  25              	mriExceptionCode:
+  26 0000 00000000 		.space	4
+  27              		.text
+  28              	.Letext0:
+  29              		.file 2 "mri/core/try_catch.h"
+ARM GAS  /tmp/ccujAwBh.s 			page 2
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 try_catch.c
+     /tmp/ccujAwBh.s:25     .bss.mriExceptionCode:0000000000000000 mriExceptionCode
+     /tmp/ccujAwBh.s:22     .bss.mriExceptionCode:0000000000000000 $d
+
+NO UNDEFINED SYMBOLS

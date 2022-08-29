@@ -1,0 +1,601 @@
+ARM GAS  /tmp/ccu048jt.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"cmd_registers.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/cmd_registers.c"
+  20              		.section	.rodata.writeThreadIdToBuffer.str1.4,"aMS",%progbits,1
+  21              		.align	2
+  22              	.LC0:
+  23 0000 74687265 		.ascii	"thread\000"
+  23      616400
+  24              		.section	.text.writeThreadIdToBuffer,"ax",%progbits
+  25              		.align	1
+  26              		.syntax unified
+  27              		.thumb
+  28              		.thumb_func
+  30              	writeThreadIdToBuffer:
+  31              	.LVL0:
+  32              	.LFB4:
+   1:mri/core/cmd_registers.c **** /* Copyright 2020 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/cmd_registers.c **** 
+   3:mri/core/cmd_registers.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/cmd_registers.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/cmd_registers.c ****    You may obtain a copy of the License at
+   6:mri/core/cmd_registers.c **** 
+   7:mri/core/cmd_registers.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/cmd_registers.c **** 
+   9:mri/core/cmd_registers.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/cmd_registers.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/cmd_registers.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/cmd_registers.c ****    See the License for the specific language governing permissions and
+  13:mri/core/cmd_registers.c ****    limitations under the License.
+  14:mri/core/cmd_registers.c **** */
+  15:mri/core/cmd_registers.c **** /* Command handler for gdb commands related to CPU registers. */
+  16:mri/core/cmd_registers.c **** #include <core/signal.h>
+  17:mri/core/cmd_registers.c **** #include <core/cmd_common.h>
+  18:mri/core/cmd_registers.c **** #include <core/platforms.h>
+  19:mri/core/cmd_registers.c **** #include <core/buffer.h>
+  20:mri/core/cmd_registers.c **** #include <core/core.h>
+  21:mri/core/cmd_registers.c **** #include <core/mri.h>
+  22:mri/core/cmd_registers.c **** #include <core/cmd_registers.h>
+  23:mri/core/cmd_registers.c **** 
+  24:mri/core/cmd_registers.c **** 
+  25:mri/core/cmd_registers.c **** static void writeThreadIdToBuffer(Buffer* pBuffer, uint32_t threadId);
+ARM GAS  /tmp/ccu048jt.s 			page 2
+
+
+  26:mri/core/cmd_registers.c **** static void writeTrapReasonToBuffer(Buffer* pBuffer);
+  27:mri/core/cmd_registers.c **** /* Sent when an exception occurs while program is executing because of previous 'c' (Continue) or '
+  28:mri/core/cmd_registers.c **** 
+  29:mri/core/cmd_registers.c ****     Data Format: Tssii:xxxxxxxx;ii:xxxxxxxx;...
+  30:mri/core/cmd_registers.c **** 
+  31:mri/core/cmd_registers.c ****     Where ss is the hex value of the signal which caused the exception.
+  32:mri/core/cmd_registers.c ****           ii is the hex offset of the 32-bit register value following the ':'  The offset is relati
+  33:mri/core/cmd_registers.c ****              contents in the g response packet and the SContext structure.
+  34:mri/core/cmd_registers.c ****           xxxxxxxx is the 32-bit value of the specified register in hex format.
+  35:mri/core/cmd_registers.c ****           The above ii:xxxxxxxx; patterns can be repeated for whichever register values should be s
+  36:mri/core/cmd_registers.c **** */
+  37:mri/core/cmd_registers.c **** uint32_t Send_T_StopResponse(void)
+  38:mri/core/cmd_registers.c **** {
+  39:mri/core/cmd_registers.c ****     uint8_t signalValue = GetSignalValue();
+  40:mri/core/cmd_registers.c ****     Buffer* pBuffer = GetInitializedBuffer();
+  41:mri/core/cmd_registers.c ****     uint32_t threadId = Platform_RtosGetHaltedThreadId();
+  42:mri/core/cmd_registers.c **** 
+  43:mri/core/cmd_registers.c ****     Buffer_WriteChar(pBuffer, 'T');
+  44:mri/core/cmd_registers.c ****     Buffer_WriteByteAsHex(pBuffer, signalValue);
+  45:mri/core/cmd_registers.c ****     if (threadId != 0)
+  46:mri/core/cmd_registers.c ****         writeThreadIdToBuffer(pBuffer, threadId);
+  47:mri/core/cmd_registers.c ****     if (signalValue == SIGTRAP)
+  48:mri/core/cmd_registers.c ****         writeTrapReasonToBuffer(pBuffer);
+  49:mri/core/cmd_registers.c ****     Platform_WriteTResponseRegistersToBuffer(pBuffer);
+  50:mri/core/cmd_registers.c **** 
+  51:mri/core/cmd_registers.c ****     SendPacketToGdb();
+  52:mri/core/cmd_registers.c ****     return HANDLER_RETURN_RETURN_IMMEDIATELY;
+  53:mri/core/cmd_registers.c **** }
+  54:mri/core/cmd_registers.c **** 
+  55:mri/core/cmd_registers.c **** static void writeThreadIdToBuffer(Buffer* pBuffer, uint32_t threadId)
+  56:mri/core/cmd_registers.c **** {
+  33              		.loc 1 56 1 view -0
+  34              		.cfi_startproc
+  35              		@ args = 0, pretend = 0, frame = 0
+  36              		@ frame_needed = 0, uses_anonymous_args = 0
+  37              		.loc 1 56 1 is_stmt 0 view .LVU1
+  38 0000 38B5     		push	{r3, r4, r5, lr}
+  39              	.LCFI0:
+  40              		.cfi_def_cfa_offset 16
+  41              		.cfi_offset 3, -16
+  42              		.cfi_offset 4, -12
+  43              		.cfi_offset 5, -8
+  44              		.cfi_offset 14, -4
+  45 0002 0446     		mov	r4, r0
+  46 0004 0D46     		mov	r5, r1
+  57:mri/core/cmd_registers.c ****     Buffer_WriteString(pBuffer, "thread");
+  47              		.loc 1 57 5 is_stmt 1 view .LVU2
+  48 0006 0849     		ldr	r1, .L3
+  49              	.LVL1:
+  50              		.loc 1 57 5 is_stmt 0 view .LVU3
+  51 0008 FFF7FEFF 		bl	mriBuffer_WriteString
+  52              	.LVL2:
+  58:mri/core/cmd_registers.c ****     Buffer_WriteChar(pBuffer, ':');
+  53              		.loc 1 58 5 is_stmt 1 view .LVU4
+  54 000c 3A21     		movs	r1, #58
+  55 000e 2046     		mov	r0, r4
+  56 0010 FFF7FEFF 		bl	mriBuffer_WriteChar
+ARM GAS  /tmp/ccu048jt.s 			page 3
+
+
+  57              	.LVL3:
+  59:mri/core/cmd_registers.c ****     Buffer_WriteUIntegerAsHex(pBuffer, threadId);
+  58              		.loc 1 59 5 view .LVU5
+  59 0014 2946     		mov	r1, r5
+  60 0016 2046     		mov	r0, r4
+  61 0018 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+  62              	.LVL4:
+  60:mri/core/cmd_registers.c ****     Buffer_WriteChar(pBuffer, ';');
+  63              		.loc 1 60 5 view .LVU6
+  64 001c 3B21     		movs	r1, #59
+  65 001e 2046     		mov	r0, r4
+  66 0020 FFF7FEFF 		bl	mriBuffer_WriteChar
+  67              	.LVL5:
+  61:mri/core/cmd_registers.c **** }
+  68              		.loc 1 61 1 is_stmt 0 view .LVU7
+  69 0024 38BD     		pop	{r3, r4, r5, pc}
+  70              	.LVL6:
+  71              	.L4:
+  72              		.loc 1 61 1 view .LVU8
+  73 0026 00BF     		.align	2
+  74              	.L3:
+  75 0028 00000000 		.word	.LC0
+  76              		.cfi_endproc
+  77              	.LFE4:
+  79              		.section	.rodata.writeTrapReasonToBuffer.str1.4,"aMS",%progbits,1
+  80              		.align	2
+  81              	.LC1:
+  82 0000 77617463 		.ascii	"watch\000"
+  82      6800
+  83 0006 0000     		.align	2
+  84              	.LC2:
+  85 0008 72776174 		.ascii	"rwatch\000"
+  85      636800
+  86 000f 00       		.align	2
+  87              	.LC3:
+  88 0010 61776174 		.ascii	"awatch\000"
+  88      636800
+  89              		.section	.text.writeTrapReasonToBuffer,"ax",%progbits
+  90              		.align	1
+  91              		.syntax unified
+  92              		.thumb
+  93              		.thumb_func
+  95              	writeTrapReasonToBuffer:
+  96              	.LVL7:
+  97              	.LFB5:
+  62:mri/core/cmd_registers.c **** 
+  63:mri/core/cmd_registers.c **** static void writeTrapReasonToBuffer(Buffer* pBuffer)
+  64:mri/core/cmd_registers.c **** {
+  98              		.loc 1 64 1 is_stmt 1 view -0
+  99              		.cfi_startproc
+ 100              		@ args = 0, pretend = 0, frame = 8
+ 101              		@ frame_needed = 0, uses_anonymous_args = 0
+ 102              		.loc 1 64 1 is_stmt 0 view .LVU10
+ 103 0000 10B5     		push	{r4, lr}
+ 104              	.LCFI1:
+ 105              		.cfi_def_cfa_offset 8
+ 106              		.cfi_offset 4, -8
+ARM GAS  /tmp/ccu048jt.s 			page 4
+
+
+ 107              		.cfi_offset 14, -4
+ 108 0002 82B0     		sub	sp, sp, #8
+ 109              	.LCFI2:
+ 110              		.cfi_def_cfa_offset 16
+ 111 0004 0446     		mov	r4, r0
+  65:mri/core/cmd_registers.c ****     const char* pReason;
+ 112              		.loc 1 65 5 is_stmt 1 view .LVU11
+  66:mri/core/cmd_registers.c ****     int         outputAddress;
+ 113              		.loc 1 66 5 view .LVU12
+  67:mri/core/cmd_registers.c **** 
+  68:mri/core/cmd_registers.c ****     PlatformTrapReason reason = Platform_GetTrapReason();
+ 114              		.loc 1 68 5 view .LVU13
+ 115              		.loc 1 68 33 is_stmt 0 view .LVU14
+ 116 0006 6846     		mov	r0, sp
+ 117              	.LVL8:
+ 118              		.loc 1 68 33 view .LVU15
+ 119 0008 FFF7FEFF 		bl	mriPlatform_GetTrapReason
+ 120              	.LVL9:
+  69:mri/core/cmd_registers.c ****     switch (reason.type)
+ 121              		.loc 1 69 5 is_stmt 1 view .LVU16
+ 122              		.loc 1 69 19 is_stmt 0 view .LVU17
+ 123 000c 9DF80030 		ldrb	r3, [sp]	@ zero_extendqisi2
+ 124              		.loc 1 69 5 view .LVU18
+ 125 0010 042B     		cmp	r3, #4
+ 126 0012 15D0     		beq	.L9
+ 127 0014 052B     		cmp	r3, #5
+ 128 0016 15D0     		beq	.L10
+ 129 0018 032B     		cmp	r3, #3
+ 130 001a 0FD1     		bne	.L5
+ 131 001c 0A49     		ldr	r1, .L12
+ 132              	.L6:
+ 133              	.LVL10:
+  70:mri/core/cmd_registers.c ****     {
+  71:mri/core/cmd_registers.c ****     case MRI_PLATFORM_TRAP_TYPE_WATCH:
+  72:mri/core/cmd_registers.c ****         pReason = "watch";
+  73:mri/core/cmd_registers.c ****         outputAddress = 1;
+  74:mri/core/cmd_registers.c ****         break;
+  75:mri/core/cmd_registers.c ****     case MRI_PLATFORM_TRAP_TYPE_RWATCH:
+  76:mri/core/cmd_registers.c ****         pReason = "rwatch";
+  77:mri/core/cmd_registers.c ****         outputAddress = 1;
+  78:mri/core/cmd_registers.c ****         break;
+  79:mri/core/cmd_registers.c ****     case MRI_PLATFORM_TRAP_TYPE_AWATCH:
+  80:mri/core/cmd_registers.c ****         pReason = "awatch";
+  81:mri/core/cmd_registers.c ****         outputAddress = 1;
+  82:mri/core/cmd_registers.c ****         break;
+  83:mri/core/cmd_registers.c ****     default:
+  84:mri/core/cmd_registers.c ****         /* Don't dump trap reason if it is unknown. */
+  85:mri/core/cmd_registers.c ****         return;
+  86:mri/core/cmd_registers.c ****     }
+  87:mri/core/cmd_registers.c **** 
+  88:mri/core/cmd_registers.c ****     Buffer_WriteString(pBuffer, pReason);
+ 134              		.loc 1 88 5 is_stmt 1 view .LVU19
+ 135 001e 2046     		mov	r0, r4
+ 136 0020 FFF7FEFF 		bl	mriBuffer_WriteString
+ 137              	.LVL11:
+  89:mri/core/cmd_registers.c ****     Buffer_WriteChar(pBuffer, ':');
+ 138              		.loc 1 89 5 view .LVU20
+ARM GAS  /tmp/ccu048jt.s 			page 5
+
+
+ 139 0024 3A21     		movs	r1, #58
+ 140 0026 2046     		mov	r0, r4
+ 141 0028 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 142              	.LVL12:
+  90:mri/core/cmd_registers.c ****     if (outputAddress)
+ 143              		.loc 1 90 5 view .LVU21
+  91:mri/core/cmd_registers.c ****         Buffer_WriteUIntegerAsHex(pBuffer, reason.address);
+ 144              		.loc 1 91 9 view .LVU22
+ 145 002c 0199     		ldr	r1, [sp, #4]
+ 146 002e 2046     		mov	r0, r4
+ 147 0030 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 148              	.LVL13:
+  92:mri/core/cmd_registers.c ****     Buffer_WriteChar(pBuffer, ';');
+ 149              		.loc 1 92 5 view .LVU23
+ 150 0034 3B21     		movs	r1, #59
+ 151 0036 2046     		mov	r0, r4
+ 152 0038 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 153              	.LVL14:
+ 154              	.L5:
+  93:mri/core/cmd_registers.c **** }
+ 155              		.loc 1 93 1 is_stmt 0 view .LVU24
+ 156 003c 02B0     		add	sp, sp, #8
+ 157              	.LCFI3:
+ 158              		.cfi_remember_state
+ 159              		.cfi_def_cfa_offset 8
+ 160              		@ sp needed
+ 161 003e 10BD     		pop	{r4, pc}
+ 162              	.LVL15:
+ 163              	.L9:
+ 164              	.LCFI4:
+ 165              		.cfi_restore_state
+  76:mri/core/cmd_registers.c ****         outputAddress = 1;
+ 166              		.loc 1 76 17 view .LVU25
+ 167 0040 0249     		ldr	r1, .L12+4
+ 168 0042 ECE7     		b	.L6
+ 169              	.L10:
+  80:mri/core/cmd_registers.c ****         outputAddress = 1;
+ 170              		.loc 1 80 17 view .LVU26
+ 171 0044 0249     		ldr	r1, .L12+8
+ 172 0046 EAE7     		b	.L6
+ 173              	.L13:
+ 174              		.align	2
+ 175              	.L12:
+ 176 0048 00000000 		.word	.LC1
+ 177 004c 08000000 		.word	.LC2
+ 178 0050 10000000 		.word	.LC3
+ 179              		.cfi_endproc
+ 180              	.LFE5:
+ 182              		.section	.text.mriCmd_Send_T_StopResponse,"ax",%progbits
+ 183              		.align	1
+ 184              		.global	mriCmd_Send_T_StopResponse
+ 185              		.syntax unified
+ 186              		.thumb
+ 187              		.thumb_func
+ 189              	mriCmd_Send_T_StopResponse:
+ 190              	.LFB3:
+  38:mri/core/cmd_registers.c ****     uint8_t signalValue = GetSignalValue();
+ARM GAS  /tmp/ccu048jt.s 			page 6
+
+
+ 191              		.loc 1 38 1 is_stmt 1 view -0
+ 192              		.cfi_startproc
+ 193              		@ args = 0, pretend = 0, frame = 0
+ 194              		@ frame_needed = 0, uses_anonymous_args = 0
+ 195 0000 70B5     		push	{r4, r5, r6, lr}
+ 196              	.LCFI5:
+ 197              		.cfi_def_cfa_offset 16
+ 198              		.cfi_offset 4, -16
+ 199              		.cfi_offset 5, -12
+ 200              		.cfi_offset 6, -8
+ 201              		.cfi_offset 14, -4
+  39:mri/core/cmd_registers.c ****     Buffer* pBuffer = GetInitializedBuffer();
+ 202              		.loc 1 39 5 view .LVU28
+  39:mri/core/cmd_registers.c ****     Buffer* pBuffer = GetInitializedBuffer();
+ 203              		.loc 1 39 27 is_stmt 0 view .LVU29
+ 204 0002 FFF7FEFF 		bl	mriCore_GetSignalValue
+ 205              	.LVL16:
+ 206 0006 0546     		mov	r5, r0
+ 207              	.LVL17:
+  40:mri/core/cmd_registers.c ****     uint32_t threadId = Platform_RtosGetHaltedThreadId();
+ 208              		.loc 1 40 5 is_stmt 1 view .LVU30
+  40:mri/core/cmd_registers.c ****     uint32_t threadId = Platform_RtosGetHaltedThreadId();
+ 209              		.loc 1 40 23 is_stmt 0 view .LVU31
+ 210 0008 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 211              	.LVL18:
+ 212 000c 0446     		mov	r4, r0
+ 213              	.LVL19:
+  41:mri/core/cmd_registers.c **** 
+ 214              		.loc 1 41 5 is_stmt 1 view .LVU32
+  41:mri/core/cmd_registers.c **** 
+ 215              		.loc 1 41 25 is_stmt 0 view .LVU33
+ 216 000e FFF7FEFF 		bl	mriPlatform_RtosGetHaltedThreadId
+ 217              	.LVL20:
+  41:mri/core/cmd_registers.c **** 
+ 218              		.loc 1 41 25 view .LVU34
+ 219 0012 0646     		mov	r6, r0
+ 220              	.LVL21:
+  43:mri/core/cmd_registers.c ****     Buffer_WriteByteAsHex(pBuffer, signalValue);
+ 221              		.loc 1 43 5 is_stmt 1 view .LVU35
+ 222 0014 5421     		movs	r1, #84
+ 223 0016 2046     		mov	r0, r4
+ 224              	.LVL22:
+  43:mri/core/cmd_registers.c ****     Buffer_WriteByteAsHex(pBuffer, signalValue);
+ 225              		.loc 1 43 5 is_stmt 0 view .LVU36
+ 226 0018 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 227              	.LVL23:
+  44:mri/core/cmd_registers.c ****     if (threadId != 0)
+ 228              		.loc 1 44 5 is_stmt 1 view .LVU37
+ 229 001c 2946     		mov	r1, r5
+ 230 001e 2046     		mov	r0, r4
+ 231 0020 FFF7FEFF 		bl	mriBuffer_WriteByteAsHex
+ 232              	.LVL24:
+  45:mri/core/cmd_registers.c ****         writeThreadIdToBuffer(pBuffer, threadId);
+ 233              		.loc 1 45 5 view .LVU38
+  45:mri/core/cmd_registers.c ****         writeThreadIdToBuffer(pBuffer, threadId);
+ 234              		.loc 1 45 8 is_stmt 0 view .LVU39
+ 235 0024 46B9     		cbnz	r6, .L18
+ARM GAS  /tmp/ccu048jt.s 			page 7
+
+
+ 236              	.L15:
+  47:mri/core/cmd_registers.c ****         writeTrapReasonToBuffer(pBuffer);
+ 237              		.loc 1 47 5 is_stmt 1 view .LVU40
+  47:mri/core/cmd_registers.c ****         writeTrapReasonToBuffer(pBuffer);
+ 238              		.loc 1 47 8 is_stmt 0 view .LVU41
+ 239 0026 052D     		cmp	r5, #5
+ 240 0028 0BD0     		beq	.L19
+ 241              	.L16:
+  49:mri/core/cmd_registers.c **** 
+ 242              		.loc 1 49 5 is_stmt 1 view .LVU42
+ 243 002a 2046     		mov	r0, r4
+ 244 002c FFF7FEFF 		bl	mriPlatform_WriteTResponseRegistersToBuffer
+ 245              	.LVL25:
+  51:mri/core/cmd_registers.c ****     return HANDLER_RETURN_RETURN_IMMEDIATELY;
+ 246              		.loc 1 51 5 view .LVU43
+ 247 0030 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+ 248              	.LVL26:
+  52:mri/core/cmd_registers.c **** }
+ 249              		.loc 1 52 5 view .LVU44
+  53:mri/core/cmd_registers.c **** 
+ 250              		.loc 1 53 1 is_stmt 0 view .LVU45
+ 251 0034 0220     		movs	r0, #2
+ 252 0036 70BD     		pop	{r4, r5, r6, pc}
+ 253              	.LVL27:
+ 254              	.L18:
+  46:mri/core/cmd_registers.c ****     if (signalValue == SIGTRAP)
+ 255              		.loc 1 46 9 is_stmt 1 view .LVU46
+ 256 0038 3146     		mov	r1, r6
+ 257 003a 2046     		mov	r0, r4
+ 258 003c FFF7FEFF 		bl	writeThreadIdToBuffer
+ 259              	.LVL28:
+ 260 0040 F1E7     		b	.L15
+ 261              	.L19:
+  48:mri/core/cmd_registers.c ****     Platform_WriteTResponseRegistersToBuffer(pBuffer);
+ 262              		.loc 1 48 9 view .LVU47
+ 263 0042 2046     		mov	r0, r4
+ 264 0044 FFF7FEFF 		bl	writeTrapReasonToBuffer
+ 265              	.LVL29:
+ 266 0048 EFE7     		b	.L16
+ 267              		.cfi_endproc
+ 268              	.LFE3:
+ 270              		.section	.text.mriCmd_HandleRegisterReadCommand,"ax",%progbits
+ 271              		.align	1
+ 272              		.global	mriCmd_HandleRegisterReadCommand
+ 273              		.syntax unified
+ 274              		.thumb
+ 275              		.thumb_func
+ 277              	mriCmd_HandleRegisterReadCommand:
+ 278              	.LFB6:
+  94:mri/core/cmd_registers.c **** 
+  95:mri/core/cmd_registers.c **** 
+  96:mri/core/cmd_registers.c **** /* Handle the 'g' command which is to send the contents of the registers back to gdb.
+  97:mri/core/cmd_registers.c **** 
+  98:mri/core/cmd_registers.c ****     Command Format:     g
+  99:mri/core/cmd_registers.c ****     Response Format:    xxxxxxxxyyyyyyyy...
+ 100:mri/core/cmd_registers.c **** 
+ 101:mri/core/cmd_registers.c ****     Where xxxxxxxx is the hexadecimal representation of the 32-bit R0 register.
+ARM GAS  /tmp/ccu048jt.s 			page 8
+
+
+ 102:mri/core/cmd_registers.c ****           yyyyyyyy is the hexadecimal representation of the 32-bit R1 register.
+ 103:mri/core/cmd_registers.c ****           ... and so on through the members of the SContext structure.
+ 104:mri/core/cmd_registers.c **** */
+ 105:mri/core/cmd_registers.c **** uint32_t HandleRegisterReadCommand(void)
+ 106:mri/core/cmd_registers.c **** {
+ 279              		.loc 1 106 1 view -0
+ 280              		.cfi_startproc
+ 281              		@ args = 0, pretend = 0, frame = 0
+ 282              		@ frame_needed = 0, uses_anonymous_args = 0
+ 283 0000 10B5     		push	{r4, lr}
+ 284              	.LCFI6:
+ 285              		.cfi_def_cfa_offset 8
+ 286              		.cfi_offset 4, -8
+ 287              		.cfi_offset 14, -4
+ 107:mri/core/cmd_registers.c ****     Context_CopyToBuffer(GetContext(), GetInitializedBuffer());
+ 288              		.loc 1 107 5 view .LVU49
+ 289 0002 FFF7FEFF 		bl	mriCore_GetContext
+ 290              	.LVL30:
+ 291 0006 0446     		mov	r4, r0
+ 292 0008 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 293              	.LVL31:
+ 294 000c 0146     		mov	r1, r0
+ 295 000e 2046     		mov	r0, r4
+ 296 0010 FFF7FEFF 		bl	mriContext_CopyToBuffer
+ 297              	.LVL32:
+ 108:mri/core/cmd_registers.c ****     return 0;
+ 298              		.loc 1 108 5 view .LVU50
+ 109:mri/core/cmd_registers.c **** }
+ 299              		.loc 1 109 1 is_stmt 0 view .LVU51
+ 300 0014 0020     		movs	r0, #0
+ 301 0016 10BD     		pop	{r4, pc}
+ 302              		.cfi_endproc
+ 303              	.LFE6:
+ 305              		.section	.rodata.mriCmd_HandleRegisterWriteCommand.str1.4,"aMS",%progbits,1
+ 306              		.align	2
+ 307              	.LC4:
+ 308 0000 45303400 		.ascii	"E04\000"
+ 309              		.align	2
+ 310              	.LC5:
+ 311 0004 4F4B00   		.ascii	"OK\000"
+ 312              		.section	.text.mriCmd_HandleRegisterWriteCommand,"ax",%progbits
+ 313              		.align	1
+ 314              		.global	mriCmd_HandleRegisterWriteCommand
+ 315              		.syntax unified
+ 316              		.thumb
+ 317              		.thumb_func
+ 319              	mriCmd_HandleRegisterWriteCommand:
+ 320              	.LFB7:
+ 110:mri/core/cmd_registers.c **** 
+ 111:mri/core/cmd_registers.c **** /* Handle the 'G' command which is to receive the new contents of the registers from gdb for the pr
+ 112:mri/core/cmd_registers.c ****    it resumes execution.
+ 113:mri/core/cmd_registers.c **** 
+ 114:mri/core/cmd_registers.c ****    Command Format:      Gxxxxxxxxyyyyyyyy...
+ 115:mri/core/cmd_registers.c ****    Response Format:     OK
+ 116:mri/core/cmd_registers.c **** 
+ 117:mri/core/cmd_registers.c ****     Where xxxxxxxx is the hexadecimal representation of the 32-bit R0 register.
+ 118:mri/core/cmd_registers.c ****           yyyyyyyy is the hexadecimal representation of the 32-bit R1 register.
+ARM GAS  /tmp/ccu048jt.s 			page 9
+
+
+ 119:mri/core/cmd_registers.c ****           ... and so on through the members of the SContext structure.
+ 120:mri/core/cmd_registers.c **** */
+ 121:mri/core/cmd_registers.c **** uint32_t HandleRegisterWriteCommand(void)
+ 122:mri/core/cmd_registers.c **** {
+ 321              		.loc 1 122 1 is_stmt 1 view -0
+ 322              		.cfi_startproc
+ 323              		@ args = 0, pretend = 0, frame = 0
+ 324              		@ frame_needed = 0, uses_anonymous_args = 0
+ 325 0000 10B5     		push	{r4, lr}
+ 326              	.LCFI7:
+ 327              		.cfi_def_cfa_offset 8
+ 328              		.cfi_offset 4, -8
+ 329              		.cfi_offset 14, -4
+ 123:mri/core/cmd_registers.c ****     Buffer*     pBuffer = GetBuffer();
+ 330              		.loc 1 123 5 view .LVU53
+ 331              		.loc 1 123 27 is_stmt 0 view .LVU54
+ 332 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 333              	.LVL33:
+ 334 0006 0446     		mov	r4, r0
+ 335              	.LVL34:
+ 124:mri/core/cmd_registers.c **** 
+ 125:mri/core/cmd_registers.c ****     Context_CopyFromBuffer(GetContext(), pBuffer);
+ 336              		.loc 1 125 5 is_stmt 1 view .LVU55
+ 337 0008 FFF7FEFF 		bl	mriCore_GetContext
+ 338              	.LVL35:
+ 339              		.loc 1 125 5 is_stmt 0 view .LVU56
+ 340 000c 2146     		mov	r1, r4
+ 341 000e FFF7FEFF 		bl	mriContext_CopyFromBuffer
+ 342              	.LVL36:
+ 126:mri/core/cmd_registers.c **** 
+ 127:mri/core/cmd_registers.c ****     if (Buffer_OverrunDetected(pBuffer))
+ 343              		.loc 1 127 5 is_stmt 1 view .LVU57
+ 344              		.loc 1 127 9 is_stmt 0 view .LVU58
+ 345 0012 2046     		mov	r0, r4
+ 346 0014 FFF7FEFF 		bl	mriBuffer_OverrunDetected
+ 347              	.LVL37:
+ 348              		.loc 1 127 8 view .LVU59
+ 349 0018 20B1     		cbz	r0, .L23
+ 128:mri/core/cmd_registers.c ****         PrepareStringResponse(MRI_ERROR_BUFFER_OVERRUN);
+ 350              		.loc 1 128 9 is_stmt 1 view .LVU60
+ 351 001a 0448     		ldr	r0, .L26
+ 352 001c FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 353              	.LVL38:
+ 354              	.L24:
+ 129:mri/core/cmd_registers.c ****     else
+ 130:mri/core/cmd_registers.c ****         PrepareStringResponse("OK");
+ 131:mri/core/cmd_registers.c **** 
+ 132:mri/core/cmd_registers.c ****     return 0;
+ 355              		.loc 1 132 5 view .LVU61
+ 133:mri/core/cmd_registers.c **** }
+ 356              		.loc 1 133 1 is_stmt 0 view .LVU62
+ 357 0020 0020     		movs	r0, #0
+ 358 0022 10BD     		pop	{r4, pc}
+ 359              	.LVL39:
+ 360              	.L23:
+ 130:mri/core/cmd_registers.c **** 
+ 361              		.loc 1 130 9 is_stmt 1 view .LVU63
+ARM GAS  /tmp/ccu048jt.s 			page 10
+
+
+ 362 0024 0248     		ldr	r0, .L26+4
+ 363 0026 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 364              	.LVL40:
+ 365 002a F9E7     		b	.L24
+ 366              	.L27:
+ 367              		.align	2
+ 368              	.L26:
+ 369 002c 00000000 		.word	.LC4
+ 370 0030 04000000 		.word	.LC5
+ 371              		.cfi_endproc
+ 372              	.LFE7:
+ 374              		.text
+ 375              	.Letext0:
+ 376              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 377              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 378              		.file 4 "mri/core/buffer.h"
+ 379              		.file 5 "mri/core/context.h"
+ 380              		.file 6 "mri/core/platforms.h"
+ 381              		.file 7 "mri/core/core.h"
+ARM GAS  /tmp/ccu048jt.s 			page 11
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cmd_registers.c
+     /tmp/ccu048jt.s:21     .rodata.writeThreadIdToBuffer.str1.4:0000000000000000 $d
+     /tmp/ccu048jt.s:25     .text.writeThreadIdToBuffer:0000000000000000 $t
+     /tmp/ccu048jt.s:30     .text.writeThreadIdToBuffer:0000000000000000 writeThreadIdToBuffer
+     /tmp/ccu048jt.s:75     .text.writeThreadIdToBuffer:0000000000000028 $d
+     /tmp/ccu048jt.s:80     .rodata.writeTrapReasonToBuffer.str1.4:0000000000000000 $d
+     /tmp/ccu048jt.s:90     .text.writeTrapReasonToBuffer:0000000000000000 $t
+     /tmp/ccu048jt.s:95     .text.writeTrapReasonToBuffer:0000000000000000 writeTrapReasonToBuffer
+     /tmp/ccu048jt.s:176    .text.writeTrapReasonToBuffer:0000000000000048 $d
+     /tmp/ccu048jt.s:183    .text.mriCmd_Send_T_StopResponse:0000000000000000 $t
+     /tmp/ccu048jt.s:189    .text.mriCmd_Send_T_StopResponse:0000000000000000 mriCmd_Send_T_StopResponse
+     /tmp/ccu048jt.s:271    .text.mriCmd_HandleRegisterReadCommand:0000000000000000 $t
+     /tmp/ccu048jt.s:277    .text.mriCmd_HandleRegisterReadCommand:0000000000000000 mriCmd_HandleRegisterReadCommand
+     /tmp/ccu048jt.s:306    .rodata.mriCmd_HandleRegisterWriteCommand.str1.4:0000000000000000 $d
+     /tmp/ccu048jt.s:313    .text.mriCmd_HandleRegisterWriteCommand:0000000000000000 $t
+     /tmp/ccu048jt.s:319    .text.mriCmd_HandleRegisterWriteCommand:0000000000000000 mriCmd_HandleRegisterWriteCommand
+     /tmp/ccu048jt.s:369    .text.mriCmd_HandleRegisterWriteCommand:000000000000002c $d
+
+UNDEFINED SYMBOLS
+mriBuffer_WriteString
+mriBuffer_WriteChar
+mriBuffer_WriteUIntegerAsHex
+mriPlatform_GetTrapReason
+mriCore_GetSignalValue
+mriCore_GetInitializedBuffer
+mriPlatform_RtosGetHaltedThreadId
+mriBuffer_WriteByteAsHex
+mriPlatform_WriteTResponseRegistersToBuffer
+mriCore_SendPacketToGdb
+mriCore_GetContext
+mriContext_CopyToBuffer
+mriCore_GetBuffer
+mriContext_CopyFromBuffer
+mriBuffer_OverrunDetected
+mriCore_PrepareStringResponse

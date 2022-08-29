@@ -1,0 +1,1221 @@
+ARM GAS  /tmp/ccp5z1Jp.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"semihost_newlib.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/semihost/newlib/semihost_newlib.c"
+  20              		.section	.text.throwingMemRead16,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	throwingMemRead16:
+  27              	.LVL0:
+  28              	.LFB5:
+   1:mri/semihost/newlib/semihost_newlib.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/semihost/newlib/semihost_newlib.c **** 
+   3:mri/semihost/newlib/semihost_newlib.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/semihost/newlib/semihost_newlib.c ****    you may not use this file except in compliance with the License.
+   5:mri/semihost/newlib/semihost_newlib.c ****    You may obtain a copy of the License at
+   6:mri/semihost/newlib/semihost_newlib.c **** 
+   7:mri/semihost/newlib/semihost_newlib.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/semihost/newlib/semihost_newlib.c **** 
+   9:mri/semihost/newlib/semihost_newlib.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/semihost/newlib/semihost_newlib.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/semihost/newlib/semihost_newlib.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/semihost/newlib/semihost_newlib.c ****    See the License for the specific language governing permissions and
+  13:mri/semihost/newlib/semihost_newlib.c ****    limitations under the License.
+  14:mri/semihost/newlib/semihost_newlib.c **** */
+  15:mri/semihost/newlib/semihost_newlib.c **** /* Semihost functionality for redirecting stdin/stdout/stderr I/O to the GNU console. */
+  16:mri/semihost/newlib/semihost_newlib.c **** #include <core/libc.h>
+  17:mri/semihost/newlib/semihost_newlib.c **** #include <core/mri.h>
+  18:mri/semihost/newlib/semihost_newlib.c **** #include <core/semihost.h>
+  19:mri/semihost/newlib/semihost_newlib.c **** #include <core/cmd_file.h>
+  20:mri/semihost/newlib/semihost_newlib.c **** #include <core/core.h>
+  21:mri/semihost/newlib/semihost_newlib.c **** #include "newlib_stubs.h"
+  22:mri/semihost/newlib/semihost_newlib.c **** 
+  23:mri/semihost/newlib/semihost_newlib.c **** 
+  24:mri/semihost/newlib/semihost_newlib.c **** static uint16_t getFirstHalfWordOfCurrentInstruction(void);
+  25:mri/semihost/newlib/semihost_newlib.c **** static uint16_t throwingMemRead16(uint32_t address);
+  26:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostWriteRequest(PlatformSemihostParameters* pSemihostParameters);
+  27:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostReadRequest(PlatformSemihostParameters* pSemihostParameters);
+  28:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostOpenRequest(PlatformSemihostParameters* pSemihostParameters);
+  29:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostUnlinkRequest(PlatformSemihostParameters* pSemihostParameters);
+  30:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostLSeekRequest(PlatformSemihostParameters* pSemihostParameters);
+ARM GAS  /tmp/ccp5z1Jp.s 			page 2
+
+
+  31:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostCloseRequest(PlatformSemihostParameters* pSemihostParameters);
+  32:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostFStatRequest(PlatformSemihostParameters* pSemihostParameters);
+  33:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostStatRequest(PlatformSemihostParameters* pSemihostParameters);
+  34:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostRenameRequest(PlatformSemihostParameters* pSemihostParameters);
+  35:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostGetErrNoRequest(PlatformSemihostParameters* pSemihostParameters);
+  36:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostSetHooksRequest(PlatformSemihostParameters* pSemihostParameters);
+  37:mri/semihost/newlib/semihost_newlib.c **** int Semihost_HandleNewlibSemihostRequest(PlatformSemihostParameters* pSemihostParameters)
+  38:mri/semihost/newlib/semihost_newlib.c **** {
+  39:mri/semihost/newlib/semihost_newlib.c ****     uint16_t semihostOperation = getFirstHalfWordOfCurrentInstruction() & 0x00FF;
+  40:mri/semihost/newlib/semihost_newlib.c **** 
+  41:mri/semihost/newlib/semihost_newlib.c ****     switch (semihostOperation)
+  42:mri/semihost/newlib/semihost_newlib.c ****     {
+  43:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_WRITE:
+  44:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostWriteRequest(pSemihostParameters);
+  45:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_READ:
+  46:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostReadRequest(pSemihostParameters);
+  47:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_OPEN:
+  48:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostOpenRequest(pSemihostParameters);
+  49:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_UNLINK:
+  50:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostUnlinkRequest(pSemihostParameters);
+  51:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_LSEEK:
+  52:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostLSeekRequest(pSemihostParameters);
+  53:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_CLOSE:
+  54:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostCloseRequest(pSemihostParameters);
+  55:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_FSTAT:
+  56:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostFStatRequest(pSemihostParameters);
+  57:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_STAT:
+  58:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostStatRequest(pSemihostParameters);
+  59:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_RENAME:
+  60:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostRenameRequest(pSemihostParameters);
+  61:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_GET_ERRNO:
+  62:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostGetErrNoRequest(pSemihostParameters);
+  63:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_SET_HOOKS:
+  64:mri/semihost/newlib/semihost_newlib.c ****             return handleNewlibSemihostSetHooksRequest(pSemihostParameters);
+  65:mri/semihost/newlib/semihost_newlib.c ****         default:
+  66:mri/semihost/newlib/semihost_newlib.c ****             return 0;
+  67:mri/semihost/newlib/semihost_newlib.c ****     }
+  68:mri/semihost/newlib/semihost_newlib.c **** }
+  69:mri/semihost/newlib/semihost_newlib.c **** 
+  70:mri/semihost/newlib/semihost_newlib.c **** static uint16_t getFirstHalfWordOfCurrentInstruction(void)
+  71:mri/semihost/newlib/semihost_newlib.c **** {
+  72:mri/semihost/newlib/semihost_newlib.c ****     return throwingMemRead16(Platform_GetProgramCounter());
+  73:mri/semihost/newlib/semihost_newlib.c **** }
+  74:mri/semihost/newlib/semihost_newlib.c **** 
+  75:mri/semihost/newlib/semihost_newlib.c **** static uint16_t throwingMemRead16(uint32_t address)
+  76:mri/semihost/newlib/semihost_newlib.c **** {
+  29              		.loc 1 76 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 76 1 is_stmt 0 view .LVU1
+  34 0000 10B5     		push	{r4, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 8
+  37              		.cfi_offset 4, -8
+  38              		.cfi_offset 14, -4
+  77:mri/semihost/newlib/semihost_newlib.c ****     uint16_t instructionWord = Platform_MemRead16((const uint16_t*)address);
+ARM GAS  /tmp/ccp5z1Jp.s 			page 3
+
+
+  39              		.loc 1 77 5 is_stmt 1 view .LVU2
+  40              		.loc 1 77 32 is_stmt 0 view .LVU3
+  41 0002 FFF7FEFF 		bl	mriPlatform_MemRead16
+  42              	.LVL1:
+  43              		.loc 1 77 32 view .LVU4
+  44 0006 0446     		mov	r4, r0
+  45              	.LVL2:
+  78:mri/semihost/newlib/semihost_newlib.c ****     if (Platform_WasMemoryFaultEncountered())
+  46              		.loc 1 78 5 is_stmt 1 view .LVU5
+  47              		.loc 1 78 9 is_stmt 0 view .LVU6
+  48 0008 FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+  49              	.LVL3:
+  50              		.loc 1 78 8 view .LVU7
+  51 000c 08B9     		cbnz	r0, .L4
+  52              	.LVL4:
+  53              	.L2:
+  79:mri/semihost/newlib/semihost_newlib.c ****         __throw_and_return(memFaultException, 0);
+  80:mri/semihost/newlib/semihost_newlib.c ****     return instructionWord;
+  81:mri/semihost/newlib/semihost_newlib.c **** }
+  54              		.loc 1 81 1 view .LVU8
+  55 000e 2046     		mov	r0, r4
+  56 0010 10BD     		pop	{r4, pc}
+  57              	.LVL5:
+  58              	.L4:
+  79:mri/semihost/newlib/semihost_newlib.c ****         __throw_and_return(memFaultException, 0);
+  59              		.loc 1 79 9 is_stmt 1 view .LVU9
+  60              	.LBB4:
+  61              	.LBI4:
+  62              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+ARM GAS  /tmp/ccp5z1Jp.s 			page 4
+
+
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  63              		.loc 2 71 20 view .LVU10
+  64              	.LBB5:
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  65              		.loc 2 73 5 view .LVU11
+  66              		.loc 2 73 73 is_stmt 0 view .LVU12
+  67 0012 044A     		ldr	r2, .L5
+  68 0014 1368     		ldr	r3, [r2]
+  69 0016 0A2B     		cmp	r3, #10
+  70 0018 B8BF     		it	lt
+  71 001a 0A23     		movlt	r3, #10
+  72              		.loc 2 73 22 view .LVU13
+  73 001c 1360     		str	r3, [r2]
+  74              	.LVL6:
+ARM GAS  /tmp/ccp5z1Jp.s 			page 5
+
+
+  75              		.loc 2 73 22 view .LVU14
+  76              	.LBE5:
+  77              	.LBE4:
+  79:mri/semihost/newlib/semihost_newlib.c ****     return instructionWord;
+  78              		.loc 1 79 9 view .LVU15
+  79 001e 0024     		movs	r4, #0
+  80              	.LVL7:
+  79:mri/semihost/newlib/semihost_newlib.c ****     return instructionWord;
+  81              		.loc 1 79 9 view .LVU16
+  82 0020 F5E7     		b	.L2
+  83              	.L6:
+  84 0022 00BF     		.align	2
+  85              	.L5:
+  86 0024 00000000 		.word	mriExceptionCode
+  87              		.cfi_endproc
+  88              	.LFE5:
+  90              		.section	.text.getFirstHalfWordOfCurrentInstruction,"ax",%progbits
+  91              		.align	1
+  92              		.syntax unified
+  93              		.thumb
+  94              		.thumb_func
+  96              	getFirstHalfWordOfCurrentInstruction:
+  97              	.LFB4:
+  71:mri/semihost/newlib/semihost_newlib.c ****     return throwingMemRead16(Platform_GetProgramCounter());
+  98              		.loc 1 71 1 is_stmt 1 view -0
+  99              		.cfi_startproc
+ 100              		@ args = 0, pretend = 0, frame = 0
+ 101              		@ frame_needed = 0, uses_anonymous_args = 0
+ 102 0000 08B5     		push	{r3, lr}
+ 103              	.LCFI1:
+ 104              		.cfi_def_cfa_offset 8
+ 105              		.cfi_offset 3, -8
+ 106              		.cfi_offset 14, -4
+  72:mri/semihost/newlib/semihost_newlib.c **** }
+ 107              		.loc 1 72 5 view .LVU18
+  72:mri/semihost/newlib/semihost_newlib.c **** }
+ 108              		.loc 1 72 12 is_stmt 0 view .LVU19
+ 109 0002 FFF7FEFF 		bl	mriPlatform_GetProgramCounter
+ 110              	.LVL8:
+ 111 0006 FFF7FEFF 		bl	throwingMemRead16
+ 112              	.LVL9:
+  73:mri/semihost/newlib/semihost_newlib.c **** 
+ 113              		.loc 1 73 1 view .LVU20
+ 114 000a 08BD     		pop	{r3, pc}
+ 115              		.cfi_endproc
+ 116              	.LFE4:
+ 118              		.section	.text.handleNewlibSemihostWriteRequest,"ax",%progbits
+ 119              		.align	1
+ 120              		.syntax unified
+ 121              		.thumb
+ 122              		.thumb_func
+ 124              	handleNewlibSemihostWriteRequest:
+ 125              	.LVL10:
+ 126              	.LFB6:
+  82:mri/semihost/newlib/semihost_newlib.c **** 
+  83:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostWriteRequest(PlatformSemihostParameters* pSemihostParameters)
+  84:mri/semihost/newlib/semihost_newlib.c **** {
+ARM GAS  /tmp/ccp5z1Jp.s 			page 6
+
+
+ 127              		.loc 1 84 1 is_stmt 1 view -0
+ 128              		.cfi_startproc
+ 129              		@ args = 0, pretend = 0, frame = 16
+ 130              		@ frame_needed = 0, uses_anonymous_args = 0
+ 131              		.loc 1 84 1 is_stmt 0 view .LVU22
+ 132 0000 00B5     		push	{lr}
+ 133              	.LCFI2:
+ 134              		.cfi_def_cfa_offset 4
+ 135              		.cfi_offset 14, -4
+ 136 0002 85B0     		sub	sp, sp, #20
+ 137              	.LCFI3:
+ 138              		.cfi_def_cfa_offset 24
+  85:mri/semihost/newlib/semihost_newlib.c ****     TransferParameters parameters;
+ 139              		.loc 1 85 5 is_stmt 1 view .LVU23
+  86:mri/semihost/newlib/semihost_newlib.c **** 
+  87:mri/semihost/newlib/semihost_newlib.c ****     parameters.fileDescriptor = pSemihostParameters->parameter1;
+ 140              		.loc 1 87 5 view .LVU24
+ 141              		.loc 1 87 52 is_stmt 0 view .LVU25
+ 142 0004 0368     		ldr	r3, [r0]
+ 143              		.loc 1 87 31 view .LVU26
+ 144 0006 0193     		str	r3, [sp, #4]
+  88:mri/semihost/newlib/semihost_newlib.c ****     parameters.bufferAddress = pSemihostParameters->parameter2;
+ 145              		.loc 1 88 5 is_stmt 1 view .LVU27
+ 146              		.loc 1 88 51 is_stmt 0 view .LVU28
+ 147 0008 4368     		ldr	r3, [r0, #4]
+ 148              		.loc 1 88 30 view .LVU29
+ 149 000a 0293     		str	r3, [sp, #8]
+  89:mri/semihost/newlib/semihost_newlib.c ****     parameters.bufferSize = pSemihostParameters->parameter3;
+ 150              		.loc 1 89 5 is_stmt 1 view .LVU30
+ 151              		.loc 1 89 48 is_stmt 0 view .LVU31
+ 152 000c 8368     		ldr	r3, [r0, #8]
+ 153              		.loc 1 89 27 view .LVU32
+ 154 000e 0393     		str	r3, [sp, #12]
+  90:mri/semihost/newlib/semihost_newlib.c **** 
+  91:mri/semihost/newlib/semihost_newlib.c ****     return Semihost_WriteToFileOrConsole(&parameters);
+ 155              		.loc 1 91 5 is_stmt 1 view .LVU33
+ 156              		.loc 1 91 12 is_stmt 0 view .LVU34
+ 157 0010 01A8     		add	r0, sp, #4
+ 158              	.LVL11:
+ 159              		.loc 1 91 12 view .LVU35
+ 160 0012 FFF7FEFF 		bl	mriSemihost_WriteToFileOrConsole
+ 161              	.LVL12:
+  92:mri/semihost/newlib/semihost_newlib.c **** }
+ 162              		.loc 1 92 1 view .LVU36
+ 163 0016 05B0     		add	sp, sp, #20
+ 164              	.LCFI4:
+ 165              		.cfi_def_cfa_offset 4
+ 166              		@ sp needed
+ 167 0018 5DF804FB 		ldr	pc, [sp], #4
+ 168              		.cfi_endproc
+ 169              	.LFE6:
+ 171              		.section	.text.handleNewlibSemihostReadRequest,"ax",%progbits
+ 172              		.align	1
+ 173              		.syntax unified
+ 174              		.thumb
+ 175              		.thumb_func
+ 177              	handleNewlibSemihostReadRequest:
+ARM GAS  /tmp/ccp5z1Jp.s 			page 7
+
+
+ 178              	.LVL13:
+ 179              	.LFB7:
+  93:mri/semihost/newlib/semihost_newlib.c **** 
+  94:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostReadRequest(PlatformSemihostParameters* pSemihostParameters)
+  95:mri/semihost/newlib/semihost_newlib.c **** {
+ 180              		.loc 1 95 1 is_stmt 1 view -0
+ 181              		.cfi_startproc
+ 182              		@ args = 0, pretend = 0, frame = 16
+ 183              		@ frame_needed = 0, uses_anonymous_args = 0
+ 184              		.loc 1 95 1 is_stmt 0 view .LVU38
+ 185 0000 00B5     		push	{lr}
+ 186              	.LCFI5:
+ 187              		.cfi_def_cfa_offset 4
+ 188              		.cfi_offset 14, -4
+ 189 0002 85B0     		sub	sp, sp, #20
+ 190              	.LCFI6:
+ 191              		.cfi_def_cfa_offset 24
+  96:mri/semihost/newlib/semihost_newlib.c ****     TransferParameters parameters;
+ 192              		.loc 1 96 5 is_stmt 1 view .LVU39
+  97:mri/semihost/newlib/semihost_newlib.c **** 
+  98:mri/semihost/newlib/semihost_newlib.c ****     parameters.fileDescriptor = pSemihostParameters->parameter1;
+ 193              		.loc 1 98 5 view .LVU40
+ 194              		.loc 1 98 52 is_stmt 0 view .LVU41
+ 195 0004 0368     		ldr	r3, [r0]
+ 196              		.loc 1 98 31 view .LVU42
+ 197 0006 0193     		str	r3, [sp, #4]
+  99:mri/semihost/newlib/semihost_newlib.c ****     parameters.bufferAddress = pSemihostParameters->parameter2;
+ 198              		.loc 1 99 5 is_stmt 1 view .LVU43
+ 199              		.loc 1 99 51 is_stmt 0 view .LVU44
+ 200 0008 4368     		ldr	r3, [r0, #4]
+ 201              		.loc 1 99 30 view .LVU45
+ 202 000a 0293     		str	r3, [sp, #8]
+ 100:mri/semihost/newlib/semihost_newlib.c ****     parameters.bufferSize = pSemihostParameters->parameter3;
+ 203              		.loc 1 100 5 is_stmt 1 view .LVU46
+ 204              		.loc 1 100 48 is_stmt 0 view .LVU47
+ 205 000c 8368     		ldr	r3, [r0, #8]
+ 206              		.loc 1 100 27 view .LVU48
+ 207 000e 0393     		str	r3, [sp, #12]
+ 101:mri/semihost/newlib/semihost_newlib.c **** 
+ 102:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileReadRequest(&parameters);
+ 208              		.loc 1 102 5 is_stmt 1 view .LVU49
+ 209              		.loc 1 102 12 is_stmt 0 view .LVU50
+ 210 0010 01A8     		add	r0, sp, #4
+ 211              	.LVL14:
+ 212              		.loc 1 102 12 view .LVU51
+ 213 0012 FFF7FEFF 		bl	mriIssueGdbFileReadRequest
+ 214              	.LVL15:
+ 103:mri/semihost/newlib/semihost_newlib.c **** }
+ 215              		.loc 1 103 1 view .LVU52
+ 216 0016 05B0     		add	sp, sp, #20
+ 217              	.LCFI7:
+ 218              		.cfi_def_cfa_offset 4
+ 219              		@ sp needed
+ 220 0018 5DF804FB 		ldr	pc, [sp], #4
+ 221              		.cfi_endproc
+ 222              	.LFE7:
+ 224              		.section	.text.handleNewlibSemihostOpenRequest,"ax",%progbits
+ARM GAS  /tmp/ccp5z1Jp.s 			page 8
+
+
+ 225              		.align	1
+ 226              		.syntax unified
+ 227              		.thumb
+ 228              		.thumb_func
+ 230              	handleNewlibSemihostOpenRequest:
+ 231              	.LVL16:
+ 232              	.LFB8:
+ 104:mri/semihost/newlib/semihost_newlib.c **** 
+ 105:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostOpenRequest(PlatformSemihostParameters* pSemihostParameters)
+ 106:mri/semihost/newlib/semihost_newlib.c **** {
+ 233              		.loc 1 106 1 is_stmt 1 view -0
+ 234              		.cfi_startproc
+ 235              		@ args = 0, pretend = 0, frame = 16
+ 236              		@ frame_needed = 0, uses_anonymous_args = 0
+ 237              		.loc 1 106 1 is_stmt 0 view .LVU54
+ 238 0000 10B5     		push	{r4, lr}
+ 239              	.LCFI8:
+ 240              		.cfi_def_cfa_offset 8
+ 241              		.cfi_offset 4, -8
+ 242              		.cfi_offset 14, -4
+ 243 0002 84B0     		sub	sp, sp, #16
+ 244              	.LCFI9:
+ 245              		.cfi_def_cfa_offset 24
+ 246 0004 0446     		mov	r4, r0
+ 107:mri/semihost/newlib/semihost_newlib.c ****     OpenParameters parameters;
+ 247              		.loc 1 107 5 is_stmt 1 view .LVU55
+ 108:mri/semihost/newlib/semihost_newlib.c **** 
+ 109:mri/semihost/newlib/semihost_newlib.c ****     parameters.filenameAddress = pSemihostParameters->parameter1;
+ 248              		.loc 1 109 5 view .LVU56
+ 249              		.loc 1 109 53 is_stmt 0 view .LVU57
+ 250 0006 0068     		ldr	r0, [r0]
+ 251              	.LVL17:
+ 252              		.loc 1 109 32 view .LVU58
+ 253 0008 0090     		str	r0, [sp]
+ 110:mri/semihost/newlib/semihost_newlib.c ****     parameters.filenameLength = mri_strlen((const char*)parameters.filenameAddress) + 1;
+ 254              		.loc 1 110 5 is_stmt 1 view .LVU59
+ 255              		.loc 1 110 33 is_stmt 0 view .LVU60
+ 256 000a FFF7FEFF 		bl	mri_strlen
+ 257              	.LVL18:
+ 258              		.loc 1 110 85 view .LVU61
+ 259 000e 0130     		adds	r0, r0, #1
+ 260              		.loc 1 110 31 view .LVU62
+ 261 0010 0190     		str	r0, [sp, #4]
+ 111:mri/semihost/newlib/semihost_newlib.c ****     parameters.flags = pSemihostParameters->parameter2;
+ 262              		.loc 1 111 5 is_stmt 1 view .LVU63
+ 263              		.loc 1 111 43 is_stmt 0 view .LVU64
+ 264 0012 6368     		ldr	r3, [r4, #4]
+ 265              		.loc 1 111 22 view .LVU65
+ 266 0014 0293     		str	r3, [sp, #8]
+ 112:mri/semihost/newlib/semihost_newlib.c ****     parameters.mode = pSemihostParameters->parameter3;
+ 267              		.loc 1 112 5 is_stmt 1 view .LVU66
+ 268              		.loc 1 112 42 is_stmt 0 view .LVU67
+ 269 0016 A368     		ldr	r3, [r4, #8]
+ 270              		.loc 1 112 21 view .LVU68
+ 271 0018 0393     		str	r3, [sp, #12]
+ 113:mri/semihost/newlib/semihost_newlib.c **** 
+ 114:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileOpenRequest(&parameters);
+ARM GAS  /tmp/ccp5z1Jp.s 			page 9
+
+
+ 272              		.loc 1 114 5 is_stmt 1 view .LVU69
+ 273              		.loc 1 114 12 is_stmt 0 view .LVU70
+ 274 001a 6846     		mov	r0, sp
+ 275 001c FFF7FEFF 		bl	mriIssueGdbFileOpenRequest
+ 276              	.LVL19:
+ 115:mri/semihost/newlib/semihost_newlib.c **** }
+ 277              		.loc 1 115 1 view .LVU71
+ 278 0020 04B0     		add	sp, sp, #16
+ 279              	.LCFI10:
+ 280              		.cfi_def_cfa_offset 8
+ 281              		@ sp needed
+ 282 0022 10BD     		pop	{r4, pc}
+ 283              		.loc 1 115 1 view .LVU72
+ 284              		.cfi_endproc
+ 285              	.LFE8:
+ 287              		.section	.text.handleNewlibSemihostUnlinkRequest,"ax",%progbits
+ 288              		.align	1
+ 289              		.syntax unified
+ 290              		.thumb
+ 291              		.thumb_func
+ 293              	handleNewlibSemihostUnlinkRequest:
+ 294              	.LVL20:
+ 295              	.LFB9:
+ 116:mri/semihost/newlib/semihost_newlib.c **** 
+ 117:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostUnlinkRequest(PlatformSemihostParameters* pSemihostParameters)
+ 118:mri/semihost/newlib/semihost_newlib.c **** {
+ 296              		.loc 1 118 1 is_stmt 1 view -0
+ 297              		.cfi_startproc
+ 298              		@ args = 0, pretend = 0, frame = 8
+ 299              		@ frame_needed = 0, uses_anonymous_args = 0
+ 300              		.loc 1 118 1 is_stmt 0 view .LVU74
+ 301 0000 00B5     		push	{lr}
+ 302              	.LCFI11:
+ 303              		.cfi_def_cfa_offset 4
+ 304              		.cfi_offset 14, -4
+ 305 0002 83B0     		sub	sp, sp, #12
+ 306              	.LCFI12:
+ 307              		.cfi_def_cfa_offset 16
+ 119:mri/semihost/newlib/semihost_newlib.c ****     RemoveParameters parameters;
+ 308              		.loc 1 119 5 is_stmt 1 view .LVU75
+ 120:mri/semihost/newlib/semihost_newlib.c **** 
+ 121:mri/semihost/newlib/semihost_newlib.c ****     parameters.filenameAddress = pSemihostParameters->parameter1;
+ 309              		.loc 1 121 5 view .LVU76
+ 310              		.loc 1 121 53 is_stmt 0 view .LVU77
+ 311 0004 0068     		ldr	r0, [r0]
+ 312              	.LVL21:
+ 313              		.loc 1 121 32 view .LVU78
+ 314 0006 0090     		str	r0, [sp]
+ 122:mri/semihost/newlib/semihost_newlib.c ****     parameters.filenameLength = mri_strlen((const char*)parameters.filenameAddress) + 1;
+ 315              		.loc 1 122 5 is_stmt 1 view .LVU79
+ 316              		.loc 1 122 33 is_stmt 0 view .LVU80
+ 317 0008 FFF7FEFF 		bl	mri_strlen
+ 318              	.LVL22:
+ 319              		.loc 1 122 85 view .LVU81
+ 320 000c 0130     		adds	r0, r0, #1
+ 321              		.loc 1 122 31 view .LVU82
+ 322 000e 0190     		str	r0, [sp, #4]
+ARM GAS  /tmp/ccp5z1Jp.s 			page 10
+
+
+ 123:mri/semihost/newlib/semihost_newlib.c **** 
+ 124:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileUnlinkRequest(&parameters);
+ 323              		.loc 1 124 5 is_stmt 1 view .LVU83
+ 324              		.loc 1 124 12 is_stmt 0 view .LVU84
+ 325 0010 6846     		mov	r0, sp
+ 326 0012 FFF7FEFF 		bl	mriIssueGdbFileUnlinkRequest
+ 327              	.LVL23:
+ 125:mri/semihost/newlib/semihost_newlib.c **** }
+ 328              		.loc 1 125 1 view .LVU85
+ 329 0016 03B0     		add	sp, sp, #12
+ 330              	.LCFI13:
+ 331              		.cfi_def_cfa_offset 4
+ 332              		@ sp needed
+ 333 0018 5DF804FB 		ldr	pc, [sp], #4
+ 334              		.cfi_endproc
+ 335              	.LFE9:
+ 337              		.section	.text.handleNewlibSemihostLSeekRequest,"ax",%progbits
+ 338              		.align	1
+ 339              		.syntax unified
+ 340              		.thumb
+ 341              		.thumb_func
+ 343              	handleNewlibSemihostLSeekRequest:
+ 344              	.LVL24:
+ 345              	.LFB10:
+ 126:mri/semihost/newlib/semihost_newlib.c **** 
+ 127:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostLSeekRequest(PlatformSemihostParameters* pSemihostParameters)
+ 128:mri/semihost/newlib/semihost_newlib.c **** {
+ 346              		.loc 1 128 1 is_stmt 1 view -0
+ 347              		.cfi_startproc
+ 348              		@ args = 0, pretend = 0, frame = 16
+ 349              		@ frame_needed = 0, uses_anonymous_args = 0
+ 350              		.loc 1 128 1 is_stmt 0 view .LVU87
+ 351 0000 00B5     		push	{lr}
+ 352              	.LCFI14:
+ 353              		.cfi_def_cfa_offset 4
+ 354              		.cfi_offset 14, -4
+ 355 0002 85B0     		sub	sp, sp, #20
+ 356              	.LCFI15:
+ 357              		.cfi_def_cfa_offset 24
+ 129:mri/semihost/newlib/semihost_newlib.c ****     SeekParameters parameters;
+ 358              		.loc 1 129 5 is_stmt 1 view .LVU88
+ 130:mri/semihost/newlib/semihost_newlib.c **** 
+ 131:mri/semihost/newlib/semihost_newlib.c ****     parameters.fileDescriptor = pSemihostParameters->parameter1;
+ 359              		.loc 1 131 5 view .LVU89
+ 360              		.loc 1 131 52 is_stmt 0 view .LVU90
+ 361 0004 0368     		ldr	r3, [r0]
+ 362              		.loc 1 131 31 view .LVU91
+ 363 0006 0193     		str	r3, [sp, #4]
+ 132:mri/semihost/newlib/semihost_newlib.c ****     parameters.offset = pSemihostParameters->parameter2;
+ 364              		.loc 1 132 5 is_stmt 1 view .LVU92
+ 365              		.loc 1 132 44 is_stmt 0 view .LVU93
+ 366 0008 4368     		ldr	r3, [r0, #4]
+ 367              		.loc 1 132 23 view .LVU94
+ 368 000a 0293     		str	r3, [sp, #8]
+ 133:mri/semihost/newlib/semihost_newlib.c ****     parameters.whence = pSemihostParameters->parameter3;
+ 369              		.loc 1 133 5 is_stmt 1 view .LVU95
+ 370              		.loc 1 133 44 is_stmt 0 view .LVU96
+ARM GAS  /tmp/ccp5z1Jp.s 			page 11
+
+
+ 371 000c 8368     		ldr	r3, [r0, #8]
+ 372              		.loc 1 133 23 view .LVU97
+ 373 000e 0393     		str	r3, [sp, #12]
+ 134:mri/semihost/newlib/semihost_newlib.c **** 
+ 135:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileSeekRequest(&parameters);
+ 374              		.loc 1 135 5 is_stmt 1 view .LVU98
+ 375              		.loc 1 135 12 is_stmt 0 view .LVU99
+ 376 0010 01A8     		add	r0, sp, #4
+ 377              	.LVL25:
+ 378              		.loc 1 135 12 view .LVU100
+ 379 0012 FFF7FEFF 		bl	mriIssueGdbFileSeekRequest
+ 380              	.LVL26:
+ 136:mri/semihost/newlib/semihost_newlib.c **** }
+ 381              		.loc 1 136 1 view .LVU101
+ 382 0016 05B0     		add	sp, sp, #20
+ 383              	.LCFI16:
+ 384              		.cfi_def_cfa_offset 4
+ 385              		@ sp needed
+ 386 0018 5DF804FB 		ldr	pc, [sp], #4
+ 387              		.cfi_endproc
+ 388              	.LFE10:
+ 390              		.section	.text.handleNewlibSemihostCloseRequest,"ax",%progbits
+ 391              		.align	1
+ 392              		.syntax unified
+ 393              		.thumb
+ 394              		.thumb_func
+ 396              	handleNewlibSemihostCloseRequest:
+ 397              	.LVL27:
+ 398              	.LFB11:
+ 137:mri/semihost/newlib/semihost_newlib.c **** 
+ 138:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostCloseRequest(PlatformSemihostParameters* pSemihostParameters)
+ 139:mri/semihost/newlib/semihost_newlib.c **** {
+ 399              		.loc 1 139 1 is_stmt 1 view -0
+ 400              		.cfi_startproc
+ 401              		@ args = 0, pretend = 0, frame = 0
+ 402              		@ frame_needed = 0, uses_anonymous_args = 0
+ 403              		.loc 1 139 1 is_stmt 0 view .LVU103
+ 404 0000 08B5     		push	{r3, lr}
+ 405              	.LCFI17:
+ 406              		.cfi_def_cfa_offset 8
+ 407              		.cfi_offset 3, -8
+ 408              		.cfi_offset 14, -4
+ 140:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileCloseRequest(pSemihostParameters->parameter1);
+ 409              		.loc 1 140 5 is_stmt 1 view .LVU104
+ 410              		.loc 1 140 12 is_stmt 0 view .LVU105
+ 411 0002 0068     		ldr	r0, [r0]
+ 412              	.LVL28:
+ 413              		.loc 1 140 12 view .LVU106
+ 414 0004 FFF7FEFF 		bl	mriIssueGdbFileCloseRequest
+ 415              	.LVL29:
+ 141:mri/semihost/newlib/semihost_newlib.c **** }
+ 416              		.loc 1 141 1 view .LVU107
+ 417 0008 08BD     		pop	{r3, pc}
+ 418              		.cfi_endproc
+ 419              	.LFE11:
+ 421              		.section	.text.handleNewlibSemihostFStatRequest,"ax",%progbits
+ 422              		.align	1
+ARM GAS  /tmp/ccp5z1Jp.s 			page 12
+
+
+ 423              		.syntax unified
+ 424              		.thumb
+ 425              		.thumb_func
+ 427              	handleNewlibSemihostFStatRequest:
+ 428              	.LVL30:
+ 429              	.LFB12:
+ 142:mri/semihost/newlib/semihost_newlib.c **** 
+ 143:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostFStatRequest(PlatformSemihostParameters* pSemihostParameters)
+ 144:mri/semihost/newlib/semihost_newlib.c **** {
+ 430              		.loc 1 144 1 is_stmt 1 view -0
+ 431              		.cfi_startproc
+ 432              		@ args = 0, pretend = 0, frame = 0
+ 433              		@ frame_needed = 0, uses_anonymous_args = 0
+ 434              		.loc 1 144 1 is_stmt 0 view .LVU109
+ 435 0000 08B5     		push	{r3, lr}
+ 436              	.LCFI18:
+ 437              		.cfi_def_cfa_offset 8
+ 438              		.cfi_offset 3, -8
+ 439              		.cfi_offset 14, -4
+ 145:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileFStatRequest(pSemihostParameters->parameter1, pSemihostParameters->parameter
+ 440              		.loc 1 145 5 is_stmt 1 view .LVU110
+ 441              		.loc 1 145 12 is_stmt 0 view .LVU111
+ 442 0002 4168     		ldr	r1, [r0, #4]
+ 443 0004 0068     		ldr	r0, [r0]
+ 444              	.LVL31:
+ 445              		.loc 1 145 12 view .LVU112
+ 446 0006 FFF7FEFF 		bl	mriIssueGdbFileFStatRequest
+ 447              	.LVL32:
+ 146:mri/semihost/newlib/semihost_newlib.c **** }
+ 448              		.loc 1 146 1 view .LVU113
+ 449 000a 08BD     		pop	{r3, pc}
+ 450              		.cfi_endproc
+ 451              	.LFE12:
+ 453              		.section	.text.handleNewlibSemihostStatRequest,"ax",%progbits
+ 454              		.align	1
+ 455              		.syntax unified
+ 456              		.thumb
+ 457              		.thumb_func
+ 459              	handleNewlibSemihostStatRequest:
+ 460              	.LVL33:
+ 461              	.LFB13:
+ 147:mri/semihost/newlib/semihost_newlib.c **** 
+ 148:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostStatRequest(PlatformSemihostParameters* pSemihostParameters)
+ 149:mri/semihost/newlib/semihost_newlib.c **** {
+ 462              		.loc 1 149 1 is_stmt 1 view -0
+ 463              		.cfi_startproc
+ 464              		@ args = 0, pretend = 0, frame = 16
+ 465              		@ frame_needed = 0, uses_anonymous_args = 0
+ 466              		.loc 1 149 1 is_stmt 0 view .LVU115
+ 467 0000 10B5     		push	{r4, lr}
+ 468              	.LCFI19:
+ 469              		.cfi_def_cfa_offset 8
+ 470              		.cfi_offset 4, -8
+ 471              		.cfi_offset 14, -4
+ 472 0002 84B0     		sub	sp, sp, #16
+ 473              	.LCFI20:
+ 474              		.cfi_def_cfa_offset 24
+ARM GAS  /tmp/ccp5z1Jp.s 			page 13
+
+
+ 475 0004 0446     		mov	r4, r0
+ 150:mri/semihost/newlib/semihost_newlib.c ****     StatParameters parameters;
+ 476              		.loc 1 150 5 is_stmt 1 view .LVU116
+ 151:mri/semihost/newlib/semihost_newlib.c **** 
+ 152:mri/semihost/newlib/semihost_newlib.c ****     parameters.filenameAddress = pSemihostParameters->parameter1;
+ 477              		.loc 1 152 5 view .LVU117
+ 478              		.loc 1 152 53 is_stmt 0 view .LVU118
+ 479 0006 0068     		ldr	r0, [r0]
+ 480              	.LVL34:
+ 481              		.loc 1 152 32 view .LVU119
+ 482 0008 0190     		str	r0, [sp, #4]
+ 153:mri/semihost/newlib/semihost_newlib.c ****     parameters.filenameLength = mri_strlen((const char*) parameters.filenameAddress) + 1;
+ 483              		.loc 1 153 5 is_stmt 1 view .LVU120
+ 484              		.loc 1 153 33 is_stmt 0 view .LVU121
+ 485 000a FFF7FEFF 		bl	mri_strlen
+ 486              	.LVL35:
+ 487              		.loc 1 153 86 view .LVU122
+ 488 000e 0130     		adds	r0, r0, #1
+ 489              		.loc 1 153 31 view .LVU123
+ 490 0010 0290     		str	r0, [sp, #8]
+ 154:mri/semihost/newlib/semihost_newlib.c ****     parameters.fileStatBuffer = pSemihostParameters->parameter2;
+ 491              		.loc 1 154 5 is_stmt 1 view .LVU124
+ 492              		.loc 1 154 52 is_stmt 0 view .LVU125
+ 493 0012 6368     		ldr	r3, [r4, #4]
+ 494              		.loc 1 154 31 view .LVU126
+ 495 0014 0393     		str	r3, [sp, #12]
+ 155:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileStatRequest(&parameters);
+ 496              		.loc 1 155 5 is_stmt 1 view .LVU127
+ 497              		.loc 1 155 12 is_stmt 0 view .LVU128
+ 498 0016 01A8     		add	r0, sp, #4
+ 499 0018 FFF7FEFF 		bl	mriIssueGdbFileStatRequest
+ 500              	.LVL36:
+ 156:mri/semihost/newlib/semihost_newlib.c **** }
+ 501              		.loc 1 156 1 view .LVU129
+ 502 001c 04B0     		add	sp, sp, #16
+ 503              	.LCFI21:
+ 504              		.cfi_def_cfa_offset 8
+ 505              		@ sp needed
+ 506 001e 10BD     		pop	{r4, pc}
+ 507              		.loc 1 156 1 view .LVU130
+ 508              		.cfi_endproc
+ 509              	.LFE13:
+ 511              		.section	.text.handleNewlibSemihostRenameRequest,"ax",%progbits
+ 512              		.align	1
+ 513              		.syntax unified
+ 514              		.thumb
+ 515              		.thumb_func
+ 517              	handleNewlibSemihostRenameRequest:
+ 518              	.LVL37:
+ 519              	.LFB14:
+ 157:mri/semihost/newlib/semihost_newlib.c **** 
+ 158:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostRenameRequest(PlatformSemihostParameters* pSemihostParameters)
+ 159:mri/semihost/newlib/semihost_newlib.c **** {
+ 520              		.loc 1 159 1 is_stmt 1 view -0
+ 521              		.cfi_startproc
+ 522              		@ args = 0, pretend = 0, frame = 16
+ 523              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccp5z1Jp.s 			page 14
+
+
+ 524              		.loc 1 159 1 is_stmt 0 view .LVU132
+ 525 0000 10B5     		push	{r4, lr}
+ 526              	.LCFI22:
+ 527              		.cfi_def_cfa_offset 8
+ 528              		.cfi_offset 4, -8
+ 529              		.cfi_offset 14, -4
+ 530 0002 84B0     		sub	sp, sp, #16
+ 531              	.LCFI23:
+ 532              		.cfi_def_cfa_offset 24
+ 533 0004 0446     		mov	r4, r0
+ 160:mri/semihost/newlib/semihost_newlib.c ****     RenameParameters parameters;
+ 534              		.loc 1 160 5 is_stmt 1 view .LVU133
+ 161:mri/semihost/newlib/semihost_newlib.c **** 
+ 162:mri/semihost/newlib/semihost_newlib.c ****     parameters.origFilenameAddress = pSemihostParameters->parameter1;
+ 535              		.loc 1 162 5 view .LVU134
+ 536              		.loc 1 162 57 is_stmt 0 view .LVU135
+ 537 0006 0068     		ldr	r0, [r0]
+ 538              	.LVL38:
+ 539              		.loc 1 162 36 view .LVU136
+ 540 0008 0090     		str	r0, [sp]
+ 163:mri/semihost/newlib/semihost_newlib.c ****     parameters.origFilenameLength = mri_strlen((const char*)parameters.origFilenameAddress) + 1;
+ 541              		.loc 1 163 5 is_stmt 1 view .LVU137
+ 542              		.loc 1 163 37 is_stmt 0 view .LVU138
+ 543 000a FFF7FEFF 		bl	mri_strlen
+ 544              	.LVL39:
+ 545              		.loc 1 163 93 view .LVU139
+ 546 000e 0130     		adds	r0, r0, #1
+ 547              		.loc 1 163 35 view .LVU140
+ 548 0010 0190     		str	r0, [sp, #4]
+ 164:mri/semihost/newlib/semihost_newlib.c ****     parameters.newFilenameAddress = pSemihostParameters->parameter2;
+ 549              		.loc 1 164 5 is_stmt 1 view .LVU141
+ 550              		.loc 1 164 56 is_stmt 0 view .LVU142
+ 551 0012 6068     		ldr	r0, [r4, #4]
+ 552              		.loc 1 164 35 view .LVU143
+ 553 0014 0290     		str	r0, [sp, #8]
+ 165:mri/semihost/newlib/semihost_newlib.c ****     parameters.newFilenameLength = mri_strlen((const char*)parameters.newFilenameAddress) + 1;
+ 554              		.loc 1 165 5 is_stmt 1 view .LVU144
+ 555              		.loc 1 165 36 is_stmt 0 view .LVU145
+ 556 0016 FFF7FEFF 		bl	mri_strlen
+ 557              	.LVL40:
+ 558              		.loc 1 165 91 view .LVU146
+ 559 001a 0130     		adds	r0, r0, #1
+ 560              		.loc 1 165 34 view .LVU147
+ 561 001c 0390     		str	r0, [sp, #12]
+ 166:mri/semihost/newlib/semihost_newlib.c ****     return IssueGdbFileRenameRequest(&parameters);
+ 562              		.loc 1 166 5 is_stmt 1 view .LVU148
+ 563              		.loc 1 166 12 is_stmt 0 view .LVU149
+ 564 001e 6846     		mov	r0, sp
+ 565 0020 FFF7FEFF 		bl	mriIssueGdbFileRenameRequest
+ 566              	.LVL41:
+ 167:mri/semihost/newlib/semihost_newlib.c **** }
+ 567              		.loc 1 167 1 view .LVU150
+ 568 0024 04B0     		add	sp, sp, #16
+ 569              	.LCFI24:
+ 570              		.cfi_def_cfa_offset 8
+ 571              		@ sp needed
+ 572 0026 10BD     		pop	{r4, pc}
+ARM GAS  /tmp/ccp5z1Jp.s 			page 15
+
+
+ 573              		.loc 1 167 1 view .LVU151
+ 574              		.cfi_endproc
+ 575              	.LFE14:
+ 577              		.section	.text.handleNewlibSemihostGetErrNoRequest,"ax",%progbits
+ 578              		.align	1
+ 579              		.syntax unified
+ 580              		.thumb
+ 581              		.thumb_func
+ 583              	handleNewlibSemihostGetErrNoRequest:
+ 584              	.LVL42:
+ 585              	.LFB15:
+ 168:mri/semihost/newlib/semihost_newlib.c **** 
+ 169:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostGetErrNoRequest(PlatformSemihostParameters* pSemihostParameters)
+ 170:mri/semihost/newlib/semihost_newlib.c **** {
+ 586              		.loc 1 170 1 is_stmt 1 view -0
+ 587              		.cfi_startproc
+ 588              		@ args = 0, pretend = 0, frame = 0
+ 589              		@ frame_needed = 0, uses_anonymous_args = 0
+ 590              		.loc 1 170 1 is_stmt 0 view .LVU153
+ 591 0000 08B5     		push	{r3, lr}
+ 592              	.LCFI25:
+ 593              		.cfi_def_cfa_offset 8
+ 594              		.cfi_offset 3, -8
+ 595              		.cfi_offset 14, -4
+ 171:mri/semihost/newlib/semihost_newlib.c ****     SetSemihostReturnValues(GetSemihostErrno(), 0);
+ 596              		.loc 1 171 5 is_stmt 1 view .LVU154
+ 597 0002 FFF7FEFF 		bl	mriCore_GetSemihostErrno
+ 598              	.LVL43:
+ 599              		.loc 1 171 5 is_stmt 0 view .LVU155
+ 600 0006 0021     		movs	r1, #0
+ 601 0008 FFF7FEFF 		bl	mriCore_SetSemihostReturnValues
+ 602              	.LVL44:
+ 172:mri/semihost/newlib/semihost_newlib.c ****     FlagSemihostCallAsHandled();
+ 603              		.loc 1 172 5 is_stmt 1 view .LVU156
+ 604 000c FFF7FEFF 		bl	mriCore_FlagSemihostCallAsHandled
+ 605              	.LVL45:
+ 173:mri/semihost/newlib/semihost_newlib.c ****     return 1;
+ 606              		.loc 1 173 5 view .LVU157
+ 174:mri/semihost/newlib/semihost_newlib.c **** }
+ 607              		.loc 1 174 1 is_stmt 0 view .LVU158
+ 608 0010 0120     		movs	r0, #1
+ 609 0012 08BD     		pop	{r3, pc}
+ 610              		.cfi_endproc
+ 611              	.LFE15:
+ 613              		.section	.text.handleNewlibSemihostSetHooksRequest,"ax",%progbits
+ 614              		.align	1
+ 615              		.syntax unified
+ 616              		.thumb
+ 617              		.thumb_func
+ 619              	handleNewlibSemihostSetHooksRequest:
+ 620              	.LVL46:
+ 621              	.LFB16:
+ 175:mri/semihost/newlib/semihost_newlib.c **** 
+ 176:mri/semihost/newlib/semihost_newlib.c **** static int handleNewlibSemihostSetHooksRequest(PlatformSemihostParameters* pSemihostParameters)
+ 177:mri/semihost/newlib/semihost_newlib.c **** {
+ 622              		.loc 1 177 1 is_stmt 1 view -0
+ 623              		.cfi_startproc
+ARM GAS  /tmp/ccp5z1Jp.s 			page 16
+
+
+ 624              		@ args = 0, pretend = 0, frame = 0
+ 625              		@ frame_needed = 0, uses_anonymous_args = 0
+ 626              		.loc 1 177 1 is_stmt 0 view .LVU160
+ 627 0000 08B5     		push	{r3, lr}
+ 628              	.LCFI26:
+ 629              		.cfi_def_cfa_offset 8
+ 630              		.cfi_offset 3, -8
+ 631              		.cfi_offset 14, -4
+ 178:mri/semihost/newlib/semihost_newlib.c ****     MriDebuggerHookPtr pEnteringHook = (MriDebuggerHookPtr)pSemihostParameters->parameter1;
+ 632              		.loc 1 178 5 is_stmt 1 view .LVU161
+ 633              	.LVL47:
+ 179:mri/semihost/newlib/semihost_newlib.c ****     MriDebuggerHookPtr pLeavingHook = (MriDebuggerHookPtr)pSemihostParameters->parameter2;
+ 634              		.loc 1 179 5 view .LVU162
+ 180:mri/semihost/newlib/semihost_newlib.c ****     void* pvContext = (void*)pSemihostParameters->parameter3;
+ 635              		.loc 1 180 5 view .LVU163
+ 181:mri/semihost/newlib/semihost_newlib.c **** 
+ 182:mri/semihost/newlib/semihost_newlib.c ****     mriCoreSetDebuggerHooks(pEnteringHook, pLeavingHook, pvContext);
+ 636              		.loc 1 182 5 view .LVU164
+ 637 0002 8268     		ldr	r2, [r0, #8]
+ 638 0004 4168     		ldr	r1, [r0, #4]
+ 639 0006 0068     		ldr	r0, [r0]
+ 640              	.LVL48:
+ 641              		.loc 1 182 5 is_stmt 0 view .LVU165
+ 642 0008 FFF7FEFF 		bl	mriCoreSetDebuggerHooks
+ 643              	.LVL49:
+ 183:mri/semihost/newlib/semihost_newlib.c **** 
+ 184:mri/semihost/newlib/semihost_newlib.c ****     SetSemihostReturnValues(0, 0);
+ 644              		.loc 1 184 5 is_stmt 1 view .LVU166
+ 645 000c 0021     		movs	r1, #0
+ 646 000e 0846     		mov	r0, r1
+ 647 0010 FFF7FEFF 		bl	mriCore_SetSemihostReturnValues
+ 648              	.LVL50:
+ 185:mri/semihost/newlib/semihost_newlib.c ****     FlagSemihostCallAsHandled();
+ 649              		.loc 1 185 5 view .LVU167
+ 650 0014 FFF7FEFF 		bl	mriCore_FlagSemihostCallAsHandled
+ 651              	.LVL51:
+ 186:mri/semihost/newlib/semihost_newlib.c ****     return 1;
+ 652              		.loc 1 186 5 view .LVU168
+ 187:mri/semihost/newlib/semihost_newlib.c **** }
+ 653              		.loc 1 187 1 is_stmt 0 view .LVU169
+ 654 0018 0120     		movs	r0, #1
+ 655 001a 08BD     		pop	{r3, pc}
+ 656              		.cfi_endproc
+ 657              	.LFE16:
+ 659              		.section	.text.mriSemihost_HandleNewlibSemihostRequest,"ax",%progbits
+ 660              		.align	1
+ 661              		.global	mriSemihost_HandleNewlibSemihostRequest
+ 662              		.syntax unified
+ 663              		.thumb
+ 664              		.thumb_func
+ 666              	mriSemihost_HandleNewlibSemihostRequest:
+ 667              	.LVL52:
+ 668              	.LFB3:
+  38:mri/semihost/newlib/semihost_newlib.c ****     uint16_t semihostOperation = getFirstHalfWordOfCurrentInstruction() & 0x00FF;
+ 669              		.loc 1 38 1 is_stmt 1 view -0
+ 670              		.cfi_startproc
+ 671              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /tmp/ccp5z1Jp.s 			page 17
+
+
+ 672              		@ frame_needed = 0, uses_anonymous_args = 0
+  38:mri/semihost/newlib/semihost_newlib.c ****     uint16_t semihostOperation = getFirstHalfWordOfCurrentInstruction() & 0x00FF;
+ 673              		.loc 1 38 1 is_stmt 0 view .LVU171
+ 674 0000 10B5     		push	{r4, lr}
+ 675              	.LCFI27:
+ 676              		.cfi_def_cfa_offset 8
+ 677              		.cfi_offset 4, -8
+ 678              		.cfi_offset 14, -4
+ 679 0002 0446     		mov	r4, r0
+  39:mri/semihost/newlib/semihost_newlib.c **** 
+ 680              		.loc 1 39 5 is_stmt 1 view .LVU172
+  39:mri/semihost/newlib/semihost_newlib.c **** 
+ 681              		.loc 1 39 34 is_stmt 0 view .LVU173
+ 682 0004 FFF7FEFF 		bl	getFirstHalfWordOfCurrentInstruction
+ 683              	.LVL53:
+  39:mri/semihost/newlib/semihost_newlib.c **** 
+ 684              		.loc 1 39 14 view .LVU174
+ 685 0008 C3B2     		uxtb	r3, r0
+ 686              	.LVL54:
+  41:mri/semihost/newlib/semihost_newlib.c ****     {
+ 687              		.loc 1 41 5 is_stmt 1 view .LVU175
+ 688 000a F53B     		subs	r3, r3, #245
+ 689              	.LVL55:
+  41:mri/semihost/newlib/semihost_newlib.c ****     {
+ 690              		.loc 1 41 5 is_stmt 0 view .LVU176
+ 691 000c 0A2B     		cmp	r3, #10
+ 692 000e 33D8     		bhi	.L45
+ 693 0010 DFE803F0 		tbb	[pc, r3]
+ 694              	.L34:
+ 695 0014 2E       		.byte	(.L44-.L34)/2
+ 696 0015 2A       		.byte	(.L43-.L34)/2
+ 697 0016 06       		.byte	(.L42-.L34)/2
+ 698 0017 0A       		.byte	(.L41-.L34)/2
+ 699 0018 0E       		.byte	(.L40-.L34)/2
+ 700 0019 26       		.byte	(.L39-.L34)/2
+ 701 001a 12       		.byte	(.L38-.L34)/2
+ 702 001b 22       		.byte	(.L37-.L34)/2
+ 703 001c 16       		.byte	(.L36-.L34)/2
+ 704 001d 1A       		.byte	(.L35-.L34)/2
+ 705 001e 1E       		.byte	(.L33-.L34)/2
+ 706 001f 00       		.p2align 1
+ 707              	.L42:
+  44:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_READ:
+ 708              		.loc 1 44 13 is_stmt 1 view .LVU177
+  44:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_READ:
+ 709              		.loc 1 44 20 is_stmt 0 view .LVU178
+ 710 0020 2046     		mov	r0, r4
+ 711 0022 FFF7FEFF 		bl	handleNewlibSemihostWriteRequest
+ 712              	.LVL56:
+ 713              	.L31:
+  68:mri/semihost/newlib/semihost_newlib.c **** 
+ 714              		.loc 1 68 1 view .LVU179
+ 715 0026 10BD     		pop	{r4, pc}
+ 716              	.LVL57:
+ 717              	.L41:
+  46:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_OPEN:
+ 718              		.loc 1 46 13 is_stmt 1 view .LVU180
+ARM GAS  /tmp/ccp5z1Jp.s 			page 18
+
+
+  46:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_OPEN:
+ 719              		.loc 1 46 20 is_stmt 0 view .LVU181
+ 720 0028 2046     		mov	r0, r4
+ 721 002a FFF7FEFF 		bl	handleNewlibSemihostReadRequest
+ 722              	.LVL58:
+  46:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_OPEN:
+ 723              		.loc 1 46 20 view .LVU182
+ 724 002e FAE7     		b	.L31
+ 725              	.LVL59:
+ 726              	.L40:
+  48:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_UNLINK:
+ 727              		.loc 1 48 13 is_stmt 1 view .LVU183
+  48:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_UNLINK:
+ 728              		.loc 1 48 20 is_stmt 0 view .LVU184
+ 729 0030 2046     		mov	r0, r4
+ 730 0032 FFF7FEFF 		bl	handleNewlibSemihostOpenRequest
+ 731              	.LVL60:
+  48:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_UNLINK:
+ 732              		.loc 1 48 20 view .LVU185
+ 733 0036 F6E7     		b	.L31
+ 734              	.LVL61:
+ 735              	.L38:
+  50:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_LSEEK:
+ 736              		.loc 1 50 13 is_stmt 1 view .LVU186
+  50:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_LSEEK:
+ 737              		.loc 1 50 20 is_stmt 0 view .LVU187
+ 738 0038 2046     		mov	r0, r4
+ 739 003a FFF7FEFF 		bl	handleNewlibSemihostUnlinkRequest
+ 740              	.LVL62:
+  50:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_LSEEK:
+ 741              		.loc 1 50 20 view .LVU188
+ 742 003e F2E7     		b	.L31
+ 743              	.LVL63:
+ 744              	.L36:
+  52:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_CLOSE:
+ 745              		.loc 1 52 13 is_stmt 1 view .LVU189
+  52:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_CLOSE:
+ 746              		.loc 1 52 20 is_stmt 0 view .LVU190
+ 747 0040 2046     		mov	r0, r4
+ 748 0042 FFF7FEFF 		bl	handleNewlibSemihostLSeekRequest
+ 749              	.LVL64:
+  52:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_CLOSE:
+ 750              		.loc 1 52 20 view .LVU191
+ 751 0046 EEE7     		b	.L31
+ 752              	.LVL65:
+ 753              	.L35:
+  54:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_FSTAT:
+ 754              		.loc 1 54 13 is_stmt 1 view .LVU192
+  54:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_FSTAT:
+ 755              		.loc 1 54 20 is_stmt 0 view .LVU193
+ 756 0048 2046     		mov	r0, r4
+ 757 004a FFF7FEFF 		bl	handleNewlibSemihostCloseRequest
+ 758              	.LVL66:
+  54:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_FSTAT:
+ 759              		.loc 1 54 20 view .LVU194
+ 760 004e EAE7     		b	.L31
+ 761              	.LVL67:
+ARM GAS  /tmp/ccp5z1Jp.s 			page 19
+
+
+ 762              	.L33:
+  56:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_STAT:
+ 763              		.loc 1 56 13 is_stmt 1 view .LVU195
+  56:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_STAT:
+ 764              		.loc 1 56 20 is_stmt 0 view .LVU196
+ 765 0050 2046     		mov	r0, r4
+ 766 0052 FFF7FEFF 		bl	handleNewlibSemihostFStatRequest
+ 767              	.LVL68:
+  56:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_STAT:
+ 768              		.loc 1 56 20 view .LVU197
+ 769 0056 E6E7     		b	.L31
+ 770              	.LVL69:
+ 771              	.L37:
+  58:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_RENAME:
+ 772              		.loc 1 58 13 is_stmt 1 view .LVU198
+  58:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_RENAME:
+ 773              		.loc 1 58 20 is_stmt 0 view .LVU199
+ 774 0058 2046     		mov	r0, r4
+ 775 005a FFF7FEFF 		bl	handleNewlibSemihostStatRequest
+ 776              	.LVL70:
+  58:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_RENAME:
+ 777              		.loc 1 58 20 view .LVU200
+ 778 005e E2E7     		b	.L31
+ 779              	.LVL71:
+ 780              	.L39:
+  60:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_GET_ERRNO:
+ 781              		.loc 1 60 13 is_stmt 1 view .LVU201
+  60:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_GET_ERRNO:
+ 782              		.loc 1 60 20 is_stmt 0 view .LVU202
+ 783 0060 2046     		mov	r0, r4
+ 784 0062 FFF7FEFF 		bl	handleNewlibSemihostRenameRequest
+ 785              	.LVL72:
+  60:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_GET_ERRNO:
+ 786              		.loc 1 60 20 view .LVU203
+ 787 0066 DEE7     		b	.L31
+ 788              	.LVL73:
+ 789              	.L43:
+  62:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_SET_HOOKS:
+ 790              		.loc 1 62 13 is_stmt 1 view .LVU204
+  62:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_SET_HOOKS:
+ 791              		.loc 1 62 20 is_stmt 0 view .LVU205
+ 792 0068 2046     		mov	r0, r4
+ 793 006a FFF7FEFF 		bl	handleNewlibSemihostGetErrNoRequest
+ 794              	.LVL74:
+  62:mri/semihost/newlib/semihost_newlib.c ****         case MRI_NEWLIB_SEMIHOST_SET_HOOKS:
+ 795              		.loc 1 62 20 view .LVU206
+ 796 006e DAE7     		b	.L31
+ 797              	.LVL75:
+ 798              	.L44:
+  64:mri/semihost/newlib/semihost_newlib.c ****         default:
+ 799              		.loc 1 64 13 is_stmt 1 view .LVU207
+  64:mri/semihost/newlib/semihost_newlib.c ****         default:
+ 800              		.loc 1 64 20 is_stmt 0 view .LVU208
+ 801 0070 2046     		mov	r0, r4
+ 802 0072 FFF7FEFF 		bl	handleNewlibSemihostSetHooksRequest
+ 803              	.LVL76:
+  64:mri/semihost/newlib/semihost_newlib.c ****         default:
+ARM GAS  /tmp/ccp5z1Jp.s 			page 20
+
+
+ 804              		.loc 1 64 20 view .LVU209
+ 805 0076 D6E7     		b	.L31
+ 806              	.LVL77:
+ 807              	.L45:
+  41:mri/semihost/newlib/semihost_newlib.c ****     {
+ 808              		.loc 1 41 5 view .LVU210
+ 809 0078 0020     		movs	r0, #0
+ 810 007a D4E7     		b	.L31
+ 811              		.cfi_endproc
+ 812              	.LFE3:
+ 814              		.text
+ 815              	.Letext0:
+ 816              		.file 3 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 817              		.file 4 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 818              		.file 5 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 819              		.file 6 "mri/core/mri.h"
+ 820              		.file 7 "mri/core/platforms.h"
+ 821              		.file 8 "mri/core/cmd_file.h"
+ 822              		.file 9 "mri/core/core.h"
+ 823              		.file 10 "mri/core/libc.h"
+ 824              		.file 11 "mri/core/semihost.h"
+ARM GAS  /tmp/ccp5z1Jp.s 			page 21
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 semihost_newlib.c
+     /tmp/ccp5z1Jp.s:21     .text.throwingMemRead16:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:26     .text.throwingMemRead16:0000000000000000 throwingMemRead16
+     /tmp/ccp5z1Jp.s:86     .text.throwingMemRead16:0000000000000024 $d
+     /tmp/ccp5z1Jp.s:91     .text.getFirstHalfWordOfCurrentInstruction:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:96     .text.getFirstHalfWordOfCurrentInstruction:0000000000000000 getFirstHalfWordOfCurrentInstruction
+     /tmp/ccp5z1Jp.s:119    .text.handleNewlibSemihostWriteRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:124    .text.handleNewlibSemihostWriteRequest:0000000000000000 handleNewlibSemihostWriteRequest
+     /tmp/ccp5z1Jp.s:172    .text.handleNewlibSemihostReadRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:177    .text.handleNewlibSemihostReadRequest:0000000000000000 handleNewlibSemihostReadRequest
+     /tmp/ccp5z1Jp.s:225    .text.handleNewlibSemihostOpenRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:230    .text.handleNewlibSemihostOpenRequest:0000000000000000 handleNewlibSemihostOpenRequest
+     /tmp/ccp5z1Jp.s:288    .text.handleNewlibSemihostUnlinkRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:293    .text.handleNewlibSemihostUnlinkRequest:0000000000000000 handleNewlibSemihostUnlinkRequest
+     /tmp/ccp5z1Jp.s:338    .text.handleNewlibSemihostLSeekRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:343    .text.handleNewlibSemihostLSeekRequest:0000000000000000 handleNewlibSemihostLSeekRequest
+     /tmp/ccp5z1Jp.s:391    .text.handleNewlibSemihostCloseRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:396    .text.handleNewlibSemihostCloseRequest:0000000000000000 handleNewlibSemihostCloseRequest
+     /tmp/ccp5z1Jp.s:422    .text.handleNewlibSemihostFStatRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:427    .text.handleNewlibSemihostFStatRequest:0000000000000000 handleNewlibSemihostFStatRequest
+     /tmp/ccp5z1Jp.s:454    .text.handleNewlibSemihostStatRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:459    .text.handleNewlibSemihostStatRequest:0000000000000000 handleNewlibSemihostStatRequest
+     /tmp/ccp5z1Jp.s:512    .text.handleNewlibSemihostRenameRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:517    .text.handleNewlibSemihostRenameRequest:0000000000000000 handleNewlibSemihostRenameRequest
+     /tmp/ccp5z1Jp.s:578    .text.handleNewlibSemihostGetErrNoRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:583    .text.handleNewlibSemihostGetErrNoRequest:0000000000000000 handleNewlibSemihostGetErrNoRequest
+     /tmp/ccp5z1Jp.s:614    .text.handleNewlibSemihostSetHooksRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:619    .text.handleNewlibSemihostSetHooksRequest:0000000000000000 handleNewlibSemihostSetHooksRequest
+     /tmp/ccp5z1Jp.s:660    .text.mriSemihost_HandleNewlibSemihostRequest:0000000000000000 $t
+     /tmp/ccp5z1Jp.s:666    .text.mriSemihost_HandleNewlibSemihostRequest:0000000000000000 mriSemihost_HandleNewlibSemihostRequest
+     /tmp/ccp5z1Jp.s:695    .text.mriSemihost_HandleNewlibSemihostRequest:0000000000000014 $d
+     /tmp/ccp5z1Jp.s:706    .text.mriSemihost_HandleNewlibSemihostRequest:000000000000001f $d
+     /tmp/ccp5z1Jp.s:706    .text.mriSemihost_HandleNewlibSemihostRequest:0000000000000020 $t
+
+UNDEFINED SYMBOLS
+mriPlatform_MemRead16
+mriPlatform_WasMemoryFaultEncountered
+mriExceptionCode
+mriPlatform_GetProgramCounter
+mriSemihost_WriteToFileOrConsole
+mriIssueGdbFileReadRequest
+mri_strlen
+mriIssueGdbFileOpenRequest
+mriIssueGdbFileUnlinkRequest
+mriIssueGdbFileSeekRequest
+mriIssueGdbFileCloseRequest
+mriIssueGdbFileFStatRequest
+mriIssueGdbFileStatRequest
+mriIssueGdbFileRenameRequest
+mriCore_GetSemihostErrno
+mriCore_SetSemihostReturnValues
+mriCore_FlagSemihostCallAsHandled
+mriCoreSetDebuggerHooks

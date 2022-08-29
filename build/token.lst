@@ -1,0 +1,1460 @@
+ARM GAS  /tmp/ccHGW5cp.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"token.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/token.c"
+  20              		.section	.text.copyStringIntoToken,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	copyStringIntoToken:
+  27              	.LVL0:
+  28              	.LFB7:
+   1:mri/core/token.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/token.c **** 
+   3:mri/core/token.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/token.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/token.c ****    You may obtain a copy of the License at
+   6:mri/core/token.c **** 
+   7:mri/core/token.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/token.c **** 
+   9:mri/core/token.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/token.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/token.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/token.c ****    See the License for the specific language governing permissions and
+  13:mri/core/token.c ****    limitations under the License.
+  14:mri/core/token.c **** */
+  15:mri/core/token.c **** /* 'Class' used to parse and tokenize a string based on provided list of separators. */
+  16:mri/core/token.c **** #include <core/libc.h>
+  17:mri/core/token.c **** #include <core/token.h>
+  18:mri/core/token.c **** 
+  19:mri/core/token.c **** #define ARRAY_SIZE(X) (sizeof(X)/sizeof(X[0]))
+  20:mri/core/token.c **** 
+  21:mri/core/token.c **** 
+  22:mri/core/token.c **** void Token_Init(Token* pToken)
+  23:mri/core/token.c **** {
+  24:mri/core/token.c ****     Token_InitWith(pToken, " \t");
+  25:mri/core/token.c **** }
+  26:mri/core/token.c **** 
+  27:mri/core/token.c **** 
+  28:mri/core/token.c **** static void clearTokenObject(Token* pToken);
+  29:mri/core/token.c **** void Token_InitWith(Token* pToken, const char* pTheseTokenSeparators)
+  30:mri/core/token.c **** {
+ARM GAS  /tmp/ccHGW5cp.s 			page 2
+
+
+  31:mri/core/token.c ****     clearTokenObject(pToken);
+  32:mri/core/token.c ****     pToken->pTokenSeparators = pTheseTokenSeparators;
+  33:mri/core/token.c **** }
+  34:mri/core/token.c **** 
+  35:mri/core/token.c **** static void clearTokenObject(Token* pToken)
+  36:mri/core/token.c **** {
+  37:mri/core/token.c ****     mri_memset(pToken->tokenPointers, 0, sizeof(pToken->tokenPointers));
+  38:mri/core/token.c ****     pToken->tokenCount = 0;
+  39:mri/core/token.c ****     pToken->copyOfString[0] = '\0';
+  40:mri/core/token.c **** }
+  41:mri/core/token.c **** 
+  42:mri/core/token.c **** 
+  43:mri/core/token.c **** static void copyStringIntoToken(Token* pToken, const char* pStringToCopy);
+  44:mri/core/token.c **** static void splitStringCopyIntoTokens(Token* pToken);
+  45:mri/core/token.c **** static char* findFirstNonSeparator(Token* pToken, char* p);
+  46:mri/core/token.c **** static char* findFirstSeparator(Token* pToken, char* p);
+  47:mri/core/token.c **** static int charIsSeparator(Token* pToken, char c);
+  48:mri/core/token.c **** static void addToken(Token* pToken, const char* p);
+  49:mri/core/token.c **** void Token_SplitString(Token* pToken, const char* pStringToSplit)
+  50:mri/core/token.c **** {
+  51:mri/core/token.c ****     __try
+  52:mri/core/token.c ****     {
+  53:mri/core/token.c ****         clearTokenObject(pToken);
+  54:mri/core/token.c ****         __throwing_func( copyStringIntoToken(pToken, pStringToSplit) );
+  55:mri/core/token.c ****         __throwing_func( splitStringCopyIntoTokens(pToken) );
+  56:mri/core/token.c ****     }
+  57:mri/core/token.c ****     __catch
+  58:mri/core/token.c ****     {
+  59:mri/core/token.c ****         __rethrow;
+  60:mri/core/token.c ****     }
+  61:mri/core/token.c **** }
+  62:mri/core/token.c **** 
+  63:mri/core/token.c **** static void copyStringIntoToken(Token* pToken, const char* pStringToCopy)
+  64:mri/core/token.c **** {
+  29              		.loc 1 64 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  65:mri/core/token.c ****     size_t      bytesLeft = sizeof(pToken->copyOfString);
+  34              		.loc 1 65 5 view .LVU1
+  66:mri/core/token.c ****     const char* pSource = pStringToCopy;
+  35              		.loc 1 66 5 view .LVU2
+  67:mri/core/token.c ****     char*       pDest = pToken->copyOfString;
+  36              		.loc 1 67 5 view .LVU3
+  37              		.loc 1 67 17 is_stmt 0 view .LVU4
+  38 0000 3030     		adds	r0, r0, #48
+  39              	.LVL1:
+  68:mri/core/token.c **** 
+  69:mri/core/token.c ****     while (bytesLeft > 1 && *pSource)
+  40              		.loc 1 69 5 is_stmt 1 view .LVU5
+  65:mri/core/token.c ****     const char* pSource = pStringToCopy;
+  41              		.loc 1 65 17 is_stmt 0 view .LVU6
+  42 0002 4123     		movs	r3, #65
+  43              		.loc 1 69 11 view .LVU7
+  44 0004 03E0     		b	.L2
+  45              	.LVL2:
+ARM GAS  /tmp/ccHGW5cp.s 			page 3
+
+
+  46              	.L4:
+  70:mri/core/token.c ****     {
+  71:mri/core/token.c ****         *pDest++ = *pSource++;
+  47              		.loc 1 71 9 is_stmt 1 view .LVU8
+  48              		.loc 1 71 28 is_stmt 0 view .LVU9
+  49 0006 0131     		adds	r1, r1, #1
+  50              	.LVL3:
+  51              		.loc 1 71 18 view .LVU10
+  52 0008 00F8012B 		strb	r2, [r0], #1
+  53              	.LVL4:
+  72:mri/core/token.c ****         bytesLeft--;
+  54              		.loc 1 72 9 is_stmt 1 view .LVU11
+  55              		.loc 1 72 18 is_stmt 0 view .LVU12
+  56 000c 013B     		subs	r3, r3, #1
+  57              	.LVL5:
+  58              	.L2:
+  69:mri/core/token.c ****     {
+  59              		.loc 1 69 26 is_stmt 1 view .LVU13
+  60 000e 012B     		cmp	r3, #1
+  61 0010 02D9     		bls	.L3
+  69:mri/core/token.c ****     {
+  62              		.loc 1 69 29 is_stmt 0 discriminator 1 view .LVU14
+  63 0012 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+  69:mri/core/token.c ****     {
+  64              		.loc 1 69 26 discriminator 1 view .LVU15
+  65 0014 002A     		cmp	r2, #0
+  66 0016 F6D1     		bne	.L4
+  67              	.L3:
+  73:mri/core/token.c ****     }
+  74:mri/core/token.c ****     *pDest = '\0';
+  68              		.loc 1 74 5 is_stmt 1 view .LVU16
+  69              		.loc 1 74 12 is_stmt 0 view .LVU17
+  70 0018 0023     		movs	r3, #0
+  71              	.LVL6:
+  72              		.loc 1 74 12 view .LVU18
+  73 001a 0370     		strb	r3, [r0]
+  75:mri/core/token.c **** 
+  76:mri/core/token.c ****     if (*pSource)
+  74              		.loc 1 76 5 is_stmt 1 view .LVU19
+  75              		.loc 1 76 9 is_stmt 0 view .LVU20
+  76 001c 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+  77              		.loc 1 76 8 view .LVU21
+  78 001e 03B9     		cbnz	r3, .L6
+  79              	.L1:
+  77:mri/core/token.c ****         __throw(bufferOverrunException);
+  78:mri/core/token.c **** }
+  80              		.loc 1 78 1 view .LVU22
+  81 0020 7047     		bx	lr
+  82              	.L6:
+  77:mri/core/token.c ****         __throw(bufferOverrunException);
+  83              		.loc 1 77 9 is_stmt 1 view .LVU23
+  84              	.LVL7:
+  85              	.LBB12:
+  86              	.LBI12:
+  87              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+ARM GAS  /tmp/ccHGW5cp.s 			page 4
+
+
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+ARM GAS  /tmp/ccHGW5cp.s 			page 5
+
+
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  88              		.loc 2 71 20 view .LVU24
+  89              	.LBB13:
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  90              		.loc 2 73 5 view .LVU25
+  91              		.loc 2 73 73 is_stmt 0 view .LVU26
+  92 0022 034A     		ldr	r2, .L7
+  93 0024 1368     		ldr	r3, [r2]
+  94 0026 012B     		cmp	r3, #1
+  95 0028 B8BF     		it	lt
+  96 002a 0123     		movlt	r3, #1
+  97              		.loc 2 73 22 view .LVU27
+  98 002c 1360     		str	r3, [r2]
+  99              	.LVL8:
+ 100              		.loc 2 73 22 view .LVU28
+ 101              	.LBE13:
+ 102              	.LBE12:
+  77:mri/core/token.c **** }
+ 103              		.loc 1 77 9 view .LVU29
+ 104 002e F7E7     		b	.L1
+ 105              	.L8:
+ 106              		.align	2
+ 107              	.L7:
+ 108 0030 00000000 		.word	mriExceptionCode
+ 109              		.cfi_endproc
+ 110              	.LFE7:
+ 112              		.section	.text.charIsSeparator,"ax",%progbits
+ 113              		.align	1
+ 114              		.syntax unified
+ 115              		.thumb
+ 116              		.thumb_func
+ 118              	charIsSeparator:
+ 119              	.LVL9:
+ 120              	.LFB11:
+  79:mri/core/token.c **** 
+  80:mri/core/token.c **** static void splitStringCopyIntoTokens(Token* pToken)
+  81:mri/core/token.c **** {
+  82:mri/core/token.c ****     char* p = pToken->copyOfString;
+  83:mri/core/token.c ****     while (*p)
+  84:mri/core/token.c ****     {
+  85:mri/core/token.c ****         p = findFirstNonSeparator(pToken, p);
+  86:mri/core/token.c ****         __try
+  87:mri/core/token.c ****             addToken(pToken, p);
+  88:mri/core/token.c ****         __catch
+  89:mri/core/token.c ****             __rethrow;
+ARM GAS  /tmp/ccHGW5cp.s 			page 6
+
+
+  90:mri/core/token.c ****         p = findFirstSeparator(pToken, p);
+  91:mri/core/token.c ****         if (*p)
+  92:mri/core/token.c ****             *p++ = '\0';
+  93:mri/core/token.c ****     }
+  94:mri/core/token.c **** }
+  95:mri/core/token.c **** 
+  96:mri/core/token.c **** static char* findFirstNonSeparator(Token* pToken, char* p)
+  97:mri/core/token.c **** {
+  98:mri/core/token.c ****     while (*p && charIsSeparator(pToken, *p))
+  99:mri/core/token.c ****         p++;
+ 100:mri/core/token.c **** 
+ 101:mri/core/token.c ****     return p;
+ 102:mri/core/token.c **** }
+ 103:mri/core/token.c **** 
+ 104:mri/core/token.c **** static char* findFirstSeparator(Token* pToken, char* p)
+ 105:mri/core/token.c **** {
+ 106:mri/core/token.c ****     while (*p && !charIsSeparator(pToken, *p))
+ 107:mri/core/token.c ****         p++;
+ 108:mri/core/token.c **** 
+ 109:mri/core/token.c ****     return p;
+ 110:mri/core/token.c **** }
+ 111:mri/core/token.c **** 
+ 112:mri/core/token.c **** static int charIsSeparator(Token* pToken, char c)
+ 113:mri/core/token.c **** {
+ 121              		.loc 1 113 1 is_stmt 1 view -0
+ 122              		.cfi_startproc
+ 123              		@ args = 0, pretend = 0, frame = 0
+ 124              		@ frame_needed = 0, uses_anonymous_args = 0
+ 125              		@ link register save eliminated.
+ 114:mri/core/token.c ****     const char* pSeparator = pToken->pTokenSeparators;
+ 126              		.loc 1 114 5 view .LVU31
+ 127              		.loc 1 114 17 is_stmt 0 view .LVU32
+ 128 0000 826A     		ldr	r2, [r0, #40]
+ 129              	.LVL10:
+ 115:mri/core/token.c **** 
+ 116:mri/core/token.c ****     while (*pSeparator)
+ 130              		.loc 1 116 5 is_stmt 1 view .LVU33
+ 131              		.loc 1 116 11 is_stmt 0 view .LVU34
+ 132 0002 00E0     		b	.L10
+ 133              	.L15:
+ 117:mri/core/token.c ****     {
+ 118:mri/core/token.c ****         if (c == *pSeparator)
+ 119:mri/core/token.c ****             return 1;
+ 120:mri/core/token.c ****         pSeparator++;
+ 134              		.loc 1 120 9 is_stmt 1 view .LVU35
+ 135              		.loc 1 120 19 is_stmt 0 view .LVU36
+ 136 0004 0132     		adds	r2, r2, #1
+ 137              	.LVL11:
+ 138              	.L10:
+ 116:mri/core/token.c ****     {
+ 139              		.loc 1 116 12 is_stmt 1 view .LVU37
+ 140 0006 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 141 0008 1BB1     		cbz	r3, .L14
+ 118:mri/core/token.c ****             return 1;
+ 142              		.loc 1 118 9 view .LVU38
+ 118:mri/core/token.c ****             return 1;
+ 143              		.loc 1 118 12 is_stmt 0 view .LVU39
+ARM GAS  /tmp/ccHGW5cp.s 			page 7
+
+
+ 144 000a 8B42     		cmp	r3, r1
+ 145 000c FAD1     		bne	.L15
+ 119:mri/core/token.c ****         pSeparator++;
+ 146              		.loc 1 119 20 view .LVU40
+ 147 000e 0120     		movs	r0, #1
+ 148              	.LVL12:
+ 121:mri/core/token.c ****     }
+ 122:mri/core/token.c **** 
+ 123:mri/core/token.c ****     return 0;
+ 124:mri/core/token.c **** }
+ 149              		.loc 1 124 1 view .LVU41
+ 150 0010 7047     		bx	lr
+ 151              	.LVL13:
+ 152              	.L14:
+ 123:mri/core/token.c **** }
+ 153              		.loc 1 123 12 view .LVU42
+ 154 0012 0020     		movs	r0, #0
+ 155              	.LVL14:
+ 123:mri/core/token.c **** }
+ 156              		.loc 1 123 12 view .LVU43
+ 157 0014 7047     		bx	lr
+ 158              		.cfi_endproc
+ 159              	.LFE11:
+ 161              		.section	.text.findFirstNonSeparator,"ax",%progbits
+ 162              		.align	1
+ 163              		.syntax unified
+ 164              		.thumb
+ 165              		.thumb_func
+ 167              	findFirstNonSeparator:
+ 168              	.LVL15:
+ 169              	.LFB9:
+  97:mri/core/token.c ****     while (*p && charIsSeparator(pToken, *p))
+ 170              		.loc 1 97 1 is_stmt 1 view -0
+ 171              		.cfi_startproc
+ 172              		@ args = 0, pretend = 0, frame = 0
+ 173              		@ frame_needed = 0, uses_anonymous_args = 0
+  97:mri/core/token.c ****     while (*p && charIsSeparator(pToken, *p))
+ 174              		.loc 1 97 1 is_stmt 0 view .LVU45
+ 175 0000 38B5     		push	{r3, r4, r5, lr}
+ 176              	.LCFI0:
+ 177              		.cfi_def_cfa_offset 16
+ 178              		.cfi_offset 3, -16
+ 179              		.cfi_offset 4, -12
+ 180              		.cfi_offset 5, -8
+ 181              		.cfi_offset 14, -4
+ 182 0002 0546     		mov	r5, r0
+ 183 0004 0C46     		mov	r4, r1
+  98:mri/core/token.c ****         p++;
+ 184              		.loc 1 98 5 is_stmt 1 view .LVU46
+  98:mri/core/token.c ****         p++;
+ 185              		.loc 1 98 11 is_stmt 0 view .LVU47
+ 186 0006 00E0     		b	.L17
+ 187              	.LVL16:
+ 188              	.L19:
+  99:mri/core/token.c **** 
+ 189              		.loc 1 99 9 is_stmt 1 view .LVU48
+  99:mri/core/token.c **** 
+ARM GAS  /tmp/ccHGW5cp.s 			page 8
+
+
+ 190              		.loc 1 99 10 is_stmt 0 view .LVU49
+ 191 0008 0134     		adds	r4, r4, #1
+ 192              	.LVL17:
+ 193              	.L17:
+  98:mri/core/token.c ****         p++;
+ 194              		.loc 1 98 15 is_stmt 1 view .LVU50
+  98:mri/core/token.c ****         p++;
+ 195              		.loc 1 98 12 is_stmt 0 view .LVU51
+ 196 000a 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+  98:mri/core/token.c ****         p++;
+ 197              		.loc 1 98 15 view .LVU52
+ 198 000c 21B1     		cbz	r1, .L18
+  98:mri/core/token.c ****         p++;
+ 199              		.loc 1 98 18 discriminator 1 view .LVU53
+ 200 000e 2846     		mov	r0, r5
+ 201 0010 FFF7FEFF 		bl	charIsSeparator
+ 202              	.LVL18:
+  98:mri/core/token.c ****         p++;
+ 203              		.loc 1 98 15 discriminator 1 view .LVU54
+ 204 0014 0028     		cmp	r0, #0
+ 205 0016 F7D1     		bne	.L19
+ 206              	.L18:
+ 101:mri/core/token.c **** }
+ 207              		.loc 1 101 5 is_stmt 1 view .LVU55
+ 102:mri/core/token.c **** 
+ 208              		.loc 1 102 1 is_stmt 0 view .LVU56
+ 209 0018 2046     		mov	r0, r4
+ 210 001a 38BD     		pop	{r3, r4, r5, pc}
+ 102:mri/core/token.c **** 
+ 211              		.loc 1 102 1 view .LVU57
+ 212              		.cfi_endproc
+ 213              	.LFE9:
+ 215              		.section	.text.findFirstSeparator,"ax",%progbits
+ 216              		.align	1
+ 217              		.syntax unified
+ 218              		.thumb
+ 219              		.thumb_func
+ 221              	findFirstSeparator:
+ 222              	.LVL19:
+ 223              	.LFB10:
+ 105:mri/core/token.c ****     while (*p && !charIsSeparator(pToken, *p))
+ 224              		.loc 1 105 1 is_stmt 1 view -0
+ 225              		.cfi_startproc
+ 226              		@ args = 0, pretend = 0, frame = 0
+ 227              		@ frame_needed = 0, uses_anonymous_args = 0
+ 105:mri/core/token.c ****     while (*p && !charIsSeparator(pToken, *p))
+ 228              		.loc 1 105 1 is_stmt 0 view .LVU59
+ 229 0000 38B5     		push	{r3, r4, r5, lr}
+ 230              	.LCFI1:
+ 231              		.cfi_def_cfa_offset 16
+ 232              		.cfi_offset 3, -16
+ 233              		.cfi_offset 4, -12
+ 234              		.cfi_offset 5, -8
+ 235              		.cfi_offset 14, -4
+ 236 0002 0546     		mov	r5, r0
+ 237 0004 0C46     		mov	r4, r1
+ 106:mri/core/token.c ****         p++;
+ARM GAS  /tmp/ccHGW5cp.s 			page 9
+
+
+ 238              		.loc 1 106 5 is_stmt 1 view .LVU60
+ 106:mri/core/token.c ****         p++;
+ 239              		.loc 1 106 11 is_stmt 0 view .LVU61
+ 240 0006 00E0     		b	.L22
+ 241              	.LVL20:
+ 242              	.L24:
+ 107:mri/core/token.c **** 
+ 243              		.loc 1 107 9 is_stmt 1 view .LVU62
+ 107:mri/core/token.c **** 
+ 244              		.loc 1 107 10 is_stmt 0 view .LVU63
+ 245 0008 0134     		adds	r4, r4, #1
+ 246              	.LVL21:
+ 247              	.L22:
+ 106:mri/core/token.c ****         p++;
+ 248              		.loc 1 106 15 is_stmt 1 view .LVU64
+ 106:mri/core/token.c ****         p++;
+ 249              		.loc 1 106 12 is_stmt 0 view .LVU65
+ 250 000a 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+ 106:mri/core/token.c ****         p++;
+ 251              		.loc 1 106 15 view .LVU66
+ 252 000c 21B1     		cbz	r1, .L23
+ 106:mri/core/token.c ****         p++;
+ 253              		.loc 1 106 19 discriminator 1 view .LVU67
+ 254 000e 2846     		mov	r0, r5
+ 255 0010 FFF7FEFF 		bl	charIsSeparator
+ 256              	.LVL22:
+ 106:mri/core/token.c ****         p++;
+ 257              		.loc 1 106 15 discriminator 1 view .LVU68
+ 258 0014 0028     		cmp	r0, #0
+ 259 0016 F7D0     		beq	.L24
+ 260              	.L23:
+ 109:mri/core/token.c **** }
+ 261              		.loc 1 109 5 is_stmt 1 view .LVU69
+ 110:mri/core/token.c **** 
+ 262              		.loc 1 110 1 is_stmt 0 view .LVU70
+ 263 0018 2046     		mov	r0, r4
+ 264 001a 38BD     		pop	{r3, r4, r5, pc}
+ 110:mri/core/token.c **** 
+ 265              		.loc 1 110 1 view .LVU71
+ 266              		.cfi_endproc
+ 267              	.LFE10:
+ 269              		.section	.text.addToken,"ax",%progbits
+ 270              		.align	1
+ 271              		.syntax unified
+ 272              		.thumb
+ 273              		.thumb_func
+ 275              	addToken:
+ 276              	.LVL23:
+ 277              	.LFB12:
+ 125:mri/core/token.c **** 
+ 126:mri/core/token.c **** static void addToken(Token* pToken, const char* p)
+ 127:mri/core/token.c **** {
+ 278              		.loc 1 127 1 is_stmt 1 view -0
+ 279              		.cfi_startproc
+ 280              		@ args = 0, pretend = 0, frame = 0
+ 281              		@ frame_needed = 0, uses_anonymous_args = 0
+ 282              		@ link register save eliminated.
+ARM GAS  /tmp/ccHGW5cp.s 			page 10
+
+
+ 128:mri/core/token.c ****     if ('\0' == *p)
+ 283              		.loc 1 128 5 view .LVU73
+ 284              		.loc 1 128 17 is_stmt 0 view .LVU74
+ 285 0000 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 286              		.loc 1 128 8 view .LVU75
+ 287 0002 33B1     		cbz	r3, .L26
+ 129:mri/core/token.c ****         return;
+ 130:mri/core/token.c **** 
+ 131:mri/core/token.c ****     if (pToken->tokenCount >= ARRAY_SIZE(pToken->tokenPointers))
+ 288              		.loc 1 131 5 is_stmt 1 view .LVU76
+ 289              		.loc 1 131 15 is_stmt 0 view .LVU77
+ 290 0004 C36A     		ldr	r3, [r0, #44]
+ 291              		.loc 1 131 8 view .LVU78
+ 292 0006 092B     		cmp	r3, #9
+ 293 0008 04D8     		bhi	.L29
+ 132:mri/core/token.c ****         __throw(bufferOverrunException);
+ 133:mri/core/token.c **** 
+ 134:mri/core/token.c ****     pToken->tokenPointers[pToken->tokenCount++] = p;
+ 294              		.loc 1 134 5 is_stmt 1 view .LVU79
+ 295              		.loc 1 134 45 is_stmt 0 view .LVU80
+ 296 000a 5A1C     		adds	r2, r3, #1
+ 297 000c C262     		str	r2, [r0, #44]
+ 298              		.loc 1 134 49 view .LVU81
+ 299 000e 40F82310 		str	r1, [r0, r3, lsl #2]
+ 300              	.L26:
+ 135:mri/core/token.c **** }
+ 301              		.loc 1 135 1 view .LVU82
+ 302 0012 7047     		bx	lr
+ 303              	.L29:
+ 132:mri/core/token.c ****         __throw(bufferOverrunException);
+ 304              		.loc 1 132 9 is_stmt 1 view .LVU83
+ 305              	.LVL24:
+ 306              	.LBB14:
+ 307              	.LBI14:
+  71:mri/core/try_catch.h **** {
+ 308              		.loc 2 71 20 view .LVU84
+ 309              	.LBB15:
+ 310              		.loc 2 73 5 view .LVU85
+ 311              		.loc 2 73 73 is_stmt 0 view .LVU86
+ 312 0014 034A     		ldr	r2, .L30
+ 313 0016 1368     		ldr	r3, [r2]
+ 314 0018 012B     		cmp	r3, #1
+ 315 001a B8BF     		it	lt
+ 316 001c 0123     		movlt	r3, #1
+ 317              		.loc 2 73 22 view .LVU87
+ 318 001e 1360     		str	r3, [r2]
+ 319              	.LVL25:
+ 320              		.loc 2 73 22 view .LVU88
+ 321              	.LBE15:
+ 322              	.LBE14:
+ 132:mri/core/token.c ****         __throw(bufferOverrunException);
+ 323              		.loc 1 132 9 view .LVU89
+ 324 0020 7047     		bx	lr
+ 325              	.L31:
+ 326 0022 00BF     		.align	2
+ 327              	.L30:
+ 328 0024 00000000 		.word	mriExceptionCode
+ARM GAS  /tmp/ccHGW5cp.s 			page 11
+
+
+ 329              		.cfi_endproc
+ 330              	.LFE12:
+ 332              		.section	.text.splitStringCopyIntoTokens,"ax",%progbits
+ 333              		.align	1
+ 334              		.syntax unified
+ 335              		.thumb
+ 336              		.thumb_func
+ 338              	splitStringCopyIntoTokens:
+ 339              	.LVL26:
+ 340              	.LFB8:
+  81:mri/core/token.c ****     char* p = pToken->copyOfString;
+ 341              		.loc 1 81 1 is_stmt 1 view -0
+ 342              		.cfi_startproc
+ 343              		@ args = 0, pretend = 0, frame = 0
+ 344              		@ frame_needed = 0, uses_anonymous_args = 0
+  81:mri/core/token.c ****     char* p = pToken->copyOfString;
+ 345              		.loc 1 81 1 is_stmt 0 view .LVU91
+ 346 0000 70B5     		push	{r4, r5, r6, lr}
+ 347              	.LCFI2:
+ 348              		.cfi_def_cfa_offset 16
+ 349              		.cfi_offset 4, -16
+ 350              		.cfi_offset 5, -12
+ 351              		.cfi_offset 6, -8
+ 352              		.cfi_offset 14, -4
+ 353 0002 0546     		mov	r5, r0
+  82:mri/core/token.c ****     while (*p)
+ 354              		.loc 1 82 5 is_stmt 1 view .LVU92
+  82:mri/core/token.c ****     while (*p)
+ 355              		.loc 1 82 11 is_stmt 0 view .LVU93
+ 356 0004 00F13001 		add	r1, r0, #48
+ 357              	.LVL27:
+  83:mri/core/token.c ****     {
+ 358              		.loc 1 83 5 is_stmt 1 view .LVU94
+ 359              	.L35:
+  83:mri/core/token.c ****     {
+ 360              		.loc 1 83 12 view .LVU95
+ 361 0008 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 362 000a C3B1     		cbz	r3, .L32
+  85:mri/core/token.c ****         __try
+ 363              		.loc 1 85 9 view .LVU96
+  85:mri/core/token.c ****         __try
+ 364              		.loc 1 85 13 is_stmt 0 view .LVU97
+ 365 000c 2846     		mov	r0, r5
+ 366 000e FFF7FEFF 		bl	findFirstNonSeparator
+ 367              	.LVL28:
+  85:mri/core/token.c ****         __try
+ 368              		.loc 1 85 13 view .LVU98
+ 369 0012 0446     		mov	r4, r0
+ 370              	.LVL29:
+  86:mri/core/token.c ****             addToken(pToken, p);
+ 371              		.loc 1 86 9 is_stmt 1 view .LVU99
+  86:mri/core/token.c ****             addToken(pToken, p);
+ 372              		.loc 1 86 9 view .LVU100
+ 373              	.LBB16:
+ 374              	.LBI16:
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+ARM GAS  /tmp/ccHGW5cp.s 			page 12
+
+
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+ 375              		.loc 2 76 20 view .LVU101
+ 376              	.LBB17:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+ 377              		.loc 2 78 5 view .LVU102
+ 378              		.loc 2 78 22 is_stmt 0 view .LVU103
+ 379 0014 0A4E     		ldr	r6, .L38
+ 380 0016 0023     		movs	r3, #0
+ 381 0018 3360     		str	r3, [r6]
+ 382              	.LBE17:
+ 383              	.LBE16:
+  87:mri/core/token.c ****         __catch
+ 384              		.loc 1 87 13 is_stmt 1 view .LVU104
+ 385 001a 0146     		mov	r1, r0
+ 386 001c 2846     		mov	r0, r5
+ 387              	.LVL30:
+  87:mri/core/token.c ****         __catch
+ 388              		.loc 1 87 13 is_stmt 0 view .LVU105
+ 389 001e FFF7FEFF 		bl	addToken
+ 390              	.LVL31:
+  86:mri/core/token.c ****             addToken(pToken, p);
+ 391              		.loc 1 86 9 is_stmt 1 view .LVU106
+  88:mri/core/token.c ****             __rethrow;
+ 392              		.loc 1 88 9 view .LVU107
+ 393 0022 3368     		ldr	r3, [r6]
+ 394 0024 5BB9     		cbnz	r3, .L32
+  90:mri/core/token.c ****         if (*p)
+ 395              		.loc 1 90 9 view .LVU108
+  90:mri/core/token.c ****         if (*p)
+ 396              		.loc 1 90 13 is_stmt 0 view .LVU109
+ 397 0026 2146     		mov	r1, r4
+ 398 0028 2846     		mov	r0, r5
+ 399 002a FFF7FEFF 		bl	findFirstSeparator
+ 400              	.LVL32:
+ 401 002e 0146     		mov	r1, r0
+ 402              	.LVL33:
+  91:mri/core/token.c ****             *p++ = '\0';
+ 403              		.loc 1 91 9 is_stmt 1 view .LVU110
+  91:mri/core/token.c ****             *p++ = '\0';
+ 404              		.loc 1 91 13 is_stmt 0 view .LVU111
+ 405 0030 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+  91:mri/core/token.c ****             *p++ = '\0';
+ 406              		.loc 1 91 12 view .LVU112
+ 407 0032 002B     		cmp	r3, #0
+ 408 0034 E8D0     		beq	.L35
+  92:mri/core/token.c ****     }
+ 409              		.loc 1 92 13 is_stmt 1 view .LVU113
+ 410              	.LVL34:
+  92:mri/core/token.c ****     }
+ 411              		.loc 1 92 18 is_stmt 0 view .LVU114
+ 412 0036 0023     		movs	r3, #0
+ 413 0038 01F8013B 		strb	r3, [r1], #1
+ 414              	.LVL35:
+  92:mri/core/token.c ****     }
+ 415              		.loc 1 92 18 view .LVU115
+ 416 003c E4E7     		b	.L35
+ARM GAS  /tmp/ccHGW5cp.s 			page 13
+
+
+ 417              	.LVL36:
+ 418              	.L32:
+  94:mri/core/token.c **** 
+ 419              		.loc 1 94 1 view .LVU116
+ 420 003e 70BD     		pop	{r4, r5, r6, pc}
+ 421              	.LVL37:
+ 422              	.L39:
+  94:mri/core/token.c **** 
+ 423              		.loc 1 94 1 view .LVU117
+ 424              		.align	2
+ 425              	.L38:
+ 426 0040 00000000 		.word	mriExceptionCode
+ 427              		.cfi_endproc
+ 428              	.LFE8:
+ 430              		.section	.text.adjustTokenPointers,"ax",%progbits
+ 431              		.align	1
+ 432              		.syntax unified
+ 433              		.thumb
+ 434              		.thumb_func
+ 436              	adjustTokenPointers:
+ 437              	.LVL38:
+ 438              	.LFB18:
+ 136:mri/core/token.c **** 
+ 137:mri/core/token.c **** 
+ 138:mri/core/token.c **** size_t Token_GetTokenCount(Token* pToken)
+ 139:mri/core/token.c **** {
+ 140:mri/core/token.c ****     return pToken->tokenCount;
+ 141:mri/core/token.c **** }
+ 142:mri/core/token.c **** 
+ 143:mri/core/token.c **** 
+ 144:mri/core/token.c **** const char* Token_GetToken(Token* pToken, size_t tokenIndex)
+ 145:mri/core/token.c **** {
+ 146:mri/core/token.c ****     if (tokenIndex >= pToken->tokenCount)
+ 147:mri/core/token.c ****         __throw_and_return(invalidIndexException, NULL);
+ 148:mri/core/token.c **** 
+ 149:mri/core/token.c ****     return pToken->tokenPointers[tokenIndex];
+ 150:mri/core/token.c **** }
+ 151:mri/core/token.c **** 
+ 152:mri/core/token.c **** 
+ 153:mri/core/token.c **** const char* Token_MatchingString(Token* pToken, const char* pTokenToSearchFor)
+ 154:mri/core/token.c **** {
+ 155:mri/core/token.c ****     size_t i;
+ 156:mri/core/token.c **** 
+ 157:mri/core/token.c ****     for (i = 0 ; i < pToken->tokenCount ; i++)
+ 158:mri/core/token.c ****     {
+ 159:mri/core/token.c ****         if (0 == mri_strcmp(pToken->tokenPointers[i], pTokenToSearchFor))
+ 160:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 161:mri/core/token.c ****     }
+ 162:mri/core/token.c ****     return NULL;
+ 163:mri/core/token.c **** }
+ 164:mri/core/token.c **** 
+ 165:mri/core/token.c **** 
+ 166:mri/core/token.c **** const char* Token_MatchingStringPrefix(Token* pToken, const char* pTokenPrefixToSearchFor)
+ 167:mri/core/token.c **** {
+ 168:mri/core/token.c ****     size_t i;
+ 169:mri/core/token.c **** 
+ 170:mri/core/token.c ****     for (i = 0 ; i < pToken->tokenCount ; i++)
+ARM GAS  /tmp/ccHGW5cp.s 			page 14
+
+
+ 171:mri/core/token.c ****     {
+ 172:mri/core/token.c ****         if (pToken->tokenPointers[i] == mri_strstr(pToken->tokenPointers[i], pTokenPrefixToSearchFo
+ 173:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 174:mri/core/token.c ****     }
+ 175:mri/core/token.c ****     return NULL;
+ 176:mri/core/token.c **** }
+ 177:mri/core/token.c **** 
+ 178:mri/core/token.c **** 
+ 179:mri/core/token.c **** static void adjustTokenPointers(Token* pToken, const char* pOriginalStringCopyBaseAddress);
+ 180:mri/core/token.c **** void Token_Copy(Token* pTokenCopy, Token* pTokenOriginal)
+ 181:mri/core/token.c **** {
+ 182:mri/core/token.c ****     mri_memcpy(pTokenCopy, pTokenOriginal, sizeof(*pTokenCopy));
+ 183:mri/core/token.c **** 
+ 184:mri/core/token.c ****     adjustTokenPointers(pTokenCopy, pTokenOriginal->copyOfString);
+ 185:mri/core/token.c **** }
+ 186:mri/core/token.c **** 
+ 187:mri/core/token.c **** static void adjustTokenPointers(Token* pToken, const char* pOriginalStringCopyBaseAddress)
+ 188:mri/core/token.c **** {
+ 439              		.loc 1 188 1 is_stmt 1 view -0
+ 440              		.cfi_startproc
+ 441              		@ args = 0, pretend = 0, frame = 0
+ 442              		@ frame_needed = 0, uses_anonymous_args = 0
+ 443              		@ link register save eliminated.
+ 189:mri/core/token.c ****     size_t i;
+ 444              		.loc 1 189 5 view .LVU119
+ 190:mri/core/token.c **** 
+ 191:mri/core/token.c ****     for (i = 0 ; i < pToken->tokenCount ; i++)
+ 445              		.loc 1 191 5 view .LVU120
+ 446              		.loc 1 191 12 is_stmt 0 view .LVU121
+ 447 0000 0023     		movs	r3, #0
+ 448              		.loc 1 191 5 view .LVU122
+ 449 0002 09E0     		b	.L41
+ 450              	.LVL39:
+ 451              	.L42:
+ 452              	.LBB18:
+ 192:mri/core/token.c ****     {
+ 193:mri/core/token.c ****         int tokenOffset = pToken->tokenPointers[i] - pOriginalStringCopyBaseAddress;
+ 453              		.loc 1 193 9 is_stmt 1 discriminator 3 view .LVU123
+ 454              		.loc 1 193 48 is_stmt 0 discriminator 3 view .LVU124
+ 455 0004 50F82320 		ldr	r2, [r0, r3, lsl #2]
+ 456              		.loc 1 193 13 discriminator 3 view .LVU125
+ 457 0008 A2EB010C 		sub	ip, r2, r1
+ 458              	.LVL40:
+ 194:mri/core/token.c **** 
+ 195:mri/core/token.c ****         pToken->tokenPointers[i] = pToken->copyOfString + tokenOffset;
+ 459              		.loc 1 195 9 is_stmt 1 discriminator 3 view .LVU126
+ 460              		.loc 1 195 36 is_stmt 0 discriminator 3 view .LVU127
+ 461 000c 00F13002 		add	r2, r0, #48
+ 462              		.loc 1 195 57 discriminator 3 view .LVU128
+ 463 0010 6244     		add	r2, r2, ip
+ 464              		.loc 1 195 34 discriminator 3 view .LVU129
+ 465 0012 40F82320 		str	r2, [r0, r3, lsl #2]
+ 466              	.LBE18:
+ 191:mri/core/token.c ****     {
+ 467              		.loc 1 191 44 is_stmt 1 discriminator 3 view .LVU130
+ 468 0016 0133     		adds	r3, r3, #1
+ 469              	.LVL41:
+ARM GAS  /tmp/ccHGW5cp.s 			page 15
+
+
+ 470              	.L41:
+ 191:mri/core/token.c ****     {
+ 471              		.loc 1 191 20 discriminator 1 view .LVU131
+ 191:mri/core/token.c ****     {
+ 472              		.loc 1 191 28 is_stmt 0 discriminator 1 view .LVU132
+ 473 0018 C26A     		ldr	r2, [r0, #44]
+ 191:mri/core/token.c ****     {
+ 474              		.loc 1 191 20 discriminator 1 view .LVU133
+ 475 001a 9A42     		cmp	r2, r3
+ 476 001c F2D8     		bhi	.L42
+ 196:mri/core/token.c ****     }
+ 197:mri/core/token.c **** }
+ 477              		.loc 1 197 1 view .LVU134
+ 478 001e 7047     		bx	lr
+ 479              		.cfi_endproc
+ 480              	.LFE18:
+ 482              		.section	.text.clearTokenObject,"ax",%progbits
+ 483              		.align	1
+ 484              		.syntax unified
+ 485              		.thumb
+ 486              		.thumb_func
+ 488              	clearTokenObject:
+ 489              	.LVL42:
+ 490              	.LFB5:
+  36:mri/core/token.c ****     mri_memset(pToken->tokenPointers, 0, sizeof(pToken->tokenPointers));
+ 491              		.loc 1 36 1 is_stmt 1 view -0
+ 492              		.cfi_startproc
+ 493              		@ args = 0, pretend = 0, frame = 0
+ 494              		@ frame_needed = 0, uses_anonymous_args = 0
+  36:mri/core/token.c ****     mri_memset(pToken->tokenPointers, 0, sizeof(pToken->tokenPointers));
+ 495              		.loc 1 36 1 is_stmt 0 view .LVU136
+ 496 0000 10B5     		push	{r4, lr}
+ 497              	.LCFI3:
+ 498              		.cfi_def_cfa_offset 8
+ 499              		.cfi_offset 4, -8
+ 500              		.cfi_offset 14, -4
+ 501 0002 0446     		mov	r4, r0
+  37:mri/core/token.c ****     pToken->tokenCount = 0;
+ 502              		.loc 1 37 5 is_stmt 1 view .LVU137
+ 503 0004 2822     		movs	r2, #40
+ 504 0006 0021     		movs	r1, #0
+ 505 0008 FFF7FEFF 		bl	mri_memset
+ 506              	.LVL43:
+  38:mri/core/token.c ****     pToken->copyOfString[0] = '\0';
+ 507              		.loc 1 38 5 view .LVU138
+  38:mri/core/token.c ****     pToken->copyOfString[0] = '\0';
+ 508              		.loc 1 38 24 is_stmt 0 view .LVU139
+ 509 000c 0023     		movs	r3, #0
+ 510 000e E362     		str	r3, [r4, #44]
+  39:mri/core/token.c **** }
+ 511              		.loc 1 39 5 is_stmt 1 view .LVU140
+  39:mri/core/token.c **** }
+ 512              		.loc 1 39 29 is_stmt 0 view .LVU141
+ 513 0010 84F83030 		strb	r3, [r4, #48]
+  40:mri/core/token.c **** 
+ 514              		.loc 1 40 1 view .LVU142
+ 515 0014 10BD     		pop	{r4, pc}
+ARM GAS  /tmp/ccHGW5cp.s 			page 16
+
+
+  40:mri/core/token.c **** 
+ 516              		.loc 1 40 1 view .LVU143
+ 517              		.cfi_endproc
+ 518              	.LFE5:
+ 520              		.section	.text.mriToken_InitWith,"ax",%progbits
+ 521              		.align	1
+ 522              		.global	mriToken_InitWith
+ 523              		.syntax unified
+ 524              		.thumb
+ 525              		.thumb_func
+ 527              	mriToken_InitWith:
+ 528              	.LVL44:
+ 529              	.LFB4:
+  30:mri/core/token.c ****     clearTokenObject(pToken);
+ 530              		.loc 1 30 1 is_stmt 1 view -0
+ 531              		.cfi_startproc
+ 532              		@ args = 0, pretend = 0, frame = 0
+ 533              		@ frame_needed = 0, uses_anonymous_args = 0
+  30:mri/core/token.c ****     clearTokenObject(pToken);
+ 534              		.loc 1 30 1 is_stmt 0 view .LVU145
+ 535 0000 38B5     		push	{r3, r4, r5, lr}
+ 536              	.LCFI4:
+ 537              		.cfi_def_cfa_offset 16
+ 538              		.cfi_offset 3, -16
+ 539              		.cfi_offset 4, -12
+ 540              		.cfi_offset 5, -8
+ 541              		.cfi_offset 14, -4
+ 542 0002 0446     		mov	r4, r0
+ 543 0004 0D46     		mov	r5, r1
+  31:mri/core/token.c ****     pToken->pTokenSeparators = pTheseTokenSeparators;
+ 544              		.loc 1 31 5 is_stmt 1 view .LVU146
+ 545 0006 FFF7FEFF 		bl	clearTokenObject
+ 546              	.LVL45:
+  32:mri/core/token.c **** }
+ 547              		.loc 1 32 5 view .LVU147
+  32:mri/core/token.c **** }
+ 548              		.loc 1 32 30 is_stmt 0 view .LVU148
+ 549 000a A562     		str	r5, [r4, #40]
+  33:mri/core/token.c **** 
+ 550              		.loc 1 33 1 view .LVU149
+ 551 000c 38BD     		pop	{r3, r4, r5, pc}
+  33:mri/core/token.c **** 
+ 552              		.loc 1 33 1 view .LVU150
+ 553              		.cfi_endproc
+ 554              	.LFE4:
+ 556              		.section	.rodata.mriToken_Init.str1.4,"aMS",%progbits,1
+ 557              		.align	2
+ 558              	.LC0:
+ 559 0000 200900   		.ascii	" \011\000"
+ 560              		.section	.text.mriToken_Init,"ax",%progbits
+ 561              		.align	1
+ 562              		.global	mriToken_Init
+ 563              		.syntax unified
+ 564              		.thumb
+ 565              		.thumb_func
+ 567              	mriToken_Init:
+ 568              	.LVL46:
+ARM GAS  /tmp/ccHGW5cp.s 			page 17
+
+
+ 569              	.LFB3:
+  23:mri/core/token.c ****     Token_InitWith(pToken, " \t");
+ 570              		.loc 1 23 1 is_stmt 1 view -0
+ 571              		.cfi_startproc
+ 572              		@ args = 0, pretend = 0, frame = 0
+ 573              		@ frame_needed = 0, uses_anonymous_args = 0
+  23:mri/core/token.c ****     Token_InitWith(pToken, " \t");
+ 574              		.loc 1 23 1 is_stmt 0 view .LVU152
+ 575 0000 08B5     		push	{r3, lr}
+ 576              	.LCFI5:
+ 577              		.cfi_def_cfa_offset 8
+ 578              		.cfi_offset 3, -8
+ 579              		.cfi_offset 14, -4
+  24:mri/core/token.c **** }
+ 580              		.loc 1 24 5 is_stmt 1 view .LVU153
+ 581 0002 0249     		ldr	r1, .L49
+ 582 0004 FFF7FEFF 		bl	mriToken_InitWith
+ 583              	.LVL47:
+  25:mri/core/token.c **** 
+ 584              		.loc 1 25 1 is_stmt 0 view .LVU154
+ 585 0008 08BD     		pop	{r3, pc}
+ 586              	.L50:
+ 587 000a 00BF     		.align	2
+ 588              	.L49:
+ 589 000c 00000000 		.word	.LC0
+ 590              		.cfi_endproc
+ 591              	.LFE3:
+ 593              		.section	.text.mriToken_SplitString,"ax",%progbits
+ 594              		.align	1
+ 595              		.global	mriToken_SplitString
+ 596              		.syntax unified
+ 597              		.thumb
+ 598              		.thumb_func
+ 600              	mriToken_SplitString:
+ 601              	.LVL48:
+ 602              	.LFB6:
+  50:mri/core/token.c ****     __try
+ 603              		.loc 1 50 1 is_stmt 1 view -0
+ 604              		.cfi_startproc
+ 605              		@ args = 0, pretend = 0, frame = 0
+ 606              		@ frame_needed = 0, uses_anonymous_args = 0
+  50:mri/core/token.c ****     __try
+ 607              		.loc 1 50 1 is_stmt 0 view .LVU156
+ 608 0000 70B5     		push	{r4, r5, r6, lr}
+ 609              	.LCFI6:
+ 610              		.cfi_def_cfa_offset 16
+ 611              		.cfi_offset 4, -16
+ 612              		.cfi_offset 5, -12
+ 613              		.cfi_offset 6, -8
+ 614              		.cfi_offset 14, -4
+ 615 0002 0446     		mov	r4, r0
+ 616 0004 0D46     		mov	r5, r1
+  51:mri/core/token.c ****     {
+ 617              		.loc 1 51 5 is_stmt 1 view .LVU157
+  51:mri/core/token.c ****     {
+ 618              		.loc 1 51 5 view .LVU158
+ 619              	.LBB19:
+ARM GAS  /tmp/ccHGW5cp.s 			page 18
+
+
+ 620              	.LBI19:
+  76:mri/core/try_catch.h **** {
+ 621              		.loc 2 76 20 view .LVU159
+ 622              	.LBB20:
+ 623              		.loc 2 78 5 view .LVU160
+ 624              		.loc 2 78 22 is_stmt 0 view .LVU161
+ 625 0006 084E     		ldr	r6, .L55
+ 626 0008 0023     		movs	r3, #0
+ 627 000a 3360     		str	r3, [r6]
+ 628              	.LBE20:
+ 629              	.LBE19:
+  53:mri/core/token.c ****         __throwing_func( copyStringIntoToken(pToken, pStringToSplit) );
+ 630              		.loc 1 53 9 is_stmt 1 view .LVU162
+ 631 000c FFF7FEFF 		bl	clearTokenObject
+ 632              	.LVL49:
+  54:mri/core/token.c ****         __throwing_func( splitStringCopyIntoTokens(pToken) );
+ 633              		.loc 1 54 9 view .LVU163
+ 634 0010 2946     		mov	r1, r5
+ 635 0012 2046     		mov	r0, r4
+ 636 0014 FFF7FEFF 		bl	copyStringIntoToken
+ 637              	.LVL50:
+  54:mri/core/token.c ****         __throwing_func( splitStringCopyIntoTokens(pToken) );
+ 638              		.loc 1 54 9 view .LVU164
+ 639 0018 3368     		ldr	r3, [r6]
+ 640 001a 03B1     		cbz	r3, .L54
+ 641              	.L51:
+  61:mri/core/token.c **** 
+ 642              		.loc 1 61 1 is_stmt 0 view .LVU165
+ 643 001c 70BD     		pop	{r4, r5, r6, pc}
+ 644              	.LVL51:
+ 645              	.L54:
+  54:mri/core/token.c ****         __throwing_func( splitStringCopyIntoTokens(pToken) );
+ 646              		.loc 1 54 71 is_stmt 1 discriminator 1 view .LVU166
+  55:mri/core/token.c ****     }
+ 647              		.loc 1 55 9 discriminator 1 view .LVU167
+ 648 001e 2046     		mov	r0, r4
+ 649 0020 FFF7FEFF 		bl	splitStringCopyIntoTokens
+ 650              	.LVL52:
+  55:mri/core/token.c ****     }
+ 651              		.loc 1 55 9 discriminator 1 view .LVU168
+  55:mri/core/token.c ****     }
+ 652              		.loc 1 55 61 discriminator 1 view .LVU169
+  51:mri/core/token.c ****     {
+ 653              		.loc 1 51 5 discriminator 1 view .LVU170
+  57:mri/core/token.c ****     {
+ 654              		.loc 1 57 5 discriminator 1 view .LVU171
+ 655 0024 FAE7     		b	.L51
+ 656              	.L56:
+ 657 0026 00BF     		.align	2
+ 658              	.L55:
+ 659 0028 00000000 		.word	mriExceptionCode
+ 660              		.cfi_endproc
+ 661              	.LFE6:
+ 663              		.section	.text.mriToken_GetTokenCount,"ax",%progbits
+ 664              		.align	1
+ 665              		.global	mriToken_GetTokenCount
+ 666              		.syntax unified
+ARM GAS  /tmp/ccHGW5cp.s 			page 19
+
+
+ 667              		.thumb
+ 668              		.thumb_func
+ 670              	mriToken_GetTokenCount:
+ 671              	.LVL53:
+ 672              	.LFB13:
+ 139:mri/core/token.c ****     return pToken->tokenCount;
+ 673              		.loc 1 139 1 view -0
+ 674              		.cfi_startproc
+ 675              		@ args = 0, pretend = 0, frame = 0
+ 676              		@ frame_needed = 0, uses_anonymous_args = 0
+ 677              		@ link register save eliminated.
+ 140:mri/core/token.c **** }
+ 678              		.loc 1 140 5 view .LVU173
+ 141:mri/core/token.c **** 
+ 679              		.loc 1 141 1 is_stmt 0 view .LVU174
+ 680 0000 C06A     		ldr	r0, [r0, #44]
+ 681              	.LVL54:
+ 141:mri/core/token.c **** 
+ 682              		.loc 1 141 1 view .LVU175
+ 683 0002 7047     		bx	lr
+ 684              		.cfi_endproc
+ 685              	.LFE13:
+ 687              		.section	.text.mriToken_GetToken,"ax",%progbits
+ 688              		.align	1
+ 689              		.global	mriToken_GetToken
+ 690              		.syntax unified
+ 691              		.thumb
+ 692              		.thumb_func
+ 694              	mriToken_GetToken:
+ 695              	.LVL55:
+ 696              	.LFB14:
+ 145:mri/core/token.c ****     if (tokenIndex >= pToken->tokenCount)
+ 697              		.loc 1 145 1 is_stmt 1 view -0
+ 698              		.cfi_startproc
+ 699              		@ args = 0, pretend = 0, frame = 0
+ 700              		@ frame_needed = 0, uses_anonymous_args = 0
+ 701              		@ link register save eliminated.
+ 146:mri/core/token.c ****         __throw_and_return(invalidIndexException, NULL);
+ 702              		.loc 1 146 5 view .LVU177
+ 146:mri/core/token.c ****         __throw_and_return(invalidIndexException, NULL);
+ 703              		.loc 1 146 29 is_stmt 0 view .LVU178
+ 704 0000 C36A     		ldr	r3, [r0, #44]
+ 146:mri/core/token.c ****         __throw_and_return(invalidIndexException, NULL);
+ 705              		.loc 1 146 8 view .LVU179
+ 706 0002 8B42     		cmp	r3, r1
+ 707 0004 02D9     		bls	.L61
+ 149:mri/core/token.c **** }
+ 708              		.loc 1 149 5 is_stmt 1 view .LVU180
+ 149:mri/core/token.c **** }
+ 709              		.loc 1 149 33 is_stmt 0 view .LVU181
+ 710 0006 50F82100 		ldr	r0, [r0, r1, lsl #2]
+ 711              	.LVL56:
+ 150:mri/core/token.c **** 
+ 712              		.loc 1 150 1 view .LVU182
+ 713 000a 7047     		bx	lr
+ 714              	.LVL57:
+ 715              	.L61:
+ARM GAS  /tmp/ccHGW5cp.s 			page 20
+
+
+ 147:mri/core/token.c **** 
+ 716              		.loc 1 147 9 is_stmt 1 view .LVU183
+ 717              	.LBB21:
+ 718              	.LBI21:
+  71:mri/core/try_catch.h **** {
+ 719              		.loc 2 71 20 view .LVU184
+ 720              	.LBB22:
+  73:mri/core/try_catch.h **** }
+ 721              		.loc 2 73 5 view .LVU185
+  73:mri/core/try_catch.h **** }
+ 722              		.loc 2 73 73 is_stmt 0 view .LVU186
+ 723 000c 034A     		ldr	r2, .L62
+ 724 000e 1368     		ldr	r3, [r2]
+ 725 0010 062B     		cmp	r3, #6
+ 726 0012 B8BF     		it	lt
+ 727 0014 0623     		movlt	r3, #6
+  73:mri/core/try_catch.h **** }
+ 728              		.loc 2 73 22 view .LVU187
+ 729 0016 1360     		str	r3, [r2]
+ 730              	.LVL58:
+  73:mri/core/try_catch.h **** }
+ 731              		.loc 2 73 22 view .LVU188
+ 732              	.LBE22:
+ 733              	.LBE21:
+ 147:mri/core/token.c **** 
+ 734              		.loc 1 147 9 view .LVU189
+ 735 0018 0020     		movs	r0, #0
+ 736              	.LVL59:
+ 147:mri/core/token.c **** 
+ 737              		.loc 1 147 9 view .LVU190
+ 738 001a 7047     		bx	lr
+ 739              	.L63:
+ 740              		.align	2
+ 741              	.L62:
+ 742 001c 00000000 		.word	mriExceptionCode
+ 743              		.cfi_endproc
+ 744              	.LFE14:
+ 746              		.section	.text.mriToken_MatchingString,"ax",%progbits
+ 747              		.align	1
+ 748              		.global	mriToken_MatchingString
+ 749              		.syntax unified
+ 750              		.thumb
+ 751              		.thumb_func
+ 753              	mriToken_MatchingString:
+ 754              	.LVL60:
+ 755              	.LFB15:
+ 154:mri/core/token.c ****     size_t i;
+ 756              		.loc 1 154 1 is_stmt 1 view -0
+ 757              		.cfi_startproc
+ 758              		@ args = 0, pretend = 0, frame = 0
+ 759              		@ frame_needed = 0, uses_anonymous_args = 0
+ 154:mri/core/token.c ****     size_t i;
+ 760              		.loc 1 154 1 is_stmt 0 view .LVU192
+ 761 0000 70B5     		push	{r4, r5, r6, lr}
+ 762              	.LCFI7:
+ 763              		.cfi_def_cfa_offset 16
+ 764              		.cfi_offset 4, -16
+ARM GAS  /tmp/ccHGW5cp.s 			page 21
+
+
+ 765              		.cfi_offset 5, -12
+ 766              		.cfi_offset 6, -8
+ 767              		.cfi_offset 14, -4
+ 768 0002 0546     		mov	r5, r0
+ 769 0004 0E46     		mov	r6, r1
+ 155:mri/core/token.c **** 
+ 770              		.loc 1 155 5 is_stmt 1 view .LVU193
+ 157:mri/core/token.c ****     {
+ 771              		.loc 1 157 5 view .LVU194
+ 772              	.LVL61:
+ 157:mri/core/token.c ****     {
+ 773              		.loc 1 157 12 is_stmt 0 view .LVU195
+ 774 0006 0024     		movs	r4, #0
+ 157:mri/core/token.c ****     {
+ 775              		.loc 1 157 5 view .LVU196
+ 776 0008 00E0     		b	.L65
+ 777              	.LVL62:
+ 778              	.L66:
+ 157:mri/core/token.c ****     {
+ 779              		.loc 1 157 44 is_stmt 1 discriminator 2 view .LVU197
+ 780 000a 0134     		adds	r4, r4, #1
+ 781              	.LVL63:
+ 782              	.L65:
+ 157:mri/core/token.c ****     {
+ 783              		.loc 1 157 20 discriminator 1 view .LVU198
+ 157:mri/core/token.c ****     {
+ 784              		.loc 1 157 28 is_stmt 0 discriminator 1 view .LVU199
+ 785 000c EB6A     		ldr	r3, [r5, #44]
+ 157:mri/core/token.c ****     {
+ 786              		.loc 1 157 20 discriminator 1 view .LVU200
+ 787 000e A342     		cmp	r3, r4
+ 788 0010 09D9     		bls	.L70
+ 159:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 789              		.loc 1 159 9 is_stmt 1 view .LVU201
+ 159:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 790              		.loc 1 159 18 is_stmt 0 view .LVU202
+ 791 0012 3146     		mov	r1, r6
+ 792 0014 55F82400 		ldr	r0, [r5, r4, lsl #2]
+ 793 0018 FFF7FEFF 		bl	mri_strcmp
+ 794              	.LVL64:
+ 159:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 795              		.loc 1 159 12 view .LVU203
+ 796 001c 0028     		cmp	r0, #0
+ 797 001e F4D1     		bne	.L66
+ 160:mri/core/token.c ****     }
+ 798              		.loc 1 160 13 is_stmt 1 view .LVU204
+ 160:mri/core/token.c ****     }
+ 799              		.loc 1 160 41 is_stmt 0 view .LVU205
+ 800 0020 55F82400 		ldr	r0, [r5, r4, lsl #2]
+ 801 0024 00E0     		b	.L64
+ 802              	.L70:
+ 162:mri/core/token.c **** }
+ 803              		.loc 1 162 12 view .LVU206
+ 804 0026 0020     		movs	r0, #0
+ 805              	.L64:
+ 163:mri/core/token.c **** 
+ 806              		.loc 1 163 1 view .LVU207
+ARM GAS  /tmp/ccHGW5cp.s 			page 22
+
+
+ 807 0028 70BD     		pop	{r4, r5, r6, pc}
+ 163:mri/core/token.c **** 
+ 808              		.loc 1 163 1 view .LVU208
+ 809              		.cfi_endproc
+ 810              	.LFE15:
+ 812              		.section	.text.mriToken_MatchingStringPrefix,"ax",%progbits
+ 813              		.align	1
+ 814              		.global	mriToken_MatchingStringPrefix
+ 815              		.syntax unified
+ 816              		.thumb
+ 817              		.thumb_func
+ 819              	mriToken_MatchingStringPrefix:
+ 820              	.LVL65:
+ 821              	.LFB16:
+ 167:mri/core/token.c ****     size_t i;
+ 822              		.loc 1 167 1 is_stmt 1 view -0
+ 823              		.cfi_startproc
+ 824              		@ args = 0, pretend = 0, frame = 0
+ 825              		@ frame_needed = 0, uses_anonymous_args = 0
+ 167:mri/core/token.c ****     size_t i;
+ 826              		.loc 1 167 1 is_stmt 0 view .LVU210
+ 827 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 828              	.LCFI8:
+ 829              		.cfi_def_cfa_offset 24
+ 830              		.cfi_offset 3, -24
+ 831              		.cfi_offset 4, -20
+ 832              		.cfi_offset 5, -16
+ 833              		.cfi_offset 6, -12
+ 834              		.cfi_offset 7, -8
+ 835              		.cfi_offset 14, -4
+ 836 0002 0646     		mov	r6, r0
+ 837 0004 0F46     		mov	r7, r1
+ 168:mri/core/token.c **** 
+ 838              		.loc 1 168 5 is_stmt 1 view .LVU211
+ 170:mri/core/token.c ****     {
+ 839              		.loc 1 170 5 view .LVU212
+ 840              	.LVL66:
+ 170:mri/core/token.c ****     {
+ 841              		.loc 1 170 12 is_stmt 0 view .LVU213
+ 842 0006 0024     		movs	r4, #0
+ 170:mri/core/token.c ****     {
+ 843              		.loc 1 170 5 view .LVU214
+ 844 0008 00E0     		b	.L72
+ 845              	.LVL67:
+ 846              	.L73:
+ 170:mri/core/token.c ****     {
+ 847              		.loc 1 170 44 is_stmt 1 discriminator 2 view .LVU215
+ 848 000a 0134     		adds	r4, r4, #1
+ 849              	.LVL68:
+ 850              	.L72:
+ 170:mri/core/token.c ****     {
+ 851              		.loc 1 170 20 discriminator 1 view .LVU216
+ 170:mri/core/token.c ****     {
+ 852              		.loc 1 170 28 is_stmt 0 discriminator 1 view .LVU217
+ 853 000c F36A     		ldr	r3, [r6, #44]
+ 170:mri/core/token.c ****     {
+ 854              		.loc 1 170 20 discriminator 1 view .LVU218
+ARM GAS  /tmp/ccHGW5cp.s 			page 23
+
+
+ 855 000e A342     		cmp	r3, r4
+ 856 0010 0AD9     		bls	.L77
+ 172:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 857              		.loc 1 172 9 is_stmt 1 view .LVU219
+ 172:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 858              		.loc 1 172 34 is_stmt 0 view .LVU220
+ 859 0012 56F82450 		ldr	r5, [r6, r4, lsl #2]
+ 172:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 860              		.loc 1 172 41 view .LVU221
+ 861 0016 3946     		mov	r1, r7
+ 862 0018 2846     		mov	r0, r5
+ 863 001a FFF7FEFF 		bl	mri_strstr
+ 864              	.LVL69:
+ 172:mri/core/token.c ****             return pToken->tokenPointers[i];
+ 865              		.loc 1 172 12 view .LVU222
+ 866 001e 8542     		cmp	r5, r0
+ 867 0020 F3D1     		bne	.L73
+ 173:mri/core/token.c ****     }
+ 868              		.loc 1 173 13 is_stmt 1 view .LVU223
+ 173:mri/core/token.c ****     }
+ 869              		.loc 1 173 41 is_stmt 0 view .LVU224
+ 870 0022 56F82400 		ldr	r0, [r6, r4, lsl #2]
+ 871 0026 00E0     		b	.L71
+ 872              	.L77:
+ 175:mri/core/token.c **** }
+ 873              		.loc 1 175 12 view .LVU225
+ 874 0028 0020     		movs	r0, #0
+ 875              	.L71:
+ 176:mri/core/token.c **** 
+ 876              		.loc 1 176 1 view .LVU226
+ 877 002a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 176:mri/core/token.c **** 
+ 878              		.loc 1 176 1 view .LVU227
+ 879              		.cfi_endproc
+ 880              	.LFE16:
+ 882              		.section	.text.mriToken_Copy,"ax",%progbits
+ 883              		.align	1
+ 884              		.global	mriToken_Copy
+ 885              		.syntax unified
+ 886              		.thumb
+ 887              		.thumb_func
+ 889              	mriToken_Copy:
+ 890              	.LVL70:
+ 891              	.LFB17:
+ 181:mri/core/token.c ****     mri_memcpy(pTokenCopy, pTokenOriginal, sizeof(*pTokenCopy));
+ 892              		.loc 1 181 1 is_stmt 1 view -0
+ 893              		.cfi_startproc
+ 894              		@ args = 0, pretend = 0, frame = 0
+ 895              		@ frame_needed = 0, uses_anonymous_args = 0
+ 181:mri/core/token.c ****     mri_memcpy(pTokenCopy, pTokenOriginal, sizeof(*pTokenCopy));
+ 896              		.loc 1 181 1 is_stmt 0 view .LVU229
+ 897 0000 38B5     		push	{r3, r4, r5, lr}
+ 898              	.LCFI9:
+ 899              		.cfi_def_cfa_offset 16
+ 900              		.cfi_offset 3, -16
+ 901              		.cfi_offset 4, -12
+ 902              		.cfi_offset 5, -8
+ARM GAS  /tmp/ccHGW5cp.s 			page 24
+
+
+ 903              		.cfi_offset 14, -4
+ 904 0002 0446     		mov	r4, r0
+ 905 0004 0D46     		mov	r5, r1
+ 182:mri/core/token.c **** 
+ 906              		.loc 1 182 5 is_stmt 1 view .LVU230
+ 907 0006 7422     		movs	r2, #116
+ 908 0008 FFF7FEFF 		bl	mri_memcpy
+ 909              	.LVL71:
+ 184:mri/core/token.c **** }
+ 910              		.loc 1 184 5 view .LVU231
+ 911 000c 05F13001 		add	r1, r5, #48
+ 912 0010 2046     		mov	r0, r4
+ 913 0012 FFF7FEFF 		bl	adjustTokenPointers
+ 914              	.LVL72:
+ 185:mri/core/token.c **** 
+ 915              		.loc 1 185 1 is_stmt 0 view .LVU232
+ 916 0016 38BD     		pop	{r3, r4, r5, pc}
+ 185:mri/core/token.c **** 
+ 917              		.loc 1 185 1 view .LVU233
+ 918              		.cfi_endproc
+ 919              	.LFE17:
+ 921              		.text
+ 922              	.Letext0:
+ 923              		.file 3 "mri/core/token.h"
+ 924              		.file 4 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 925              		.file 5 "mri/core/libc.h"
+ARM GAS  /tmp/ccHGW5cp.s 			page 25
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 token.c
+     /tmp/ccHGW5cp.s:21     .text.copyStringIntoToken:0000000000000000 $t
+     /tmp/ccHGW5cp.s:26     .text.copyStringIntoToken:0000000000000000 copyStringIntoToken
+     /tmp/ccHGW5cp.s:108    .text.copyStringIntoToken:0000000000000030 $d
+     /tmp/ccHGW5cp.s:113    .text.charIsSeparator:0000000000000000 $t
+     /tmp/ccHGW5cp.s:118    .text.charIsSeparator:0000000000000000 charIsSeparator
+     /tmp/ccHGW5cp.s:162    .text.findFirstNonSeparator:0000000000000000 $t
+     /tmp/ccHGW5cp.s:167    .text.findFirstNonSeparator:0000000000000000 findFirstNonSeparator
+     /tmp/ccHGW5cp.s:216    .text.findFirstSeparator:0000000000000000 $t
+     /tmp/ccHGW5cp.s:221    .text.findFirstSeparator:0000000000000000 findFirstSeparator
+     /tmp/ccHGW5cp.s:270    .text.addToken:0000000000000000 $t
+     /tmp/ccHGW5cp.s:275    .text.addToken:0000000000000000 addToken
+     /tmp/ccHGW5cp.s:328    .text.addToken:0000000000000024 $d
+     /tmp/ccHGW5cp.s:333    .text.splitStringCopyIntoTokens:0000000000000000 $t
+     /tmp/ccHGW5cp.s:338    .text.splitStringCopyIntoTokens:0000000000000000 splitStringCopyIntoTokens
+     /tmp/ccHGW5cp.s:426    .text.splitStringCopyIntoTokens:0000000000000040 $d
+     /tmp/ccHGW5cp.s:431    .text.adjustTokenPointers:0000000000000000 $t
+     /tmp/ccHGW5cp.s:436    .text.adjustTokenPointers:0000000000000000 adjustTokenPointers
+     /tmp/ccHGW5cp.s:483    .text.clearTokenObject:0000000000000000 $t
+     /tmp/ccHGW5cp.s:488    .text.clearTokenObject:0000000000000000 clearTokenObject
+     /tmp/ccHGW5cp.s:521    .text.mriToken_InitWith:0000000000000000 $t
+     /tmp/ccHGW5cp.s:527    .text.mriToken_InitWith:0000000000000000 mriToken_InitWith
+     /tmp/ccHGW5cp.s:557    .rodata.mriToken_Init.str1.4:0000000000000000 $d
+     /tmp/ccHGW5cp.s:561    .text.mriToken_Init:0000000000000000 $t
+     /tmp/ccHGW5cp.s:567    .text.mriToken_Init:0000000000000000 mriToken_Init
+     /tmp/ccHGW5cp.s:589    .text.mriToken_Init:000000000000000c $d
+     /tmp/ccHGW5cp.s:594    .text.mriToken_SplitString:0000000000000000 $t
+     /tmp/ccHGW5cp.s:600    .text.mriToken_SplitString:0000000000000000 mriToken_SplitString
+     /tmp/ccHGW5cp.s:659    .text.mriToken_SplitString:0000000000000028 $d
+     /tmp/ccHGW5cp.s:664    .text.mriToken_GetTokenCount:0000000000000000 $t
+     /tmp/ccHGW5cp.s:670    .text.mriToken_GetTokenCount:0000000000000000 mriToken_GetTokenCount
+     /tmp/ccHGW5cp.s:688    .text.mriToken_GetToken:0000000000000000 $t
+     /tmp/ccHGW5cp.s:694    .text.mriToken_GetToken:0000000000000000 mriToken_GetToken
+     /tmp/ccHGW5cp.s:742    .text.mriToken_GetToken:000000000000001c $d
+     /tmp/ccHGW5cp.s:747    .text.mriToken_MatchingString:0000000000000000 $t
+     /tmp/ccHGW5cp.s:753    .text.mriToken_MatchingString:0000000000000000 mriToken_MatchingString
+     /tmp/ccHGW5cp.s:813    .text.mriToken_MatchingStringPrefix:0000000000000000 $t
+     /tmp/ccHGW5cp.s:819    .text.mriToken_MatchingStringPrefix:0000000000000000 mriToken_MatchingStringPrefix
+     /tmp/ccHGW5cp.s:883    .text.mriToken_Copy:0000000000000000 $t
+     /tmp/ccHGW5cp.s:889    .text.mriToken_Copy:0000000000000000 mriToken_Copy
+
+UNDEFINED SYMBOLS
+mriExceptionCode
+mri_memset
+mri_strcmp
+mri_strstr
+mri_memcpy

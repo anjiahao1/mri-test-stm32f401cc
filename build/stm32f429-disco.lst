@@ -1,0 +1,152 @@
+ARM GAS  /tmp/cc1UP4i8.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"stm32f429-disco.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/boards/stm32f429-disco/stm32f429-disco.c"
+  20              		.section	.text.mriPlatform_Init,"ax",%progbits
+  21              		.align	1
+  22              		.global	mriPlatform_Init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	mriPlatform_Init:
+  28              	.LVL0:
+  29              	.LFB218:
+   1:mri/boards/stm32f429-disco/stm32f429-disco.c **** /* Copyright 2015 Adam Green     (https://github.com/adamgreen/)
+   2:mri/boards/stm32f429-disco/stm32f429-disco.c ****    Copyright 2015 Chang,Jia-Rung (https://github.com/JaredCJR)
+   3:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+   4:mri/boards/stm32f429-disco/stm32f429-disco.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   5:mri/boards/stm32f429-disco/stm32f429-disco.c ****    you may not use this file except in compliance with the License.
+   6:mri/boards/stm32f429-disco/stm32f429-disco.c ****    You may obtain a copy of the License at
+   7:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+   8:mri/boards/stm32f429-disco/stm32f429-disco.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   9:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  10:mri/boards/stm32f429-disco/stm32f429-disco.c ****    Unless required by applicable law or agreed to in writing, software
+  11:mri/boards/stm32f429-disco/stm32f429-disco.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  12:mri/boards/stm32f429-disco/stm32f429-disco.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:mri/boards/stm32f429-disco/stm32f429-disco.c ****    See the License for the specific language governing permissions and
+  14:mri/boards/stm32f429-disco/stm32f429-disco.c ****    limitations under the License.
+  15:mri/boards/stm32f429-disco/stm32f429-disco.c **** */
+  16:mri/boards/stm32f429-disco/stm32f429-disco.c **** /* Routines which expose STM32F429 Discovery specific functionality to the mri debugger. */
+  17:mri/boards/stm32f429-disco/stm32f429-disco.c **** #include <string.h>
+  18:mri/boards/stm32f429-disco/stm32f429-disco.c **** #include <core/platforms.h>
+  19:mri/boards/stm32f429-disco/stm32f429-disco.c **** #include <core/try_catch.h>
+  20:mri/boards/stm32f429-disco/stm32f429-disco.c **** #include <architectures/armv7-m/debug_cm3.h>
+  21:mri/boards/stm32f429-disco/stm32f429-disco.c **** #include <devices/stm32f429xx/stm32f429xx_init.h>
+  22:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  23:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  24:mri/boards/stm32f429-disco/stm32f429-disco.c **** void Platform_Init(Token* pParameterTokens)
+  25:mri/boards/stm32f429-disco/stm32f429-disco.c **** {
+  30              		.loc 1 25 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/cc1UP4i8.s 			page 2
+
+
+  34              		.loc 1 25 1 is_stmt 0 view .LVU1
+  35 0000 08B5     		push	{r3, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 8
+  38              		.cfi_offset 3, -8
+  39              		.cfi_offset 14, -4
+  26:mri/boards/stm32f429-disco/stm32f429-disco.c ****     mriStm32f429xx_Init(pParameterTokens);
+  40              		.loc 1 26 5 is_stmt 1 view .LVU2
+  41 0002 FFF7FEFF 		bl	mriStm32f429xx_Init
+  42              	.LVL1:
+  27:mri/boards/stm32f429-disco/stm32f429-disco.c **** }
+  43              		.loc 1 27 1 is_stmt 0 view .LVU3
+  44 0006 08BD     		pop	{r3, pc}
+  45              		.cfi_endproc
+  46              	.LFE218:
+  48              		.section	.text.mriPlatform_GetUid,"ax",%progbits
+  49              		.align	1
+  50              		.global	mriPlatform_GetUid
+  51              		.syntax unified
+  52              		.thumb
+  53              		.thumb_func
+  55              	mriPlatform_GetUid:
+  56              	.LFB219:
+  28:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  29:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  30:mri/boards/stm32f429-disco/stm32f429-disco.c **** const uint8_t* Platform_GetUid(void)
+  31:mri/boards/stm32f429-disco/stm32f429-disco.c **** {
+  57              		.loc 1 31 1 is_stmt 1 view -0
+  58              		.cfi_startproc
+  59              		@ args = 0, pretend = 0, frame = 0
+  60              		@ frame_needed = 0, uses_anonymous_args = 0
+  61              		@ link register save eliminated.
+  32:mri/boards/stm32f429-disco/stm32f429-disco.c ****     return NULL;
+  62              		.loc 1 32 5 view .LVU5
+  33:mri/boards/stm32f429-disco/stm32f429-disco.c **** }
+  63              		.loc 1 33 1 is_stmt 0 view .LVU6
+  64 0000 0020     		movs	r0, #0
+  65 0002 7047     		bx	lr
+  66              		.cfi_endproc
+  67              	.LFE219:
+  69              		.section	.text.mriPlatform_GetUidSize,"ax",%progbits
+  70              		.align	1
+  71              		.global	mriPlatform_GetUidSize
+  72              		.syntax unified
+  73              		.thumb
+  74              		.thumb_func
+  76              	mriPlatform_GetUidSize:
+  77              	.LFB220:
+  34:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  35:mri/boards/stm32f429-disco/stm32f429-disco.c **** 
+  36:mri/boards/stm32f429-disco/stm32f429-disco.c **** uint32_t Platform_GetUidSize(void)
+  37:mri/boards/stm32f429-disco/stm32f429-disco.c **** {
+  78              		.loc 1 37 1 is_stmt 1 view -0
+  79              		.cfi_startproc
+  80              		@ args = 0, pretend = 0, frame = 0
+  81              		@ frame_needed = 0, uses_anonymous_args = 0
+  82              		@ link register save eliminated.
+ARM GAS  /tmp/cc1UP4i8.s 			page 3
+
+
+  38:mri/boards/stm32f429-disco/stm32f429-disco.c ****     return 0;
+  83              		.loc 1 38 5 view .LVU8
+  39:mri/boards/stm32f429-disco/stm32f429-disco.c **** }
+  84              		.loc 1 39 1 is_stmt 0 view .LVU9
+  85 0000 0020     		movs	r0, #0
+  86 0002 7047     		bx	lr
+  87              		.cfi_endproc
+  88              	.LFE220:
+  90              		.text
+  91              	.Letext0:
+  92              		.file 2 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+  93              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+  94              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+  95              		.file 5 "mri/core/token.h"
+  96              		.file 6 "mri/devices/stm32f429xx/stm32f429xx_init.h"
+ARM GAS  /tmp/cc1UP4i8.s 			page 4
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 stm32f429-disco.c
+     /tmp/cc1UP4i8.s:21     .text.mriPlatform_Init:0000000000000000 $t
+     /tmp/cc1UP4i8.s:27     .text.mriPlatform_Init:0000000000000000 mriPlatform_Init
+     /tmp/cc1UP4i8.s:49     .text.mriPlatform_GetUid:0000000000000000 $t
+     /tmp/cc1UP4i8.s:55     .text.mriPlatform_GetUid:0000000000000000 mriPlatform_GetUid
+     /tmp/cc1UP4i8.s:70     .text.mriPlatform_GetUidSize:0000000000000000 $t
+     /tmp/cc1UP4i8.s:76     .text.mriPlatform_GetUidSize:0000000000000000 mriPlatform_GetUidSize
+
+UNDEFINED SYMBOLS
+mriStm32f429xx_Init

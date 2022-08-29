@@ -1,0 +1,2678 @@
+ARM GAS  /tmp/ccjgvtfq.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"cmd_query.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/cmd_query.c"
+  20              		.section	.text.validateAnnexIsNull,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	validateAnnexIsNull:
+  27              	.LVL0:
+  28              	.LFB10:
+   1:mri/core/cmd_query.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/cmd_query.c **** 
+   3:mri/core/cmd_query.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/cmd_query.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/cmd_query.c ****    You may obtain a copy of the License at
+   6:mri/core/cmd_query.c **** 
+   7:mri/core/cmd_query.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/cmd_query.c **** 
+   9:mri/core/cmd_query.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/cmd_query.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/cmd_query.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/cmd_query.c ****    See the License for the specific language governing permissions and
+  13:mri/core/cmd_query.c ****    limitations under the License.
+  14:mri/core/cmd_query.c **** */
+  15:mri/core/cmd_query.c **** /* Handler for gdb query commands. */
+  16:mri/core/cmd_query.c **** #include <core/libc.h>
+  17:mri/core/cmd_query.c **** #include <core/buffer.h>
+  18:mri/core/cmd_query.c **** #include <core/core.h>
+  19:mri/core/cmd_query.c **** #include <core/platforms.h>
+  20:mri/core/cmd_query.c **** #include <core/mri.h>
+  21:mri/core/cmd_query.c **** #include <core/cmd_common.h>
+  22:mri/core/cmd_query.c **** #include <core/cmd_query.h>
+  23:mri/core/cmd_query.c **** #include <core/gdb_console.h>
+  24:mri/core/cmd_query.c **** 
+  25:mri/core/cmd_query.c **** 
+  26:mri/core/cmd_query.c **** typedef struct
+  27:mri/core/cmd_query.c **** {
+  28:mri/core/cmd_query.c ****     const char* pAnnex;
+  29:mri/core/cmd_query.c ****     uint32_t    annexSize;
+  30:mri/core/cmd_query.c ****     uint32_t    offset;
+ARM GAS  /tmp/ccjgvtfq.s 			page 2
+
+
+  31:mri/core/cmd_query.c ****     uint32_t    length;
+  32:mri/core/cmd_query.c **** } AnnexOffsetLength;
+  33:mri/core/cmd_query.c **** 
+  34:mri/core/cmd_query.c **** static uint32_t    handleQuerySupportedCommand(void);
+  35:mri/core/cmd_query.c **** static uint32_t    handleQueryTransferCommand(void);
+  36:mri/core/cmd_query.c **** static uint32_t    handleQueryTransferMemoryMapCommand(void);
+  37:mri/core/cmd_query.c **** static void        readQueryTransferReadArguments(Buffer* pBuffer, AnnexOffsetLength* pAnnexOffsetL
+  38:mri/core/cmd_query.c **** static const char* readQueryTransferAnnexArgument(Buffer* pBuffer);
+  39:mri/core/cmd_query.c **** static void        readQueryTransferOffsetLengthArguments(Buffer* pBuffer, AnnexOffsetLength* pAnne
+  40:mri/core/cmd_query.c **** static void        validateAnnexIsNull(const char* pAnnex);
+  41:mri/core/cmd_query.c **** static void        handleQueryTransferReadCommand(AnnexOffsetLength* pArguments);
+  42:mri/core/cmd_query.c **** static uint32_t    handleQueryTransferFeaturesCommand(void);
+  43:mri/core/cmd_query.c **** static void        validateAnnexIs(const char* pAnnex, const char* pExpected);
+  44:mri/core/cmd_query.c **** static uint32_t    handleQueryFirstThreadInfoCommand(void);
+  45:mri/core/cmd_query.c **** static uint32_t    handleQuerySubsequentThreadInfoCommand(void);
+  46:mri/core/cmd_query.c **** static uint32_t    outputThreadIds(uint32_t threadId);
+  47:mri/core/cmd_query.c **** static uint32_t    handleQueryThreadExtraInfoCommand(void);
+  48:mri/core/cmd_query.c **** static uint32_t    handleMonitorCommand(void);
+  49:mri/core/cmd_query.c **** static uint32_t    handleMonitorResetCommand(void);
+  50:mri/core/cmd_query.c **** static uint32_t    handleMonitorShowFaultCommand(void);
+  51:mri/core/cmd_query.c **** static uint32_t    handleMonitorHelpCommand(void);
+  52:mri/core/cmd_query.c **** /* Handle the 'q' command used by gdb to communicate state to debug monitor and vice versa.
+  53:mri/core/cmd_query.c **** 
+  54:mri/core/cmd_query.c ****     Command Format: qSSS
+  55:mri/core/cmd_query.c ****     Where SSS is a variable length string indicating which query command is being sent to the stub.
+  56:mri/core/cmd_query.c **** */
+  57:mri/core/cmd_query.c **** uint32_t HandleQueryCommand(void)
+  58:mri/core/cmd_query.c **** {
+  59:mri/core/cmd_query.c ****     Buffer*             pBuffer = GetBuffer();
+  60:mri/core/cmd_query.c ****     static const char   qSupportedCommand[] = "Supported";
+  61:mri/core/cmd_query.c ****     static const char   qXferCommand[] = "Xfer";
+  62:mri/core/cmd_query.c ****     static const char   qfThreadInfo[] = "fThreadInfo";
+  63:mri/core/cmd_query.c ****     static const char   qsThreadInfo[] = "sThreadInfo";
+  64:mri/core/cmd_query.c ****     static const char   qThreadExtraInfo[] = "ThreadExtraInfo";
+  65:mri/core/cmd_query.c ****     static const char   qRcmdCommand[] = "Rcmd";
+  66:mri/core/cmd_query.c **** 
+  67:mri/core/cmd_query.c ****     if (Buffer_MatchesString(pBuffer, qSupportedCommand, sizeof(qSupportedCommand)-1))
+  68:mri/core/cmd_query.c ****     {
+  69:mri/core/cmd_query.c ****         return handleQuerySupportedCommand();
+  70:mri/core/cmd_query.c ****     }
+  71:mri/core/cmd_query.c ****     else if (Buffer_MatchesString(pBuffer, qXferCommand, sizeof(qXferCommand)-1))
+  72:mri/core/cmd_query.c ****     {
+  73:mri/core/cmd_query.c ****         return handleQueryTransferCommand();
+  74:mri/core/cmd_query.c ****     }
+  75:mri/core/cmd_query.c ****     else if (Buffer_MatchesString(pBuffer, qfThreadInfo, sizeof(qfThreadInfo)-1))
+  76:mri/core/cmd_query.c ****     {
+  77:mri/core/cmd_query.c ****         return handleQueryFirstThreadInfoCommand();
+  78:mri/core/cmd_query.c ****     }
+  79:mri/core/cmd_query.c ****     else if (Buffer_MatchesString(pBuffer, qsThreadInfo, sizeof(qsThreadInfo)-1))
+  80:mri/core/cmd_query.c ****     {
+  81:mri/core/cmd_query.c ****         return handleQuerySubsequentThreadInfoCommand();
+  82:mri/core/cmd_query.c ****     }
+  83:mri/core/cmd_query.c ****     else if (Buffer_MatchesString(pBuffer, qThreadExtraInfo, sizeof(qThreadExtraInfo)-1))
+  84:mri/core/cmd_query.c ****     {
+  85:mri/core/cmd_query.c ****         return handleQueryThreadExtraInfoCommand();
+  86:mri/core/cmd_query.c ****     }
+  87:mri/core/cmd_query.c ****     else if (Buffer_MatchesString(pBuffer, qRcmdCommand, sizeof(qRcmdCommand)-1))
+ARM GAS  /tmp/ccjgvtfq.s 			page 3
+
+
+  88:mri/core/cmd_query.c ****     {
+  89:mri/core/cmd_query.c ****         return handleMonitorCommand();
+  90:mri/core/cmd_query.c ****     }
+  91:mri/core/cmd_query.c ****     else
+  92:mri/core/cmd_query.c ****     {
+  93:mri/core/cmd_query.c ****         PrepareEmptyResponseForUnknownCommand();
+  94:mri/core/cmd_query.c ****         return 0;
+  95:mri/core/cmd_query.c ****     }
+  96:mri/core/cmd_query.c **** }
+  97:mri/core/cmd_query.c **** 
+  98:mri/core/cmd_query.c **** /* Handle the "qSupported" command used by gdb to communicate state to debug monitor and vice versa
+  99:mri/core/cmd_query.c **** 
+ 100:mri/core/cmd_query.c ****     Reponse Format: qXfer:memory-map:read+;PacketSize==SSSSSSSS
+ 101:mri/core/cmd_query.c ****     Where SSSSSSSS is the hexadecimal representation of the maximum packet size support by this stu
+ 102:mri/core/cmd_query.c **** */
+ 103:mri/core/cmd_query.c **** static uint32_t handleQuerySupportedCommand(void)
+ 104:mri/core/cmd_query.c **** {
+ 105:mri/core/cmd_query.c ****     static const char querySupportResponse[] = "qXfer:memory-map:read+;qXfer:features:read+;vContSu
+ 106:mri/core/cmd_query.c ****     /* Subtract 4 for packet overhead ('$', '#', and 2-byte checksum) as GDB doesn't count those by
+ 107:mri/core/cmd_query.c ****     uint32_t          PacketSize = Platform_GetPacketBufferSize()-4;
+ 108:mri/core/cmd_query.c ****     Buffer*           pBuffer = GetInitializedBuffer();
+ 109:mri/core/cmd_query.c **** 
+ 110:mri/core/cmd_query.c ****     Buffer_WriteString(pBuffer, querySupportResponse);
+ 111:mri/core/cmd_query.c ****     Buffer_WriteUIntegerAsHex(pBuffer, PacketSize);
+ 112:mri/core/cmd_query.c **** 
+ 113:mri/core/cmd_query.c ****     return 0;
+ 114:mri/core/cmd_query.c **** }
+ 115:mri/core/cmd_query.c **** 
+ 116:mri/core/cmd_query.c **** /* Handle the "qXfer" command used by gdb to transfer data to and from the stub for special functio
+ 117:mri/core/cmd_query.c **** 
+ 118:mri/core/cmd_query.c ****     Command Format: qXfer:object:read:annex:offset,length
+ 119:mri/core/cmd_query.c ****     Where supported objects are currently:
+ 120:mri/core/cmd_query.c ****         memory-map
+ 121:mri/core/cmd_query.c **** */
+ 122:mri/core/cmd_query.c **** static uint32_t handleQueryTransferCommand(void)
+ 123:mri/core/cmd_query.c **** {
+ 124:mri/core/cmd_query.c ****     Buffer*             pBuffer =GetBuffer();
+ 125:mri/core/cmd_query.c ****     static const char   memoryMapObject[] = "memory-map";
+ 126:mri/core/cmd_query.c ****     static const char   featureObject[] = "features";
+ 127:mri/core/cmd_query.c **** 
+ 128:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ':'))
+ 129:mri/core/cmd_query.c ****     {
+ 130:mri/core/cmd_query.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+ 131:mri/core/cmd_query.c ****         return 0;
+ 132:mri/core/cmd_query.c ****     }
+ 133:mri/core/cmd_query.c **** 
+ 134:mri/core/cmd_query.c ****     if (Buffer_MatchesString(pBuffer, memoryMapObject, sizeof(memoryMapObject)-1))
+ 135:mri/core/cmd_query.c ****     {
+ 136:mri/core/cmd_query.c ****         return handleQueryTransferMemoryMapCommand();
+ 137:mri/core/cmd_query.c ****     }
+ 138:mri/core/cmd_query.c ****     else if (Buffer_MatchesString(pBuffer, featureObject, sizeof(featureObject)-1))
+ 139:mri/core/cmd_query.c ****     {
+ 140:mri/core/cmd_query.c ****         return handleQueryTransferFeaturesCommand();
+ 141:mri/core/cmd_query.c ****     }
+ 142:mri/core/cmd_query.c ****     else
+ 143:mri/core/cmd_query.c ****     {
+ 144:mri/core/cmd_query.c ****         PrepareEmptyResponseForUnknownCommand();
+ARM GAS  /tmp/ccjgvtfq.s 			page 4
+
+
+ 145:mri/core/cmd_query.c ****         return 0;
+ 146:mri/core/cmd_query.c ****     }
+ 147:mri/core/cmd_query.c **** }
+ 148:mri/core/cmd_query.c **** 
+ 149:mri/core/cmd_query.c **** /* Handle the "qXfer:memory-map" command used by gdb to read the device memory map from the stub.
+ 150:mri/core/cmd_query.c **** 
+ 151:mri/core/cmd_query.c ****     Command Format: qXfer:memory-map:read::offset,length
+ 152:mri/core/cmd_query.c **** */
+ 153:mri/core/cmd_query.c **** static uint32_t handleQueryTransferMemoryMapCommand(void)
+ 154:mri/core/cmd_query.c **** {
+ 155:mri/core/cmd_query.c ****     Buffer*             pBuffer = GetBuffer();
+ 156:mri/core/cmd_query.c ****     AnnexOffsetLength   arguments;
+ 157:mri/core/cmd_query.c **** 
+ 158:mri/core/cmd_query.c ****     __try
+ 159:mri/core/cmd_query.c ****     {
+ 160:mri/core/cmd_query.c ****         __throwing_func( readQueryTransferReadArguments(pBuffer, &arguments) );
+ 161:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIsNull(arguments.pAnnex) );
+ 162:mri/core/cmd_query.c ****     }
+ 163:mri/core/cmd_query.c ****     __catch
+ 164:mri/core/cmd_query.c ****     {
+ 165:mri/core/cmd_query.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+ 166:mri/core/cmd_query.c ****         return 0;
+ 167:mri/core/cmd_query.c ****     }
+ 168:mri/core/cmd_query.c **** 
+ 169:mri/core/cmd_query.c ****     arguments.pAnnex = Platform_GetDeviceMemoryMapXml();
+ 170:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetDeviceMemoryMapXmlSize();
+ 171:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 172:mri/core/cmd_query.c **** 
+ 173:mri/core/cmd_query.c ****     return 0;
+ 174:mri/core/cmd_query.c **** }
+ 175:mri/core/cmd_query.c **** 
+ 176:mri/core/cmd_query.c **** static void readQueryTransferReadArguments(Buffer* pBuffer, AnnexOffsetLength* pAnnexOffsetLength)
+ 177:mri/core/cmd_query.c **** {
+ 178:mri/core/cmd_query.c ****     static const char   readCommand[] = "read";
+ 179:mri/core/cmd_query.c **** 
+ 180:mri/core/cmd_query.c ****     mri_memset(pAnnexOffsetLength, 0, sizeof(*pAnnexOffsetLength));
+ 181:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ':') ||
+ 182:mri/core/cmd_query.c ****         !Buffer_MatchesString(pBuffer, readCommand, sizeof(readCommand)-1) ||
+ 183:mri/core/cmd_query.c ****         !Buffer_IsNextCharEqualTo(pBuffer, ':') )
+ 184:mri/core/cmd_query.c ****     {
+ 185:mri/core/cmd_query.c ****         __throw(invalidArgumentException);
+ 186:mri/core/cmd_query.c ****     }
+ 187:mri/core/cmd_query.c **** 
+ 188:mri/core/cmd_query.c ****     __try
+ 189:mri/core/cmd_query.c ****     {
+ 190:mri/core/cmd_query.c ****         __throwing_func( pAnnexOffsetLength->pAnnex = readQueryTransferAnnexArgument(pBuffer) );
+ 191:mri/core/cmd_query.c ****         __throwing_func( readQueryTransferOffsetLengthArguments(pBuffer, pAnnexOffsetLength) );
+ 192:mri/core/cmd_query.c ****     }
+ 193:mri/core/cmd_query.c ****     __catch
+ 194:mri/core/cmd_query.c ****     {
+ 195:mri/core/cmd_query.c ****         __rethrow;
+ 196:mri/core/cmd_query.c ****     }
+ 197:mri/core/cmd_query.c **** }
+ 198:mri/core/cmd_query.c **** 
+ 199:mri/core/cmd_query.c **** static const char* readQueryTransferAnnexArgument(Buffer* pBuffer)
+ 200:mri/core/cmd_query.c **** {
+ 201:mri/core/cmd_query.c ****     static const char   targetXmlAnnex[] = "target.xml";
+ARM GAS  /tmp/ccjgvtfq.s 			page 5
+
+
+ 202:mri/core/cmd_query.c ****     const char*         pReturn = NULL;
+ 203:mri/core/cmd_query.c **** 
+ 204:mri/core/cmd_query.c ****     if (Buffer_MatchesString(pBuffer, targetXmlAnnex, sizeof(targetXmlAnnex)-1))
+ 205:mri/core/cmd_query.c ****         pReturn = targetXmlAnnex;
+ 206:mri/core/cmd_query.c **** 
+ 207:mri/core/cmd_query.c ****     if (pReturn && !Buffer_IsNextCharEqualTo(pBuffer, ':'))
+ 208:mri/core/cmd_query.c ****         __throw_and_return(invalidArgumentException, NULL);
+ 209:mri/core/cmd_query.c ****     else if (!pReturn && Buffer_IsNextCharEqualTo(pBuffer, ':'))
+ 210:mri/core/cmd_query.c ****         return NULL;
+ 211:mri/core/cmd_query.c ****     else if (!pReturn)
+ 212:mri/core/cmd_query.c ****         __throw_and_return(invalidArgumentException, NULL);
+ 213:mri/core/cmd_query.c ****     else
+ 214:mri/core/cmd_query.c ****         return pReturn;
+ 215:mri/core/cmd_query.c **** }
+ 216:mri/core/cmd_query.c **** 
+ 217:mri/core/cmd_query.c **** static void readQueryTransferOffsetLengthArguments(Buffer* pBuffer, AnnexOffsetLength* pAnnexOffset
+ 218:mri/core/cmd_query.c **** {
+ 219:mri/core/cmd_query.c ****     AddressLength       offsetLength;
+ 220:mri/core/cmd_query.c **** 
+ 221:mri/core/cmd_query.c ****     ReadAddressAndLengthArguments(pBuffer, &offsetLength);
+ 222:mri/core/cmd_query.c ****     pAnnexOffsetLength->offset = offsetLength.address;
+ 223:mri/core/cmd_query.c ****     pAnnexOffsetLength->length = offsetLength.length;
+ 224:mri/core/cmd_query.c **** }
+ 225:mri/core/cmd_query.c **** 
+ 226:mri/core/cmd_query.c **** static void validateAnnexIsNull(const char* pAnnex)
+ 227:mri/core/cmd_query.c **** {
+  29              		.loc 1 227 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+ 228:mri/core/cmd_query.c ****     if (pAnnex)
+  34              		.loc 1 228 5 view .LVU1
+  35              		.loc 1 228 8 is_stmt 0 view .LVU2
+  36 0000 28B1     		cbz	r0, .L1
+ 229:mri/core/cmd_query.c ****         __throw(invalidArgumentException);
+  37              		.loc 1 229 9 is_stmt 1 view .LVU3
+  38              	.LVL1:
+  39              	.LBB18:
+  40              	.LBI18:
+  41              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+ARM GAS  /tmp/ccjgvtfq.s 			page 6
+
+
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  42              		.loc 2 71 20 view .LVU4
+  43              	.LBB19:
+ARM GAS  /tmp/ccjgvtfq.s 			page 7
+
+
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  44              		.loc 2 73 5 view .LVU5
+  45              		.loc 2 73 73 is_stmt 0 view .LVU6
+  46 0002 034A     		ldr	r2, .L3
+  47 0004 1368     		ldr	r3, [r2]
+  48 0006 042B     		cmp	r3, #4
+  49 0008 B8BF     		it	lt
+  50 000a 0423     		movlt	r3, #4
+  51              		.loc 2 73 22 view .LVU7
+  52 000c 1360     		str	r3, [r2]
+  53              	.LVL2:
+  54              	.L1:
+  55              		.loc 2 73 22 view .LVU8
+  56              	.LBE19:
+  57              	.LBE18:
+ 230:mri/core/cmd_query.c **** }
+  58              		.loc 1 230 1 view .LVU9
+  59 000e 7047     		bx	lr
+  60              	.L4:
+  61              		.align	2
+  62              	.L3:
+  63 0010 00000000 		.word	mriExceptionCode
+  64              		.cfi_endproc
+  65              	.LFE10:
+  67              		.section	.text.handleQuerySupportedCommand,"ax",%progbits
+  68              		.align	1
+  69              		.syntax unified
+  70              		.thumb
+  71              		.thumb_func
+  73              	handleQuerySupportedCommand:
+  74              	.LFB4:
+ 104:mri/core/cmd_query.c ****     static const char querySupportResponse[] = "qXfer:memory-map:read+;qXfer:features:read+;vContSu
+  75              		.loc 1 104 1 is_stmt 1 view -0
+  76              		.cfi_startproc
+  77              		@ args = 0, pretend = 0, frame = 0
+  78              		@ frame_needed = 0, uses_anonymous_args = 0
+  79 0000 38B5     		push	{r3, r4, r5, lr}
+  80              	.LCFI0:
+  81              		.cfi_def_cfa_offset 16
+  82              		.cfi_offset 3, -16
+  83              		.cfi_offset 4, -12
+  84              		.cfi_offset 5, -8
+  85              		.cfi_offset 14, -4
+ 105:mri/core/cmd_query.c ****     /* Subtract 4 for packet overhead ('$', '#', and 2-byte checksum) as GDB doesn't count those by
+  86              		.loc 1 105 5 view .LVU11
+ 107:mri/core/cmd_query.c ****     Buffer*           pBuffer = GetInitializedBuffer();
+  87              		.loc 1 107 5 view .LVU12
+ 107:mri/core/cmd_query.c ****     Buffer*           pBuffer = GetInitializedBuffer();
+  88              		.loc 1 107 36 is_stmt 0 view .LVU13
+  89 0002 FFF7FEFF 		bl	mriPlatform_GetPacketBufferSize
+  90              	.LVL3:
+ 107:mri/core/cmd_query.c ****     Buffer*           pBuffer = GetInitializedBuffer();
+  91              		.loc 1 107 23 view .LVU14
+  92 0006 051F     		subs	r5, r0, #4
+  93              	.LVL4:
+ 108:mri/core/cmd_query.c **** 
+ARM GAS  /tmp/ccjgvtfq.s 			page 8
+
+
+  94              		.loc 1 108 5 is_stmt 1 view .LVU15
+ 108:mri/core/cmd_query.c **** 
+  95              		.loc 1 108 33 is_stmt 0 view .LVU16
+  96 0008 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+  97              	.LVL5:
+  98 000c 0446     		mov	r4, r0
+  99              	.LVL6:
+ 110:mri/core/cmd_query.c ****     Buffer_WriteUIntegerAsHex(pBuffer, PacketSize);
+ 100              		.loc 1 110 5 is_stmt 1 view .LVU17
+ 101 000e 0449     		ldr	r1, .L7
+ 102 0010 FFF7FEFF 		bl	mriBuffer_WriteString
+ 103              	.LVL7:
+ 111:mri/core/cmd_query.c **** 
+ 104              		.loc 1 111 5 view .LVU18
+ 105 0014 2946     		mov	r1, r5
+ 106 0016 2046     		mov	r0, r4
+ 107 0018 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 108              	.LVL8:
+ 113:mri/core/cmd_query.c **** }
+ 109              		.loc 1 113 5 view .LVU19
+ 114:mri/core/cmd_query.c **** 
+ 110              		.loc 1 114 1 is_stmt 0 view .LVU20
+ 111 001c 0020     		movs	r0, #0
+ 112 001e 38BD     		pop	{r3, r4, r5, pc}
+ 113              	.LVL9:
+ 114              	.L8:
+ 114:mri/core/cmd_query.c **** 
+ 115              		.loc 1 114 1 view .LVU21
+ 116              		.align	2
+ 117              	.L7:
+ 118 0020 00000000 		.word	querySupportResponse.7
+ 119              		.cfi_endproc
+ 120              	.LFE4:
+ 122              		.section	.text.readQueryTransferAnnexArgument,"ax",%progbits
+ 123              		.align	1
+ 124              		.syntax unified
+ 125              		.thumb
+ 126              		.thumb_func
+ 128              	readQueryTransferAnnexArgument:
+ 129              	.LVL10:
+ 130              	.LFB8:
+ 200:mri/core/cmd_query.c ****     static const char   targetXmlAnnex[] = "target.xml";
+ 131              		.loc 1 200 1 is_stmt 1 view -0
+ 132              		.cfi_startproc
+ 133              		@ args = 0, pretend = 0, frame = 0
+ 134              		@ frame_needed = 0, uses_anonymous_args = 0
+ 200:mri/core/cmd_query.c ****     static const char   targetXmlAnnex[] = "target.xml";
+ 135              		.loc 1 200 1 is_stmt 0 view .LVU23
+ 136 0000 38B5     		push	{r3, r4, r5, lr}
+ 137              	.LCFI1:
+ 138              		.cfi_def_cfa_offset 16
+ 139              		.cfi_offset 3, -16
+ 140              		.cfi_offset 4, -12
+ 141              		.cfi_offset 5, -8
+ 142              		.cfi_offset 14, -4
+ 143 0002 0446     		mov	r4, r0
+ 201:mri/core/cmd_query.c ****     const char*         pReturn = NULL;
+ARM GAS  /tmp/ccjgvtfq.s 			page 9
+
+
+ 144              		.loc 1 201 5 is_stmt 1 view .LVU24
+ 202:mri/core/cmd_query.c **** 
+ 145              		.loc 1 202 5 view .LVU25
+ 146              	.LVL11:
+ 204:mri/core/cmd_query.c ****         pReturn = targetXmlAnnex;
+ 147              		.loc 1 204 5 view .LVU26
+ 204:mri/core/cmd_query.c ****         pReturn = targetXmlAnnex;
+ 148              		.loc 1 204 9 is_stmt 0 view .LVU27
+ 149 0004 0A22     		movs	r2, #10
+ 150 0006 1249     		ldr	r1, .L18
+ 151 0008 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 152              	.LVL12:
+ 204:mri/core/cmd_query.c ****         pReturn = targetXmlAnnex;
+ 153              		.loc 1 204 8 view .LVU28
+ 154 000c 18B9     		cbnz	r0, .L15
+ 202:mri/core/cmd_query.c **** 
+ 155              		.loc 1 202 25 view .LVU29
+ 156 000e 0025     		movs	r5, #0
+ 157              	.LVL13:
+ 158              	.L10:
+ 209:mri/core/cmd_query.c ****         return NULL;
+ 159              		.loc 1 209 10 is_stmt 1 view .LVU30
+ 209:mri/core/cmd_query.c ****         return NULL;
+ 160              		.loc 1 209 13 is_stmt 0 view .LVU31
+ 161 0010 85B1     		cbz	r5, .L16
+ 162              	.L9:
+ 215:mri/core/cmd_query.c **** 
+ 163              		.loc 1 215 1 view .LVU32
+ 164 0012 2846     		mov	r0, r5
+ 165 0014 38BD     		pop	{r3, r4, r5, pc}
+ 166              	.LVL14:
+ 167              	.L15:
+ 205:mri/core/cmd_query.c **** 
+ 168              		.loc 1 205 9 is_stmt 1 view .LVU33
+ 207:mri/core/cmd_query.c ****         __throw_and_return(invalidArgumentException, NULL);
+ 169              		.loc 1 207 5 view .LVU34
+ 207:mri/core/cmd_query.c ****         __throw_and_return(invalidArgumentException, NULL);
+ 170              		.loc 1 207 21 is_stmt 0 view .LVU35
+ 171 0016 3A21     		movs	r1, #58
+ 172 0018 2046     		mov	r0, r4
+ 173 001a FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 174              	.LVL15:
+ 207:mri/core/cmd_query.c ****         __throw_and_return(invalidArgumentException, NULL);
+ 175              		.loc 1 207 17 view .LVU36
+ 176 001e 08B1     		cbz	r0, .L17
+ 205:mri/core/cmd_query.c **** 
+ 177              		.loc 1 205 17 view .LVU37
+ 178 0020 0B4D     		ldr	r5, .L18
+ 179 0022 F5E7     		b	.L10
+ 180              	.L17:
+ 208:mri/core/cmd_query.c ****     else if (!pReturn && Buffer_IsNextCharEqualTo(pBuffer, ':'))
+ 181              		.loc 1 208 9 is_stmt 1 view .LVU38
+ 182              	.LVL16:
+ 183              	.LBB20:
+ 184              	.LBI20:
+  71:mri/core/try_catch.h **** {
+ 185              		.loc 2 71 20 view .LVU39
+ARM GAS  /tmp/ccjgvtfq.s 			page 10
+
+
+ 186              	.LBB21:
+ 187              		.loc 2 73 5 view .LVU40
+ 188              		.loc 2 73 73 is_stmt 0 view .LVU41
+ 189 0024 0B4A     		ldr	r2, .L18+4
+ 190 0026 1368     		ldr	r3, [r2]
+ 191 0028 042B     		cmp	r3, #4
+ 192 002a B8BF     		it	lt
+ 193 002c 0423     		movlt	r3, #4
+ 194              		.loc 2 73 22 view .LVU42
+ 195 002e 1360     		str	r3, [r2]
+ 196              	.LVL17:
+ 197              		.loc 2 73 22 view .LVU43
+ 198              	.LBE21:
+ 199              	.LBE20:
+ 208:mri/core/cmd_query.c ****     else if (!pReturn && Buffer_IsNextCharEqualTo(pBuffer, ':'))
+ 200              		.loc 1 208 9 view .LVU44
+ 201 0030 0025     		movs	r5, #0
+ 202 0032 EEE7     		b	.L9
+ 203              	.LVL18:
+ 204              	.L16:
+ 209:mri/core/cmd_query.c ****         return NULL;
+ 205              		.loc 1 209 26 discriminator 1 view .LVU45
+ 206 0034 3A21     		movs	r1, #58
+ 207 0036 2046     		mov	r0, r4
+ 208 0038 FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 209              	.LVL19:
+ 209:mri/core/cmd_query.c ****         return NULL;
+ 210              		.loc 1 209 23 discriminator 1 view .LVU46
+ 211 003c 0028     		cmp	r0, #0
+ 212 003e E8D1     		bne	.L9
+ 211:mri/core/cmd_query.c ****         __throw_and_return(invalidArgumentException, NULL);
+ 213              		.loc 1 211 10 is_stmt 1 view .LVU47
+ 212:mri/core/cmd_query.c ****     else
+ 214              		.loc 1 212 9 view .LVU48
+ 215              	.LVL20:
+ 216              	.LBB22:
+ 217              	.LBI22:
+  71:mri/core/try_catch.h **** {
+ 218              		.loc 2 71 20 view .LVU49
+ 219              	.LBB23:
+ 220              		.loc 2 73 5 view .LVU50
+ 221              		.loc 2 73 73 is_stmt 0 view .LVU51
+ 222 0040 044A     		ldr	r2, .L18+4
+ 223 0042 1368     		ldr	r3, [r2]
+ 224 0044 042B     		cmp	r3, #4
+ 225 0046 B8BF     		it	lt
+ 226 0048 0423     		movlt	r3, #4
+ 227              		.loc 2 73 22 view .LVU52
+ 228 004a 1360     		str	r3, [r2]
+ 229              	.LVL21:
+ 230              		.loc 2 73 22 view .LVU53
+ 231              	.LBE23:
+ 232              	.LBE22:
+ 212:mri/core/cmd_query.c ****     else
+ 233              		.loc 1 212 9 view .LVU54
+ 234 004c E1E7     		b	.L9
+ 235              	.L19:
+ARM GAS  /tmp/ccjgvtfq.s 			page 11
+
+
+ 236 004e 00BF     		.align	2
+ 237              	.L18:
+ 238 0050 00000000 		.word	targetXmlAnnex.3
+ 239 0054 00000000 		.word	mriExceptionCode
+ 240              		.cfi_endproc
+ 241              	.LFE8:
+ 243              		.section	.text.readQueryTransferOffsetLengthArguments,"ax",%progbits
+ 244              		.align	1
+ 245              		.syntax unified
+ 246              		.thumb
+ 247              		.thumb_func
+ 249              	readQueryTransferOffsetLengthArguments:
+ 250              	.LVL22:
+ 251              	.LFB9:
+ 218:mri/core/cmd_query.c ****     AddressLength       offsetLength;
+ 252              		.loc 1 218 1 is_stmt 1 view -0
+ 253              		.cfi_startproc
+ 254              		@ args = 0, pretend = 0, frame = 8
+ 255              		@ frame_needed = 0, uses_anonymous_args = 0
+ 218:mri/core/cmd_query.c ****     AddressLength       offsetLength;
+ 256              		.loc 1 218 1 is_stmt 0 view .LVU56
+ 257 0000 10B5     		push	{r4, lr}
+ 258              	.LCFI2:
+ 259              		.cfi_def_cfa_offset 8
+ 260              		.cfi_offset 4, -8
+ 261              		.cfi_offset 14, -4
+ 262 0002 82B0     		sub	sp, sp, #8
+ 263              	.LCFI3:
+ 264              		.cfi_def_cfa_offset 16
+ 265 0004 0C46     		mov	r4, r1
+ 219:mri/core/cmd_query.c **** 
+ 266              		.loc 1 219 5 is_stmt 1 view .LVU57
+ 221:mri/core/cmd_query.c ****     pAnnexOffsetLength->offset = offsetLength.address;
+ 267              		.loc 1 221 5 view .LVU58
+ 268 0006 6946     		mov	r1, sp
+ 269              	.LVL23:
+ 221:mri/core/cmd_query.c ****     pAnnexOffsetLength->offset = offsetLength.address;
+ 270              		.loc 1 221 5 is_stmt 0 view .LVU59
+ 271 0008 FFF7FEFF 		bl	mriCmd_ReadAddressAndLengthArguments
+ 272              	.LVL24:
+ 222:mri/core/cmd_query.c ****     pAnnexOffsetLength->length = offsetLength.length;
+ 273              		.loc 1 222 5 is_stmt 1 view .LVU60
+ 222:mri/core/cmd_query.c ****     pAnnexOffsetLength->length = offsetLength.length;
+ 274              		.loc 1 222 46 is_stmt 0 view .LVU61
+ 275 000c 009B     		ldr	r3, [sp]
+ 222:mri/core/cmd_query.c ****     pAnnexOffsetLength->length = offsetLength.length;
+ 276              		.loc 1 222 32 view .LVU62
+ 277 000e A360     		str	r3, [r4, #8]
+ 223:mri/core/cmd_query.c **** }
+ 278              		.loc 1 223 5 is_stmt 1 view .LVU63
+ 223:mri/core/cmd_query.c **** }
+ 279              		.loc 1 223 46 is_stmt 0 view .LVU64
+ 280 0010 019B     		ldr	r3, [sp, #4]
+ 223:mri/core/cmd_query.c **** }
+ 281              		.loc 1 223 32 view .LVU65
+ 282 0012 E360     		str	r3, [r4, #12]
+ 224:mri/core/cmd_query.c **** 
+ARM GAS  /tmp/ccjgvtfq.s 			page 12
+
+
+ 283              		.loc 1 224 1 view .LVU66
+ 284 0014 02B0     		add	sp, sp, #8
+ 285              	.LCFI4:
+ 286              		.cfi_def_cfa_offset 8
+ 287              		@ sp needed
+ 288 0016 10BD     		pop	{r4, pc}
+ 224:mri/core/cmd_query.c **** 
+ 289              		.loc 1 224 1 view .LVU67
+ 290              		.cfi_endproc
+ 291              	.LFE9:
+ 293              		.section	.text.readQueryTransferReadArguments,"ax",%progbits
+ 294              		.align	1
+ 295              		.syntax unified
+ 296              		.thumb
+ 297              		.thumb_func
+ 299              	readQueryTransferReadArguments:
+ 300              	.LVL25:
+ 301              	.LFB7:
+ 177:mri/core/cmd_query.c ****     static const char   readCommand[] = "read";
+ 302              		.loc 1 177 1 is_stmt 1 view -0
+ 303              		.cfi_startproc
+ 304              		@ args = 0, pretend = 0, frame = 0
+ 305              		@ frame_needed = 0, uses_anonymous_args = 0
+ 177:mri/core/cmd_query.c ****     static const char   readCommand[] = "read";
+ 306              		.loc 1 177 1 is_stmt 0 view .LVU69
+ 307 0000 70B5     		push	{r4, r5, r6, lr}
+ 308              	.LCFI5:
+ 309              		.cfi_def_cfa_offset 16
+ 310              		.cfi_offset 4, -16
+ 311              		.cfi_offset 5, -12
+ 312              		.cfi_offset 6, -8
+ 313              		.cfi_offset 14, -4
+ 314 0002 0446     		mov	r4, r0
+ 315 0004 0D46     		mov	r5, r1
+ 178:mri/core/cmd_query.c **** 
+ 316              		.loc 1 178 5 is_stmt 1 view .LVU70
+ 180:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ':') ||
+ 317              		.loc 1 180 5 view .LVU71
+ 318 0006 1022     		movs	r2, #16
+ 319 0008 0021     		movs	r1, #0
+ 320              	.LVL26:
+ 180:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ':') ||
+ 321              		.loc 1 180 5 is_stmt 0 view .LVU72
+ 322 000a 2846     		mov	r0, r5
+ 323              	.LVL27:
+ 180:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ':') ||
+ 324              		.loc 1 180 5 view .LVU73
+ 325 000c FFF7FEFF 		bl	mri_memset
+ 326              	.LVL28:
+ 181:mri/core/cmd_query.c ****         !Buffer_MatchesString(pBuffer, readCommand, sizeof(readCommand)-1) ||
+ 327              		.loc 1 181 5 is_stmt 1 view .LVU74
+ 181:mri/core/cmd_query.c ****         !Buffer_MatchesString(pBuffer, readCommand, sizeof(readCommand)-1) ||
+ 328              		.loc 1 181 10 is_stmt 0 view .LVU75
+ 329 0010 3A21     		movs	r1, #58
+ 330 0012 2046     		mov	r0, r4
+ 331 0014 FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 332              	.LVL29:
+ARM GAS  /tmp/ccjgvtfq.s 			page 13
+
+
+ 181:mri/core/cmd_query.c ****         !Buffer_MatchesString(pBuffer, readCommand, sizeof(readCommand)-1) ||
+ 333              		.loc 1 181 8 view .LVU76
+ 334 0018 30B9     		cbnz	r0, .L28
+ 335              	.L23:
+ 185:mri/core/cmd_query.c ****     }
+ 336              		.loc 1 185 9 is_stmt 1 view .LVU77
+ 337              	.LVL30:
+ 338              	.LBB24:
+ 339              	.LBI24:
+  71:mri/core/try_catch.h **** {
+ 340              		.loc 2 71 20 view .LVU78
+ 341              	.LBB25:
+ 342              		.loc 2 73 5 view .LVU79
+ 343              		.loc 2 73 73 is_stmt 0 view .LVU80
+ 344 001a 114A     		ldr	r2, .L29
+ 345 001c 1368     		ldr	r3, [r2]
+ 346 001e 042B     		cmp	r3, #4
+ 347 0020 B8BF     		it	lt
+ 348 0022 0423     		movlt	r3, #4
+ 349              		.loc 2 73 22 view .LVU81
+ 350 0024 1360     		str	r3, [r2]
+ 351              	.LVL31:
+ 352              	.L22:
+ 353              		.loc 2 73 22 view .LVU82
+ 354              	.LBE25:
+ 355              	.LBE24:
+ 197:mri/core/cmd_query.c **** 
+ 356              		.loc 1 197 1 view .LVU83
+ 357 0026 70BD     		pop	{r4, r5, r6, pc}
+ 358              	.LVL32:
+ 359              	.L28:
+ 182:mri/core/cmd_query.c ****         !Buffer_IsNextCharEqualTo(pBuffer, ':') )
+ 360              		.loc 1 182 10 discriminator 1 view .LVU84
+ 361 0028 0422     		movs	r2, #4
+ 362 002a 0E49     		ldr	r1, .L29+4
+ 363 002c 2046     		mov	r0, r4
+ 364 002e FFF7FEFF 		bl	mriBuffer_MatchesString
+ 365              	.LVL33:
+ 181:mri/core/cmd_query.c ****         !Buffer_MatchesString(pBuffer, readCommand, sizeof(readCommand)-1) ||
+ 366              		.loc 1 181 49 discriminator 1 view .LVU85
+ 367 0032 0028     		cmp	r0, #0
+ 368 0034 F1D0     		beq	.L23
+ 183:mri/core/cmd_query.c ****     {
+ 369              		.loc 1 183 10 view .LVU86
+ 370 0036 3A21     		movs	r1, #58
+ 371 0038 2046     		mov	r0, r4
+ 372 003a FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 373              	.LVL34:
+ 182:mri/core/cmd_query.c ****         !Buffer_IsNextCharEqualTo(pBuffer, ':') )
+ 374              		.loc 1 182 76 view .LVU87
+ 375 003e 0028     		cmp	r0, #0
+ 376 0040 EBD0     		beq	.L23
+ 188:mri/core/cmd_query.c ****     {
+ 377              		.loc 1 188 5 is_stmt 1 view .LVU88
+ 188:mri/core/cmd_query.c ****     {
+ 378              		.loc 1 188 5 view .LVU89
+ 379              	.LBB26:
+ARM GAS  /tmp/ccjgvtfq.s 			page 14
+
+
+ 380              	.LBI26:
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+ 381              		.loc 2 76 20 view .LVU90
+ 382              	.LBB27:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+ 383              		.loc 2 78 5 view .LVU91
+ 384              		.loc 2 78 22 is_stmt 0 view .LVU92
+ 385 0042 074E     		ldr	r6, .L29
+ 386 0044 0023     		movs	r3, #0
+ 387 0046 3360     		str	r3, [r6]
+ 388              	.LBE27:
+ 389              	.LBE26:
+ 190:mri/core/cmd_query.c ****         __throwing_func( readQueryTransferOffsetLengthArguments(pBuffer, pAnnexOffsetLength) );
+ 390              		.loc 1 190 9 is_stmt 1 view .LVU93
+ 391 0048 2046     		mov	r0, r4
+ 392 004a FFF7FEFF 		bl	readQueryTransferAnnexArgument
+ 393              	.LVL35:
+ 394 004e 2860     		str	r0, [r5]
+ 190:mri/core/cmd_query.c ****         __throwing_func( readQueryTransferOffsetLengthArguments(pBuffer, pAnnexOffsetLength) );
+ 395              		.loc 1 190 9 view .LVU94
+ 396 0050 3368     		ldr	r3, [r6]
+ 397 0052 002B     		cmp	r3, #0
+ 398 0054 E7D1     		bne	.L22
+ 190:mri/core/cmd_query.c ****         __throwing_func( readQueryTransferOffsetLengthArguments(pBuffer, pAnnexOffsetLength) );
+ 399              		.loc 1 190 96 discriminator 1 view .LVU95
+ 191:mri/core/cmd_query.c ****     }
+ 400              		.loc 1 191 9 discriminator 1 view .LVU96
+ 401 0056 2946     		mov	r1, r5
+ 402 0058 2046     		mov	r0, r4
+ 403 005a FFF7FEFF 		bl	readQueryTransferOffsetLengthArguments
+ 404              	.LVL36:
+ 191:mri/core/cmd_query.c ****     }
+ 405              		.loc 1 191 9 discriminator 1 view .LVU97
+ 191:mri/core/cmd_query.c ****     }
+ 406              		.loc 1 191 95 discriminator 1 view .LVU98
+ 188:mri/core/cmd_query.c ****     {
+ 407              		.loc 1 188 5 discriminator 1 view .LVU99
+ 193:mri/core/cmd_query.c ****     {
+ 408              		.loc 1 193 5 discriminator 1 view .LVU100
+ 409 005e E2E7     		b	.L22
+ 410              	.L30:
+ 411              		.align	2
+ 412              	.L29:
+ 413 0060 00000000 		.word	mriExceptionCode
+ 414 0064 00000000 		.word	readCommand.4
+ 415              		.cfi_endproc
+ 416              	.LFE7:
+ 418              		.section	.text.handleQueryTransferReadCommand,"ax",%progbits
+ 419              		.align	1
+ 420              		.syntax unified
+ 421              		.thumb
+ 422              		.thumb_func
+ 424              	handleQueryTransferReadCommand:
+ 425              	.LVL37:
+ARM GAS  /tmp/ccjgvtfq.s 			page 15
+
+
+ 426              	.LFB11:
+ 231:mri/core/cmd_query.c **** 
+ 232:mri/core/cmd_query.c **** static void handleQueryTransferReadCommand(AnnexOffsetLength* pArguments)
+ 233:mri/core/cmd_query.c **** {
+ 427              		.loc 1 233 1 view -0
+ 428              		.cfi_startproc
+ 429              		@ args = 0, pretend = 0, frame = 0
+ 430              		@ frame_needed = 0, uses_anonymous_args = 0
+ 431              		.loc 1 233 1 is_stmt 0 view .LVU102
+ 432 0000 2DE9F843 		push	{r3, r4, r5, r6, r7, r8, r9, lr}
+ 433              	.LCFI6:
+ 434              		.cfi_def_cfa_offset 32
+ 435              		.cfi_offset 3, -32
+ 436              		.cfi_offset 4, -28
+ 437              		.cfi_offset 5, -24
+ 438              		.cfi_offset 6, -20
+ 439              		.cfi_offset 7, -16
+ 440              		.cfi_offset 8, -12
+ 441              		.cfi_offset 9, -8
+ 442              		.cfi_offset 14, -4
+ 443 0004 0446     		mov	r4, r0
+ 234:mri/core/cmd_query.c ****     Buffer*  pBuffer = GetBuffer();
+ 444              		.loc 1 234 5 is_stmt 1 view .LVU103
+ 445              		.loc 1 234 24 is_stmt 0 view .LVU104
+ 446 0006 FFF7FEFF 		bl	mriCore_GetBuffer
+ 447              	.LVL38:
+ 448              		.loc 1 234 24 view .LVU105
+ 449 000a 0646     		mov	r6, r0
+ 450              	.LVL39:
+ 235:mri/core/cmd_query.c ****     char     dataPrefixChar = 'm';
+ 451              		.loc 1 235 5 is_stmt 1 view .LVU106
+ 236:mri/core/cmd_query.c ****     uint32_t offset = pArguments->offset;
+ 452              		.loc 1 236 5 view .LVU107
+ 453              		.loc 1 236 14 is_stmt 0 view .LVU108
+ 454 000c A768     		ldr	r7, [r4, #8]
+ 455              	.LVL40:
+ 237:mri/core/cmd_query.c ****     uint32_t length = pArguments->length;
+ 456              		.loc 1 237 5 is_stmt 1 view .LVU109
+ 457              		.loc 1 237 14 is_stmt 0 view .LVU110
+ 458 000e D4F80C80 		ldr	r8, [r4, #12]
+ 459              	.LVL41:
+ 238:mri/core/cmd_query.c ****     uint32_t outputBufferSize;
+ 460              		.loc 1 238 5 is_stmt 1 view .LVU111
+ 239:mri/core/cmd_query.c ****     uint32_t validMemoryMapBytes;
+ 461              		.loc 1 239 5 view .LVU112
+ 240:mri/core/cmd_query.c **** 
+ 241:mri/core/cmd_query.c ****     if (offset >= pArguments->annexSize)
+ 462              		.loc 1 241 5 view .LVU113
+ 463              		.loc 1 241 29 is_stmt 0 view .LVU114
+ 464 0012 6568     		ldr	r5, [r4, #4]
+ 465              		.loc 1 241 8 view .LVU115
+ 466 0014 BD42     		cmp	r5, r7
+ 467 0016 19D9     		bls	.L35
+ 242:mri/core/cmd_query.c ****     {
+ 243:mri/core/cmd_query.c ****         /* Attempt to read past end of XML content so flag with a l only packet. */
+ 244:mri/core/cmd_query.c ****         dataPrefixChar = 'l';
+ 245:mri/core/cmd_query.c ****         length = 0;
+ARM GAS  /tmp/ccjgvtfq.s 			page 16
+
+
+ 246:mri/core/cmd_query.c ****         validMemoryMapBytes = 0;
+ 247:mri/core/cmd_query.c ****     }
+ 248:mri/core/cmd_query.c ****     else
+ 249:mri/core/cmd_query.c ****     {
+ 250:mri/core/cmd_query.c ****         validMemoryMapBytes = pArguments->annexSize - offset;
+ 468              		.loc 1 250 9 is_stmt 1 view .LVU116
+ 469              		.loc 1 250 29 is_stmt 0 view .LVU117
+ 470 0018 ED1B     		subs	r5, r5, r7
+ 471              	.LVL42:
+ 235:mri/core/cmd_query.c ****     uint32_t offset = pArguments->offset;
+ 472              		.loc 1 235 14 view .LVU118
+ 473 001a 4FF06D09 		mov	r9, #109
+ 474              	.LVL43:
+ 475              	.L32:
+ 251:mri/core/cmd_query.c ****     }
+ 252:mri/core/cmd_query.c **** 
+ 253:mri/core/cmd_query.c ****     InitPacketBuffers();
+ 476              		.loc 1 253 5 is_stmt 1 view .LVU119
+ 477 001e FFF7FEFF 		bl	mriCore_InitPacketBuffers
+ 478              	.LVL44:
+ 254:mri/core/cmd_query.c ****     outputBufferSize = Buffer_BytesLeft(pBuffer);
+ 479              		.loc 1 254 5 view .LVU120
+ 480              		.loc 1 254 24 is_stmt 0 view .LVU121
+ 481 0022 3046     		mov	r0, r6
+ 482 0024 FFF7FEFF 		bl	mriBuffer_BytesLeft
+ 483              	.LVL45:
+ 255:mri/core/cmd_query.c **** 
+ 256:mri/core/cmd_query.c ****     if (length > outputBufferSize)
+ 484              		.loc 1 256 5 is_stmt 1 view .LVU122
+ 485              		.loc 1 256 8 is_stmt 0 view .LVU123
+ 486 0028 8045     		cmp	r8, r0
+ 487 002a 00D8     		bhi	.L33
+ 488 002c 4046     		mov	r0, r8
+ 489              	.LVL46:
+ 490              	.L33:
+ 257:mri/core/cmd_query.c ****         length = outputBufferSize;
+ 258:mri/core/cmd_query.c **** 
+ 259:mri/core/cmd_query.c ****     if (length > validMemoryMapBytes)
+ 491              		.loc 1 259 5 is_stmt 1 view .LVU124
+ 492              		.loc 1 259 8 is_stmt 0 view .LVU125
+ 493 002e A842     		cmp	r0, r5
+ 494 0030 11D8     		bhi	.L36
+ 495 0032 0546     		mov	r5, r0
+ 496              	.LVL47:
+ 497              	.L34:
+ 260:mri/core/cmd_query.c ****     {
+ 261:mri/core/cmd_query.c ****         dataPrefixChar = 'l';
+ 262:mri/core/cmd_query.c ****         length = validMemoryMapBytes;
+ 263:mri/core/cmd_query.c ****     }
+ 264:mri/core/cmd_query.c **** 
+ 265:mri/core/cmd_query.c ****     Buffer_WriteChar(pBuffer, dataPrefixChar);
+ 498              		.loc 1 265 5 is_stmt 1 view .LVU126
+ 499 0034 4946     		mov	r1, r9
+ 500 0036 3046     		mov	r0, r6
+ 501 0038 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 502              	.LVL48:
+ 266:mri/core/cmd_query.c ****     Buffer_WriteSizedString(pBuffer, pArguments->pAnnex + offset, length);
+ARM GAS  /tmp/ccjgvtfq.s 			page 17
+
+
+ 503              		.loc 1 266 5 view .LVU127
+ 504              		.loc 1 266 48 is_stmt 0 view .LVU128
+ 505 003c 2168     		ldr	r1, [r4]
+ 506              		.loc 1 266 5 view .LVU129
+ 507 003e 2A46     		mov	r2, r5
+ 508 0040 3944     		add	r1, r1, r7
+ 509 0042 3046     		mov	r0, r6
+ 510 0044 FFF7FEFF 		bl	mriBuffer_WriteSizedString
+ 511              	.LVL49:
+ 267:mri/core/cmd_query.c **** }
+ 512              		.loc 1 267 1 view .LVU130
+ 513 0048 BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ 514              	.LVL50:
+ 515              	.L35:
+ 246:mri/core/cmd_query.c ****     }
+ 516              		.loc 1 246 29 view .LVU131
+ 517 004c 0025     		movs	r5, #0
+ 245:mri/core/cmd_query.c ****         validMemoryMapBytes = 0;
+ 518              		.loc 1 245 16 view .LVU132
+ 519 004e A846     		mov	r8, r5
+ 520              	.LVL51:
+ 244:mri/core/cmd_query.c ****         length = 0;
+ 521              		.loc 1 244 24 view .LVU133
+ 522 0050 4FF06C09 		mov	r9, #108
+ 523 0054 E3E7     		b	.L32
+ 524              	.LVL52:
+ 525              	.L36:
+ 261:mri/core/cmd_query.c ****         length = validMemoryMapBytes;
+ 526              		.loc 1 261 24 view .LVU134
+ 527 0056 4FF06C09 		mov	r9, #108
+ 528              	.LVL53:
+ 261:mri/core/cmd_query.c ****         length = validMemoryMapBytes;
+ 529              		.loc 1 261 24 view .LVU135
+ 530 005a EBE7     		b	.L34
+ 531              		.cfi_endproc
+ 532              	.LFE11:
+ 534              		.section	.rodata.handleQueryTransferMemoryMapCommand.str1.4,"aMS",%progbits,1
+ 535              		.align	2
+ 536              	.LC0:
+ 537 0000 45303100 		.ascii	"E01\000"
+ 538              		.section	.text.handleQueryTransferMemoryMapCommand,"ax",%progbits
+ 539              		.align	1
+ 540              		.syntax unified
+ 541              		.thumb
+ 542              		.thumb_func
+ 544              	handleQueryTransferMemoryMapCommand:
+ 545              	.LFB6:
+ 154:mri/core/cmd_query.c ****     Buffer*             pBuffer = GetBuffer();
+ 546              		.loc 1 154 1 is_stmt 1 view -0
+ 547              		.cfi_startproc
+ 548              		@ args = 0, pretend = 0, frame = 16
+ 549              		@ frame_needed = 0, uses_anonymous_args = 0
+ 550 0000 10B5     		push	{r4, lr}
+ 551              	.LCFI7:
+ 552              		.cfi_def_cfa_offset 8
+ 553              		.cfi_offset 4, -8
+ 554              		.cfi_offset 14, -4
+ARM GAS  /tmp/ccjgvtfq.s 			page 18
+
+
+ 555 0002 84B0     		sub	sp, sp, #16
+ 556              	.LCFI8:
+ 557              		.cfi_def_cfa_offset 24
+ 155:mri/core/cmd_query.c ****     AnnexOffsetLength   arguments;
+ 558              		.loc 1 155 5 view .LVU137
+ 155:mri/core/cmd_query.c ****     AnnexOffsetLength   arguments;
+ 559              		.loc 1 155 35 is_stmt 0 view .LVU138
+ 560 0004 FFF7FEFF 		bl	mriCore_GetBuffer
+ 561              	.LVL54:
+ 156:mri/core/cmd_query.c **** 
+ 562              		.loc 1 156 5 is_stmt 1 view .LVU139
+ 158:mri/core/cmd_query.c ****     {
+ 563              		.loc 1 158 5 view .LVU140
+ 158:mri/core/cmd_query.c ****     {
+ 564              		.loc 1 158 5 view .LVU141
+ 565              	.LBB28:
+ 566              	.LBI28:
+  76:mri/core/try_catch.h **** {
+ 567              		.loc 2 76 20 view .LVU142
+ 568              	.LBB29:
+ 569              		.loc 2 78 5 view .LVU143
+ 570              		.loc 2 78 22 is_stmt 0 view .LVU144
+ 571 0008 0F4C     		ldr	r4, .L45
+ 572 000a 0023     		movs	r3, #0
+ 573 000c 2360     		str	r3, [r4]
+ 574              	.LBE29:
+ 575              	.LBE28:
+ 160:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIsNull(arguments.pAnnex) );
+ 576              		.loc 1 160 9 is_stmt 1 view .LVU145
+ 577 000e 6946     		mov	r1, sp
+ 578 0010 FFF7FEFF 		bl	readQueryTransferReadArguments
+ 579              	.LVL55:
+ 160:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIsNull(arguments.pAnnex) );
+ 580              		.loc 1 160 9 view .LVU146
+ 581 0014 2368     		ldr	r3, [r4]
+ 582 0016 73B1     		cbz	r3, .L43
+ 583              	.L39:
+ 161:mri/core/cmd_query.c ****     }
+ 584              		.loc 1 161 65 discriminator 1 view .LVU147
+ 158:mri/core/cmd_query.c ****     {
+ 585              		.loc 1 158 5 discriminator 1 view .LVU148
+ 163:mri/core/cmd_query.c ****     {
+ 586              		.loc 1 163 5 discriminator 1 view .LVU149
+ 587 0018 0B4B     		ldr	r3, .L45
+ 588 001a 1B68     		ldr	r3, [r3]
+ 589 001c 7BB9     		cbnz	r3, .L44
+ 169:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetDeviceMemoryMapXmlSize();
+ 590              		.loc 1 169 5 view .LVU150
+ 169:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetDeviceMemoryMapXmlSize();
+ 591              		.loc 1 169 24 is_stmt 0 view .LVU151
+ 592 001e FFF7FEFF 		bl	mriPlatform_GetDeviceMemoryMapXml
+ 593              	.LVL56:
+ 169:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetDeviceMemoryMapXmlSize();
+ 594              		.loc 1 169 22 view .LVU152
+ 595 0022 0090     		str	r0, [sp]
+ 170:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 596              		.loc 1 170 5 is_stmt 1 view .LVU153
+ARM GAS  /tmp/ccjgvtfq.s 			page 19
+
+
+ 170:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 597              		.loc 1 170 27 is_stmt 0 view .LVU154
+ 598 0024 FFF7FEFF 		bl	mriPlatform_GetDeviceMemoryMapXmlSize
+ 599              	.LVL57:
+ 170:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 600              		.loc 1 170 25 view .LVU155
+ 601 0028 0190     		str	r0, [sp, #4]
+ 171:mri/core/cmd_query.c **** 
+ 602              		.loc 1 171 5 is_stmt 1 view .LVU156
+ 603 002a 6846     		mov	r0, sp
+ 604 002c FFF7FEFF 		bl	handleQueryTransferReadCommand
+ 605              	.LVL58:
+ 173:mri/core/cmd_query.c **** }
+ 606              		.loc 1 173 5 view .LVU157
+ 607              	.L41:
+ 174:mri/core/cmd_query.c **** 
+ 608              		.loc 1 174 1 is_stmt 0 view .LVU158
+ 609 0030 0020     		movs	r0, #0
+ 610 0032 04B0     		add	sp, sp, #16
+ 611              	.LCFI9:
+ 612              		.cfi_remember_state
+ 613              		.cfi_def_cfa_offset 8
+ 614              		@ sp needed
+ 615 0034 10BD     		pop	{r4, pc}
+ 616              	.L43:
+ 617              	.LCFI10:
+ 618              		.cfi_restore_state
+ 160:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIsNull(arguments.pAnnex) );
+ 619              		.loc 1 160 79 is_stmt 1 discriminator 1 view .LVU159
+ 161:mri/core/cmd_query.c ****     }
+ 620              		.loc 1 161 9 discriminator 1 view .LVU160
+ 621 0036 0098     		ldr	r0, [sp]
+ 622 0038 FFF7FEFF 		bl	validateAnnexIsNull
+ 623              	.LVL59:
+ 161:mri/core/cmd_query.c ****     }
+ 624              		.loc 1 161 9 discriminator 1 view .LVU161
+ 625 003c ECE7     		b	.L39
+ 626              	.L44:
+ 165:mri/core/cmd_query.c ****         return 0;
+ 627              		.loc 1 165 9 view .LVU162
+ 628 003e 0348     		ldr	r0, .L45+4
+ 629 0040 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 630              	.LVL60:
+ 166:mri/core/cmd_query.c ****     }
+ 631              		.loc 1 166 9 view .LVU163
+ 166:mri/core/cmd_query.c ****     }
+ 632              		.loc 1 166 16 is_stmt 0 view .LVU164
+ 633 0044 F4E7     		b	.L41
+ 634              	.L46:
+ 635 0046 00BF     		.align	2
+ 636              	.L45:
+ 637 0048 00000000 		.word	mriExceptionCode
+ 638 004c 00000000 		.word	.LC0
+ 639              		.cfi_endproc
+ 640              	.LFE6:
+ 642              		.section	.text.validateAnnexIs,"ax",%progbits
+ 643              		.align	1
+ARM GAS  /tmp/ccjgvtfq.s 			page 20
+
+
+ 644              		.syntax unified
+ 645              		.thumb
+ 646              		.thumb_func
+ 648              	validateAnnexIs:
+ 649              	.LVL61:
+ 650              	.LFB13:
+ 268:mri/core/cmd_query.c **** 
+ 269:mri/core/cmd_query.c **** /* Handle the "qXfer:features" command used by gdb to read the target XML from the stub.
+ 270:mri/core/cmd_query.c **** 
+ 271:mri/core/cmd_query.c ****     Command Format: qXfer:features:read:target.xml:offset,length
+ 272:mri/core/cmd_query.c **** */
+ 273:mri/core/cmd_query.c **** static uint32_t handleQueryTransferFeaturesCommand(void)
+ 274:mri/core/cmd_query.c **** {
+ 275:mri/core/cmd_query.c ****     Buffer*             pBuffer = GetBuffer();
+ 276:mri/core/cmd_query.c ****     AnnexOffsetLength   arguments;
+ 277:mri/core/cmd_query.c **** 
+ 278:mri/core/cmd_query.c ****     __try
+ 279:mri/core/cmd_query.c ****     {
+ 280:mri/core/cmd_query.c ****         __throwing_func( readQueryTransferReadArguments(pBuffer, &arguments) );
+ 281:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIs(arguments.pAnnex, "target.xml") );
+ 282:mri/core/cmd_query.c ****     }
+ 283:mri/core/cmd_query.c ****     __catch
+ 284:mri/core/cmd_query.c ****     {
+ 285:mri/core/cmd_query.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+ 286:mri/core/cmd_query.c ****         return 0;
+ 287:mri/core/cmd_query.c ****     }
+ 288:mri/core/cmd_query.c **** 
+ 289:mri/core/cmd_query.c ****     arguments.pAnnex = Platform_GetTargetXml();
+ 290:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetTargetXmlSize();
+ 291:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 292:mri/core/cmd_query.c **** 
+ 293:mri/core/cmd_query.c ****     return 0;
+ 294:mri/core/cmd_query.c **** }
+ 295:mri/core/cmd_query.c **** 
+ 296:mri/core/cmd_query.c **** static void validateAnnexIs(const char* pAnnex, const char* pExpected)
+ 297:mri/core/cmd_query.c **** {
+ 651              		.loc 1 297 1 is_stmt 1 view -0
+ 652              		.cfi_startproc
+ 653              		@ args = 0, pretend = 0, frame = 0
+ 654              		@ frame_needed = 0, uses_anonymous_args = 0
+ 655              		.loc 1 297 1 is_stmt 0 view .LVU166
+ 656 0000 08B5     		push	{r3, lr}
+ 657              	.LCFI11:
+ 658              		.cfi_def_cfa_offset 8
+ 659              		.cfi_offset 3, -8
+ 660              		.cfi_offset 14, -4
+ 298:mri/core/cmd_query.c ****     if (pAnnex == NULL || 0 != mri_strcmp(pAnnex, pExpected))
+ 661              		.loc 1 298 5 is_stmt 1 view .LVU167
+ 662              		.loc 1 298 8 is_stmt 0 view .LVU168
+ 663 0002 10B1     		cbz	r0, .L48
+ 664              		.loc 1 298 32 discriminator 1 view .LVU169
+ 665 0004 FFF7FEFF 		bl	mri_strcmp
+ 666              	.LVL62:
+ 667              		.loc 1 298 24 discriminator 1 view .LVU170
+ 668 0008 28B1     		cbz	r0, .L47
+ 669              	.L48:
+ 299:mri/core/cmd_query.c ****         __throw(invalidArgumentException);
+ARM GAS  /tmp/ccjgvtfq.s 			page 21
+
+
+ 670              		.loc 1 299 9 is_stmt 1 view .LVU171
+ 671              	.LVL63:
+ 672              	.LBB30:
+ 673              	.LBI30:
+  71:mri/core/try_catch.h **** {
+ 674              		.loc 2 71 20 view .LVU172
+ 675              	.LBB31:
+  73:mri/core/try_catch.h **** }
+ 676              		.loc 2 73 5 view .LVU173
+  73:mri/core/try_catch.h **** }
+ 677              		.loc 2 73 73 is_stmt 0 view .LVU174
+ 678 000a 034A     		ldr	r2, .L51
+ 679 000c 1368     		ldr	r3, [r2]
+ 680 000e 042B     		cmp	r3, #4
+ 681 0010 B8BF     		it	lt
+ 682 0012 0423     		movlt	r3, #4
+  73:mri/core/try_catch.h **** }
+ 683              		.loc 2 73 22 view .LVU175
+ 684 0014 1360     		str	r3, [r2]
+ 685              	.LVL64:
+ 686              	.L47:
+  73:mri/core/try_catch.h **** }
+ 687              		.loc 2 73 22 view .LVU176
+ 688              	.LBE31:
+ 689              	.LBE30:
+ 300:mri/core/cmd_query.c **** }
+ 690              		.loc 1 300 1 view .LVU177
+ 691 0016 08BD     		pop	{r3, pc}
+ 692              	.L52:
+ 693              		.align	2
+ 694              	.L51:
+ 695 0018 00000000 		.word	mriExceptionCode
+ 696              		.cfi_endproc
+ 697              	.LFE13:
+ 699              		.section	.rodata.handleQueryTransferFeaturesCommand.str1.4,"aMS",%progbits,1
+ 700              		.align	2
+ 701              	.LC1:
+ 702 0000 74617267 		.ascii	"target.xml\000"
+ 702      65742E78 
+ 702      6D6C00
+ 703              		.section	.text.handleQueryTransferFeaturesCommand,"ax",%progbits
+ 704              		.align	1
+ 705              		.syntax unified
+ 706              		.thumb
+ 707              		.thumb_func
+ 709              	handleQueryTransferFeaturesCommand:
+ 710              	.LFB12:
+ 274:mri/core/cmd_query.c ****     Buffer*             pBuffer = GetBuffer();
+ 711              		.loc 1 274 1 is_stmt 1 view -0
+ 712              		.cfi_startproc
+ 713              		@ args = 0, pretend = 0, frame = 16
+ 714              		@ frame_needed = 0, uses_anonymous_args = 0
+ 715 0000 10B5     		push	{r4, lr}
+ 716              	.LCFI12:
+ 717              		.cfi_def_cfa_offset 8
+ 718              		.cfi_offset 4, -8
+ 719              		.cfi_offset 14, -4
+ARM GAS  /tmp/ccjgvtfq.s 			page 22
+
+
+ 720 0002 84B0     		sub	sp, sp, #16
+ 721              	.LCFI13:
+ 722              		.cfi_def_cfa_offset 24
+ 275:mri/core/cmd_query.c ****     AnnexOffsetLength   arguments;
+ 723              		.loc 1 275 5 view .LVU179
+ 275:mri/core/cmd_query.c ****     AnnexOffsetLength   arguments;
+ 724              		.loc 1 275 35 is_stmt 0 view .LVU180
+ 725 0004 FFF7FEFF 		bl	mriCore_GetBuffer
+ 726              	.LVL65:
+ 276:mri/core/cmd_query.c **** 
+ 727              		.loc 1 276 5 is_stmt 1 view .LVU181
+ 278:mri/core/cmd_query.c ****     {
+ 728              		.loc 1 278 5 view .LVU182
+ 278:mri/core/cmd_query.c ****     {
+ 729              		.loc 1 278 5 view .LVU183
+ 730              	.LBB32:
+ 731              	.LBI32:
+  76:mri/core/try_catch.h **** {
+ 732              		.loc 2 76 20 view .LVU184
+ 733              	.LBB33:
+ 734              		.loc 2 78 5 view .LVU185
+ 735              		.loc 2 78 22 is_stmt 0 view .LVU186
+ 736 0008 0F4C     		ldr	r4, .L60
+ 737 000a 0023     		movs	r3, #0
+ 738 000c 2360     		str	r3, [r4]
+ 739              	.LBE33:
+ 740              	.LBE32:
+ 280:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIs(arguments.pAnnex, "target.xml") );
+ 741              		.loc 1 280 9 is_stmt 1 view .LVU187
+ 742 000e 6946     		mov	r1, sp
+ 743 0010 FFF7FEFF 		bl	readQueryTransferReadArguments
+ 744              	.LVL66:
+ 280:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIs(arguments.pAnnex, "target.xml") );
+ 745              		.loc 1 280 9 view .LVU188
+ 746 0014 2368     		ldr	r3, [r4]
+ 747 0016 73B1     		cbz	r3, .L58
+ 748              	.L54:
+ 281:mri/core/cmd_query.c ****     }
+ 749              		.loc 1 281 75 discriminator 1 view .LVU189
+ 278:mri/core/cmd_query.c ****     {
+ 750              		.loc 1 278 5 discriminator 1 view .LVU190
+ 283:mri/core/cmd_query.c ****     {
+ 751              		.loc 1 283 5 discriminator 1 view .LVU191
+ 752 0018 0B4B     		ldr	r3, .L60
+ 753 001a 1B68     		ldr	r3, [r3]
+ 754 001c 83B9     		cbnz	r3, .L59
+ 289:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetTargetXmlSize();
+ 755              		.loc 1 289 5 view .LVU192
+ 289:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetTargetXmlSize();
+ 756              		.loc 1 289 24 is_stmt 0 view .LVU193
+ 757 001e FFF7FEFF 		bl	mriPlatform_GetTargetXml
+ 758              	.LVL67:
+ 289:mri/core/cmd_query.c ****     arguments.annexSize = Platform_GetTargetXmlSize();
+ 759              		.loc 1 289 22 view .LVU194
+ 760 0022 0090     		str	r0, [sp]
+ 290:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 761              		.loc 1 290 5 is_stmt 1 view .LVU195
+ARM GAS  /tmp/ccjgvtfq.s 			page 23
+
+
+ 290:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 762              		.loc 1 290 27 is_stmt 0 view .LVU196
+ 763 0024 FFF7FEFF 		bl	mriPlatform_GetTargetXmlSize
+ 764              	.LVL68:
+ 290:mri/core/cmd_query.c ****     handleQueryTransferReadCommand(&arguments);
+ 765              		.loc 1 290 25 view .LVU197
+ 766 0028 0190     		str	r0, [sp, #4]
+ 291:mri/core/cmd_query.c **** 
+ 767              		.loc 1 291 5 is_stmt 1 view .LVU198
+ 768 002a 6846     		mov	r0, sp
+ 769 002c FFF7FEFF 		bl	handleQueryTransferReadCommand
+ 770              	.LVL69:
+ 293:mri/core/cmd_query.c **** }
+ 771              		.loc 1 293 5 view .LVU199
+ 772              	.L56:
+ 294:mri/core/cmd_query.c **** 
+ 773              		.loc 1 294 1 is_stmt 0 view .LVU200
+ 774 0030 0020     		movs	r0, #0
+ 775 0032 04B0     		add	sp, sp, #16
+ 776              	.LCFI14:
+ 777              		.cfi_remember_state
+ 778              		.cfi_def_cfa_offset 8
+ 779              		@ sp needed
+ 780 0034 10BD     		pop	{r4, pc}
+ 781              	.L58:
+ 782              	.LCFI15:
+ 783              		.cfi_restore_state
+ 280:mri/core/cmd_query.c ****         __throwing_func( validateAnnexIs(arguments.pAnnex, "target.xml") );
+ 784              		.loc 1 280 79 is_stmt 1 discriminator 1 view .LVU201
+ 281:mri/core/cmd_query.c ****     }
+ 785              		.loc 1 281 9 discriminator 1 view .LVU202
+ 786 0036 0549     		ldr	r1, .L60+4
+ 787 0038 0098     		ldr	r0, [sp]
+ 788 003a FFF7FEFF 		bl	validateAnnexIs
+ 789              	.LVL70:
+ 281:mri/core/cmd_query.c ****     }
+ 790              		.loc 1 281 9 discriminator 1 view .LVU203
+ 791 003e EBE7     		b	.L54
+ 792              	.L59:
+ 285:mri/core/cmd_query.c ****         return 0;
+ 793              		.loc 1 285 9 view .LVU204
+ 794 0040 0348     		ldr	r0, .L60+8
+ 795 0042 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 796              	.LVL71:
+ 286:mri/core/cmd_query.c ****     }
+ 797              		.loc 1 286 9 view .LVU205
+ 286:mri/core/cmd_query.c ****     }
+ 798              		.loc 1 286 16 is_stmt 0 view .LVU206
+ 799 0046 F3E7     		b	.L56
+ 800              	.L61:
+ 801              		.align	2
+ 802              	.L60:
+ 803 0048 00000000 		.word	mriExceptionCode
+ 804 004c 00000000 		.word	.LC1
+ 805 0050 00000000 		.word	.LC0
+ 806              		.cfi_endproc
+ 807              	.LFE12:
+ARM GAS  /tmp/ccjgvtfq.s 			page 24
+
+
+ 809              		.section	.rodata.handleQueryTransferCommand.str1.4,"aMS",%progbits,1
+ 810              		.align	2
+ 811              	.LC2:
+ 812 0000 00       		.ascii	"\000"
+ 813              		.section	.text.handleQueryTransferCommand,"ax",%progbits
+ 814              		.align	1
+ 815              		.syntax unified
+ 816              		.thumb
+ 817              		.thumb_func
+ 819              	handleQueryTransferCommand:
+ 820              	.LFB5:
+ 123:mri/core/cmd_query.c ****     Buffer*             pBuffer =GetBuffer();
+ 821              		.loc 1 123 1 is_stmt 1 view -0
+ 822              		.cfi_startproc
+ 823              		@ args = 0, pretend = 0, frame = 0
+ 824              		@ frame_needed = 0, uses_anonymous_args = 0
+ 825 0000 10B5     		push	{r4, lr}
+ 826              	.LCFI16:
+ 827              		.cfi_def_cfa_offset 8
+ 828              		.cfi_offset 4, -8
+ 829              		.cfi_offset 14, -4
+ 124:mri/core/cmd_query.c ****     static const char   memoryMapObject[] = "memory-map";
+ 830              		.loc 1 124 5 view .LVU208
+ 124:mri/core/cmd_query.c ****     static const char   memoryMapObject[] = "memory-map";
+ 831              		.loc 1 124 34 is_stmt 0 view .LVU209
+ 832 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 833              	.LVL72:
+ 834 0006 0446     		mov	r4, r0
+ 835              	.LVL73:
+ 125:mri/core/cmd_query.c ****     static const char   featureObject[] = "features";
+ 836              		.loc 1 125 5 is_stmt 1 view .LVU210
+ 126:mri/core/cmd_query.c **** 
+ 837              		.loc 1 126 5 view .LVU211
+ 128:mri/core/cmd_query.c ****     {
+ 838              		.loc 1 128 5 view .LVU212
+ 128:mri/core/cmd_query.c ****     {
+ 839              		.loc 1 128 10 is_stmt 0 view .LVU213
+ 840 0008 3A21     		movs	r1, #58
+ 841 000a FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 842              	.LVL74:
+ 128:mri/core/cmd_query.c ****     {
+ 843              		.loc 1 128 8 view .LVU214
+ 844 000e 70B1     		cbz	r0, .L68
+ 134:mri/core/cmd_query.c ****     {
+ 845              		.loc 1 134 5 is_stmt 1 view .LVU215
+ 134:mri/core/cmd_query.c ****     {
+ 846              		.loc 1 134 9 is_stmt 0 view .LVU216
+ 847 0010 0A22     		movs	r2, #10
+ 848 0012 0D49     		ldr	r1, .L70
+ 849 0014 2046     		mov	r0, r4
+ 850 0016 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 851              	.LVL75:
+ 134:mri/core/cmd_query.c ****     {
+ 852              		.loc 1 134 8 view .LVU217
+ 853 001a 68B9     		cbnz	r0, .L69
+ 138:mri/core/cmd_query.c ****     {
+ 854              		.loc 1 138 10 is_stmt 1 view .LVU218
+ARM GAS  /tmp/ccjgvtfq.s 			page 25
+
+
+ 138:mri/core/cmd_query.c ****     {
+ 855              		.loc 1 138 14 is_stmt 0 view .LVU219
+ 856 001c 0822     		movs	r2, #8
+ 857 001e 0B49     		ldr	r1, .L70+4
+ 858 0020 2046     		mov	r0, r4
+ 859 0022 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 860              	.LVL76:
+ 138:mri/core/cmd_query.c ****     {
+ 861              		.loc 1 138 13 view .LVU220
+ 862 0026 50B1     		cbz	r0, .L66
+ 140:mri/core/cmd_query.c ****     }
+ 863              		.loc 1 140 9 is_stmt 1 view .LVU221
+ 140:mri/core/cmd_query.c ****     }
+ 864              		.loc 1 140 16 is_stmt 0 view .LVU222
+ 865 0028 FFF7FEFF 		bl	handleQueryTransferFeaturesCommand
+ 866              	.LVL77:
+ 867 002c 03E0     		b	.L62
+ 868              	.L68:
+ 130:mri/core/cmd_query.c ****         return 0;
+ 869              		.loc 1 130 9 is_stmt 1 view .LVU223
+ 870 002e 0848     		ldr	r0, .L70+8
+ 871 0030 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 872              	.LVL78:
+ 131:mri/core/cmd_query.c ****     }
+ 873              		.loc 1 131 9 view .LVU224
+ 131:mri/core/cmd_query.c ****     }
+ 874              		.loc 1 131 16 is_stmt 0 view .LVU225
+ 875 0034 0020     		movs	r0, #0
+ 876              	.L62:
+ 147:mri/core/cmd_query.c **** 
+ 877              		.loc 1 147 1 view .LVU226
+ 878 0036 10BD     		pop	{r4, pc}
+ 879              	.LVL79:
+ 880              	.L69:
+ 136:mri/core/cmd_query.c ****     }
+ 881              		.loc 1 136 9 is_stmt 1 view .LVU227
+ 136:mri/core/cmd_query.c ****     }
+ 882              		.loc 1 136 16 is_stmt 0 view .LVU228
+ 883 0038 FFF7FEFF 		bl	handleQueryTransferMemoryMapCommand
+ 884              	.LVL80:
+ 885 003c FBE7     		b	.L62
+ 886              	.L66:
+ 144:mri/core/cmd_query.c ****         return 0;
+ 887              		.loc 1 144 9 is_stmt 1 view .LVU229
+ 888 003e 0548     		ldr	r0, .L70+12
+ 889 0040 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 890              	.LVL81:
+ 145:mri/core/cmd_query.c ****     }
+ 891              		.loc 1 145 9 view .LVU230
+ 145:mri/core/cmd_query.c ****     }
+ 892              		.loc 1 145 16 is_stmt 0 view .LVU231
+ 893 0044 0020     		movs	r0, #0
+ 894 0046 F6E7     		b	.L62
+ 895              	.L71:
+ 896              		.align	2
+ 897              	.L70:
+ 898 0048 00000000 		.word	memoryMapObject.6
+ARM GAS  /tmp/ccjgvtfq.s 			page 26
+
+
+ 899 004c 00000000 		.word	featureObject.5
+ 900 0050 00000000 		.word	.LC0
+ 901 0054 00000000 		.word	.LC2
+ 902              		.cfi_endproc
+ 903              	.LFE5:
+ 905              		.section	.text.outputThreadIds,"ax",%progbits
+ 906              		.align	1
+ 907              		.syntax unified
+ 908              		.thumb
+ 909              		.thumb_func
+ 911              	outputThreadIds:
+ 912              	.LVL82:
+ 913              	.LFB16:
+ 301:mri/core/cmd_query.c **** 
+ 302:mri/core/cmd_query.c **** /* Handle the "qfThreadInfo" command used by gdb to start retrieving list of RTOS thread IDs.
+ 303:mri/core/cmd_query.c **** 
+ 304:mri/core/cmd_query.c ****     Reponse Format: mAAAAAAAA[,BBBBBBBB]...
+ 305:mri/core/cmd_query.c ****                         -or-
+ 306:mri/core/cmd_query.c ****                     l
+ 307:mri/core/cmd_query.c ****     Where AAAAAAAA is the hexadecimal representation of the first RTOS thread-id.
+ 308:mri/core/cmd_query.c ****           BBBBBBBB is the hexadecimal representation of the second RTOS thread-id.
+ 309:mri/core/cmd_query.c ****           Can have as many thread-ids in the response as will fit in a packet.
+ 310:mri/core/cmd_query.c ****           The 'l' response indicates that there are no more thread-ids to be listed.
+ 311:mri/core/cmd_query.c **** */
+ 312:mri/core/cmd_query.c **** static uint32_t handleQueryFirstThreadInfoCommand(void)
+ 313:mri/core/cmd_query.c **** {
+ 314:mri/core/cmd_query.c ****     uint32_t threadId = Platform_RtosGetFirstThreadId();
+ 315:mri/core/cmd_query.c **** 
+ 316:mri/core/cmd_query.c ****     if (threadId == 0)
+ 317:mri/core/cmd_query.c ****     {
+ 318:mri/core/cmd_query.c ****         PrepareEmptyResponseForUnknownCommand();
+ 319:mri/core/cmd_query.c ****         return 0;
+ 320:mri/core/cmd_query.c ****     }
+ 321:mri/core/cmd_query.c **** 
+ 322:mri/core/cmd_query.c ****     return outputThreadIds(threadId);
+ 323:mri/core/cmd_query.c **** }
+ 324:mri/core/cmd_query.c **** 
+ 325:mri/core/cmd_query.c **** /* Handle the "qsThreadInfo" command used by gdb subsequent calls to retrieve list of RTOS thread I
+ 326:mri/core/cmd_query.c **** 
+ 327:mri/core/cmd_query.c ****     Reponse Format: mAAAAAAAA[,BBBBBBBB]...
+ 328:mri/core/cmd_query.c ****                         -or-
+ 329:mri/core/cmd_query.c ****                     l
+ 330:mri/core/cmd_query.c ****     Where AAAAAAAA is the hexadecimal representation of the first RTOS thread-id.
+ 331:mri/core/cmd_query.c ****           BBBBBBBB is the hexadecimal representation of the second RTOS thread-id.
+ 332:mri/core/cmd_query.c ****           Can have as many thread-ids in the response as will fit in a packet.
+ 333:mri/core/cmd_query.c ****           The 'l' response indicates that there are no more thread-ids to be listed.
+ 334:mri/core/cmd_query.c **** */
+ 335:mri/core/cmd_query.c **** static uint32_t handleQuerySubsequentThreadInfoCommand(void)
+ 336:mri/core/cmd_query.c **** {
+ 337:mri/core/cmd_query.c ****     return outputThreadIds(Platform_RtosGetNextThreadId());
+ 338:mri/core/cmd_query.c **** }
+ 339:mri/core/cmd_query.c **** 
+ 340:mri/core/cmd_query.c **** static uint32_t outputThreadIds(uint32_t threadId)
+ 341:mri/core/cmd_query.c **** {
+ 914              		.loc 1 341 1 is_stmt 1 view -0
+ 915              		.cfi_startproc
+ 916              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /tmp/ccjgvtfq.s 			page 27
+
+
+ 917              		@ frame_needed = 0, uses_anonymous_args = 0
+ 918              		.loc 1 341 1 is_stmt 0 view .LVU233
+ 919 0000 38B5     		push	{r3, r4, r5, lr}
+ 920              	.LCFI17:
+ 921              		.cfi_def_cfa_offset 16
+ 922              		.cfi_offset 3, -16
+ 923              		.cfi_offset 4, -12
+ 924              		.cfi_offset 5, -8
+ 925              		.cfi_offset 14, -4
+ 926 0002 0546     		mov	r5, r0
+ 342:mri/core/cmd_query.c ****     Buffer* pBuffer = GetInitializedBuffer();
+ 927              		.loc 1 342 5 is_stmt 1 view .LVU234
+ 928              		.loc 1 342 23 is_stmt 0 view .LVU235
+ 929 0004 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 930              	.LVL83:
+ 931              		.loc 1 342 23 view .LVU236
+ 932 0008 0446     		mov	r4, r0
+ 933              	.LVL84:
+ 343:mri/core/cmd_query.c **** 
+ 344:mri/core/cmd_query.c ****     if (threadId == 0)
+ 934              		.loc 1 344 5 is_stmt 1 view .LVU237
+ 935              		.loc 1 344 8 is_stmt 0 view .LVU238
+ 936 000a C5B1     		cbz	r5, .L78
+ 345:mri/core/cmd_query.c ****     {
+ 346:mri/core/cmd_query.c ****         Buffer_WriteChar(pBuffer, 'l');
+ 347:mri/core/cmd_query.c ****         return 0;
+ 348:mri/core/cmd_query.c ****     }
+ 349:mri/core/cmd_query.c ****     Buffer_WriteChar(pBuffer, 'm');
+ 937              		.loc 1 349 5 is_stmt 1 view .LVU239
+ 938 000c 6D21     		movs	r1, #109
+ 939 000e FFF7FEFF 		bl	mriBuffer_WriteChar
+ 940              	.LVL85:
+ 350:mri/core/cmd_query.c ****     Buffer_WriteUIntegerAsHex(pBuffer, threadId);
+ 941              		.loc 1 350 5 view .LVU240
+ 942 0012 2946     		mov	r1, r5
+ 943 0014 2046     		mov	r0, r4
+ 944 0016 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 945              	.LVL86:
+ 351:mri/core/cmd_query.c **** 
+ 352:mri/core/cmd_query.c ****     while (Buffer_BytesLeft(pBuffer) >= 9 && (threadId = Platform_RtosGetNextThreadId()) != 0)
+ 946              		.loc 1 352 5 view .LVU241
+ 947              	.L75:
+ 948              		.loc 1 352 43 view .LVU242
+ 949              		.loc 1 352 12 is_stmt 0 view .LVU243
+ 950 001a 2046     		mov	r0, r4
+ 951 001c FFF7FEFF 		bl	mriBuffer_BytesLeft
+ 952              	.LVL87:
+ 953              		.loc 1 352 43 view .LVU244
+ 954 0020 0828     		cmp	r0, #8
+ 955 0022 0FD9     		bls	.L74
+ 956              		.loc 1 352 58 discriminator 1 view .LVU245
+ 957 0024 FFF7FEFF 		bl	mriPlatform_RtosGetNextThreadId
+ 958              	.LVL88:
+ 959              		.loc 1 352 43 discriminator 1 view .LVU246
+ 960 0028 0546     		mov	r5, r0
+ 961 002a 58B1     		cbz	r0, .L74
+ 353:mri/core/cmd_query.c ****     {
+ARM GAS  /tmp/ccjgvtfq.s 			page 28
+
+
+ 354:mri/core/cmd_query.c ****         Buffer_WriteChar(pBuffer, ',');
+ 962              		.loc 1 354 9 is_stmt 1 view .LVU247
+ 963 002c 2C21     		movs	r1, #44
+ 964 002e 2046     		mov	r0, r4
+ 965              	.LVL89:
+ 966              		.loc 1 354 9 is_stmt 0 view .LVU248
+ 967 0030 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 968              	.LVL90:
+ 355:mri/core/cmd_query.c ****         Buffer_WriteUIntegerAsHex(pBuffer, threadId);
+ 969              		.loc 1 355 9 is_stmt 1 view .LVU249
+ 970 0034 2946     		mov	r1, r5
+ 971 0036 2046     		mov	r0, r4
+ 972 0038 FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 973              	.LVL91:
+ 974 003c EDE7     		b	.L75
+ 975              	.LVL92:
+ 976              	.L78:
+ 346:mri/core/cmd_query.c ****         return 0;
+ 977              		.loc 1 346 9 view .LVU250
+ 978 003e 6C21     		movs	r1, #108
+ 979 0040 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 980              	.LVL93:
+ 347:mri/core/cmd_query.c ****     }
+ 981              		.loc 1 347 9 view .LVU251
+ 982              	.L74:
+ 356:mri/core/cmd_query.c ****     }
+ 357:mri/core/cmd_query.c ****     return 0;
+ 358:mri/core/cmd_query.c **** }
+ 983              		.loc 1 358 1 is_stmt 0 view .LVU252
+ 984 0044 0020     		movs	r0, #0
+ 985 0046 38BD     		pop	{r3, r4, r5, pc}
+ 986              		.loc 1 358 1 view .LVU253
+ 987              		.cfi_endproc
+ 988              	.LFE16:
+ 990              		.section	.text.handleQueryFirstThreadInfoCommand,"ax",%progbits
+ 991              		.align	1
+ 992              		.syntax unified
+ 993              		.thumb
+ 994              		.thumb_func
+ 996              	handleQueryFirstThreadInfoCommand:
+ 997              	.LFB14:
+ 313:mri/core/cmd_query.c ****     uint32_t threadId = Platform_RtosGetFirstThreadId();
+ 998              		.loc 1 313 1 is_stmt 1 view -0
+ 999              		.cfi_startproc
+ 1000              		@ args = 0, pretend = 0, frame = 0
+ 1001              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1002 0000 10B5     		push	{r4, lr}
+ 1003              	.LCFI18:
+ 1004              		.cfi_def_cfa_offset 8
+ 1005              		.cfi_offset 4, -8
+ 1006              		.cfi_offset 14, -4
+ 314:mri/core/cmd_query.c **** 
+ 1007              		.loc 1 314 5 view .LVU255
+ 314:mri/core/cmd_query.c **** 
+ 1008              		.loc 1 314 25 is_stmt 0 view .LVU256
+ 1009 0002 FFF7FEFF 		bl	mriPlatform_RtosGetFirstThreadId
+ 1010              	.LVL94:
+ARM GAS  /tmp/ccjgvtfq.s 			page 29
+
+
+ 316:mri/core/cmd_query.c ****     {
+ 1011              		.loc 1 316 5 is_stmt 1 view .LVU257
+ 316:mri/core/cmd_query.c ****     {
+ 1012              		.loc 1 316 8 is_stmt 0 view .LVU258
+ 1013 0006 0446     		mov	r4, r0
+ 1014 0008 20B1     		cbz	r0, .L83
+ 322:mri/core/cmd_query.c **** }
+ 1015              		.loc 1 322 5 is_stmt 1 view .LVU259
+ 322:mri/core/cmd_query.c **** }
+ 1016              		.loc 1 322 12 is_stmt 0 view .LVU260
+ 1017 000a FFF7FEFF 		bl	outputThreadIds
+ 1018              	.LVL95:
+ 322:mri/core/cmd_query.c **** }
+ 1019              		.loc 1 322 12 view .LVU261
+ 1020 000e 0446     		mov	r4, r0
+ 1021              	.LVL96:
+ 1022              	.L79:
+ 323:mri/core/cmd_query.c **** 
+ 1023              		.loc 1 323 1 view .LVU262
+ 1024 0010 2046     		mov	r0, r4
+ 1025 0012 10BD     		pop	{r4, pc}
+ 1026              	.LVL97:
+ 1027              	.L83:
+ 318:mri/core/cmd_query.c ****         return 0;
+ 1028              		.loc 1 318 9 is_stmt 1 view .LVU263
+ 1029 0014 0148     		ldr	r0, .L84
+ 1030              	.LVL98:
+ 318:mri/core/cmd_query.c ****         return 0;
+ 1031              		.loc 1 318 9 is_stmt 0 view .LVU264
+ 1032 0016 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1033              	.LVL99:
+ 319:mri/core/cmd_query.c ****     }
+ 1034              		.loc 1 319 9 is_stmt 1 view .LVU265
+ 319:mri/core/cmd_query.c ****     }
+ 1035              		.loc 1 319 16 is_stmt 0 view .LVU266
+ 1036 001a F9E7     		b	.L79
+ 1037              	.L85:
+ 1038              		.align	2
+ 1039              	.L84:
+ 1040 001c 00000000 		.word	.LC2
+ 1041              		.cfi_endproc
+ 1042              	.LFE14:
+ 1044              		.section	.text.handleQuerySubsequentThreadInfoCommand,"ax",%progbits
+ 1045              		.align	1
+ 1046              		.syntax unified
+ 1047              		.thumb
+ 1048              		.thumb_func
+ 1050              	handleQuerySubsequentThreadInfoCommand:
+ 1051              	.LFB15:
+ 336:mri/core/cmd_query.c ****     return outputThreadIds(Platform_RtosGetNextThreadId());
+ 1052              		.loc 1 336 1 is_stmt 1 view -0
+ 1053              		.cfi_startproc
+ 1054              		@ args = 0, pretend = 0, frame = 0
+ 1055              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1056 0000 08B5     		push	{r3, lr}
+ 1057              	.LCFI19:
+ 1058              		.cfi_def_cfa_offset 8
+ARM GAS  /tmp/ccjgvtfq.s 			page 30
+
+
+ 1059              		.cfi_offset 3, -8
+ 1060              		.cfi_offset 14, -4
+ 337:mri/core/cmd_query.c **** }
+ 1061              		.loc 1 337 5 view .LVU268
+ 337:mri/core/cmd_query.c **** }
+ 1062              		.loc 1 337 12 is_stmt 0 view .LVU269
+ 1063 0002 FFF7FEFF 		bl	mriPlatform_RtosGetNextThreadId
+ 1064              	.LVL100:
+ 1065 0006 FFF7FEFF 		bl	outputThreadIds
+ 1066              	.LVL101:
+ 338:mri/core/cmd_query.c **** 
+ 1067              		.loc 1 338 1 view .LVU270
+ 1068 000a 08BD     		pop	{r3, pc}
+ 1069              		.cfi_endproc
+ 1070              	.LFE15:
+ 1072              		.section	.text.handleQueryThreadExtraInfoCommand,"ax",%progbits
+ 1073              		.align	1
+ 1074              		.syntax unified
+ 1075              		.thumb
+ 1076              		.thumb_func
+ 1078              	handleQueryThreadExtraInfoCommand:
+ 1079              	.LFB17:
+ 359:mri/core/cmd_query.c **** 
+ 360:mri/core/cmd_query.c **** /* Handle the "qThreadExtraInfo" command used by gdb to request extra information about a particula
+ 361:mri/core/cmd_query.c **** 
+ 362:mri/core/cmd_query.c ****     Command Format: qThreadExtraInfo,AAAAAAAA
+ 363:mri/core/cmd_query.c ****     Where AAAAAAAA is the thread-id of the thread for which extra string information should be fetc
+ 364:mri/core/cmd_query.c ****         memory-map
+ 365:mri/core/cmd_query.c **** 
+ 366:mri/core/cmd_query.c ****     Reponse Format: XX...
+ 367:mri/core/cmd_query.c ****     Where XX is the hexadecimal representation of the ASCII extra thread info string.
+ 368:mri/core/cmd_query.c **** */
+ 369:mri/core/cmd_query.c **** static uint32_t handleQueryThreadExtraInfoCommand(void)
+ 370:mri/core/cmd_query.c **** {
+ 1080              		.loc 1 370 1 is_stmt 1 view -0
+ 1081              		.cfi_startproc
+ 1082              		@ args = 0, pretend = 0, frame = 0
+ 1083              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1084 0000 10B5     		push	{r4, lr}
+ 1085              	.LCFI20:
+ 1086              		.cfi_def_cfa_offset 8
+ 1087              		.cfi_offset 4, -8
+ 1088              		.cfi_offset 14, -4
+ 371:mri/core/cmd_query.c ****     Buffer*     pBuffer = GetBuffer();
+ 1089              		.loc 1 371 5 view .LVU272
+ 1090              		.loc 1 371 27 is_stmt 0 view .LVU273
+ 1091 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 1092              	.LVL102:
+ 1093 0006 0446     		mov	r4, r0
+ 1094              	.LVL103:
+ 372:mri/core/cmd_query.c ****     const char* pThreadExtraInfo = NULL;
+ 1095              		.loc 1 372 5 is_stmt 1 view .LVU274
+ 373:mri/core/cmd_query.c ****     uint32_t    threadId;
+ 1096              		.loc 1 373 5 view .LVU275
+ 374:mri/core/cmd_query.c **** 
+ 375:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ','))
+ 1097              		.loc 1 375 5 view .LVU276
+ARM GAS  /tmp/ccjgvtfq.s 			page 31
+
+
+ 1098              		.loc 1 375 10 is_stmt 0 view .LVU277
+ 1099 0008 2C21     		movs	r1, #44
+ 1100 000a FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 1101              	.LVL104:
+ 1102              		.loc 1 375 8 view .LVU278
+ 1103 000e 68B1     		cbz	r0, .L92
+ 376:mri/core/cmd_query.c ****     {
+ 377:mri/core/cmd_query.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+ 378:mri/core/cmd_query.c ****         return 0;
+ 379:mri/core/cmd_query.c ****     }
+ 380:mri/core/cmd_query.c **** 
+ 381:mri/core/cmd_query.c ****     threadId = Buffer_ReadUIntegerAsHex(pBuffer);
+ 1104              		.loc 1 381 5 is_stmt 1 view .LVU279
+ 1105              		.loc 1 381 16 is_stmt 0 view .LVU280
+ 1106 0010 2046     		mov	r0, r4
+ 1107 0012 FFF7FEFF 		bl	mriBuffer_ReadUIntegerAsHex
+ 1108              	.LVL105:
+ 382:mri/core/cmd_query.c ****     pThreadExtraInfo = Platform_RtosGetExtraThreadInfo(threadId);
+ 1109              		.loc 1 382 5 is_stmt 1 view .LVU281
+ 1110              		.loc 1 382 24 is_stmt 0 view .LVU282
+ 1111 0016 FFF7FEFF 		bl	mriPlatform_RtosGetExtraThreadInfo
+ 1112              	.LVL106:
+ 1113              		.loc 1 382 24 view .LVU283
+ 1114 001a 0446     		mov	r4, r0
+ 1115              	.LVL107:
+ 383:mri/core/cmd_query.c **** 
+ 384:mri/core/cmd_query.c ****     pBuffer = GetInitializedBuffer();
+ 1116              		.loc 1 384 5 is_stmt 1 view .LVU284
+ 1117              		.loc 1 384 15 is_stmt 0 view .LVU285
+ 1118 001c FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+ 1119              	.LVL108:
+ 385:mri/core/cmd_query.c ****     if (pThreadExtraInfo != NULL)
+ 1120              		.loc 1 385 5 is_stmt 1 view .LVU286
+ 1121              		.loc 1 385 8 is_stmt 0 view .LVU287
+ 1122 0020 14B1     		cbz	r4, .L90
+ 386:mri/core/cmd_query.c ****         Buffer_WriteStringAsHex(pBuffer, pThreadExtraInfo);
+ 1123              		.loc 1 386 9 is_stmt 1 view .LVU288
+ 1124 0022 2146     		mov	r1, r4
+ 1125 0024 FFF7FEFF 		bl	mriBuffer_WriteStringAsHex
+ 1126              	.LVL109:
+ 1127              	.L90:
+ 387:mri/core/cmd_query.c **** 
+ 388:mri/core/cmd_query.c ****     return 0;
+ 389:mri/core/cmd_query.c **** }
+ 1128              		.loc 1 389 1 is_stmt 0 view .LVU289
+ 1129 0028 0020     		movs	r0, #0
+ 1130 002a 10BD     		pop	{r4, pc}
+ 1131              	.LVL110:
+ 1132              	.L92:
+ 377:mri/core/cmd_query.c ****         return 0;
+ 1133              		.loc 1 377 9 is_stmt 1 view .LVU290
+ 1134 002c 0148     		ldr	r0, .L93
+ 1135 002e FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1136              	.LVL111:
+ 378:mri/core/cmd_query.c ****     }
+ 1137              		.loc 1 378 9 view .LVU291
+ 378:mri/core/cmd_query.c ****     }
+ARM GAS  /tmp/ccjgvtfq.s 			page 32
+
+
+ 1138              		.loc 1 378 16 is_stmt 0 view .LVU292
+ 1139 0032 F9E7     		b	.L90
+ 1140              	.L94:
+ 1141              		.align	2
+ 1142              	.L93:
+ 1143 0034 00000000 		.word	.LC0
+ 1144              		.cfi_endproc
+ 1145              	.LFE17:
+ 1147              		.section	.rodata.handleMonitorHelpCommand.str1.4,"aMS",%progbits,1
+ 1148              		.align	2
+ 1149              	.LC3:
+ 1150 0000 53757070 		.ascii	"Supported monitor commands:\015\012\000"
+ 1150      6F727465 
+ 1150      64206D6F 
+ 1150      6E69746F 
+ 1150      7220636F 
+ 1151 001e 0000     		.align	2
+ 1152              	.LC4:
+ 1153 0020 72657365 		.ascii	"reset\015\012\000"
+ 1153      740D0A00 
+ 1154              		.align	2
+ 1155              	.LC5:
+ 1156 0028 73686F77 		.ascii	"showfault\015\012\000"
+ 1156      6661756C 
+ 1156      740D0A00 
+ 1157              		.align	2
+ 1158              	.LC6:
+ 1159 0034 4F4B00   		.ascii	"OK\000"
+ 1160              		.section	.text.handleMonitorHelpCommand,"ax",%progbits
+ 1161              		.align	1
+ 1162              		.syntax unified
+ 1163              		.thumb
+ 1164              		.thumb_func
+ 1166              	handleMonitorHelpCommand:
+ 1167              	.LFB21:
+ 390:mri/core/cmd_query.c **** 
+ 391:mri/core/cmd_query.c **** /* Handle the "qRcmd" command used by gdb to send "monitor" commands to the stub.
+ 392:mri/core/cmd_query.c **** 
+ 393:mri/core/cmd_query.c ****     Command Format: qRcmd,XXYY...
+ 394:mri/core/cmd_query.c ****     Where XXYY... are the hexadecimal representation of the ASCII command text.
+ 395:mri/core/cmd_query.c **** */
+ 396:mri/core/cmd_query.c **** static uint32_t handleMonitorCommand(void)
+ 397:mri/core/cmd_query.c **** {
+ 398:mri/core/cmd_query.c ****     Buffer*             pBuffer =GetBuffer();
+ 399:mri/core/cmd_query.c ****     static const char   reset[] = "reset";
+ 400:mri/core/cmd_query.c ****     static const char   showfault[] = "showfault";
+ 401:mri/core/cmd_query.c ****     static const char   help[] = "help";
+ 402:mri/core/cmd_query.c **** 
+ 403:mri/core/cmd_query.c ****     if (!Buffer_IsNextCharEqualTo(pBuffer, ','))
+ 404:mri/core/cmd_query.c ****     {
+ 405:mri/core/cmd_query.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+ 406:mri/core/cmd_query.c ****         return 0;
+ 407:mri/core/cmd_query.c ****     }
+ 408:mri/core/cmd_query.c **** 
+ 409:mri/core/cmd_query.c ****     if (Buffer_MatchesHexString(pBuffer, reset, sizeof(reset)-1))
+ 410:mri/core/cmd_query.c ****     {
+ 411:mri/core/cmd_query.c ****         return handleMonitorResetCommand();
+ARM GAS  /tmp/ccjgvtfq.s 			page 33
+
+
+ 412:mri/core/cmd_query.c ****     }
+ 413:mri/core/cmd_query.c ****     else if (Buffer_MatchesHexString(pBuffer, showfault, sizeof(showfault)-1))
+ 414:mri/core/cmd_query.c ****     {
+ 415:mri/core/cmd_query.c ****         return handleMonitorShowFaultCommand();
+ 416:mri/core/cmd_query.c ****     }
+ 417:mri/core/cmd_query.c ****     else if (Buffer_MatchesHexString(pBuffer, help, sizeof(help)-1))
+ 418:mri/core/cmd_query.c ****     {
+ 419:mri/core/cmd_query.c ****         return handleMonitorHelpCommand();
+ 420:mri/core/cmd_query.c ****     }
+ 421:mri/core/cmd_query.c ****     else
+ 422:mri/core/cmd_query.c ****     {
+ 423:mri/core/cmd_query.c ****         WriteStringToGdbConsole("Unrecognized monitor command!\r\n");
+ 424:mri/core/cmd_query.c ****         return handleMonitorHelpCommand();
+ 425:mri/core/cmd_query.c ****     }
+ 426:mri/core/cmd_query.c **** }
+ 427:mri/core/cmd_query.c **** 
+ 428:mri/core/cmd_query.c **** static uint32_t handleMonitorResetCommand(void)
+ 429:mri/core/cmd_query.c **** {
+ 430:mri/core/cmd_query.c ****     RequestResetOnNextContinue();
+ 431:mri/core/cmd_query.c ****     WriteStringToGdbConsole("Will reset on next continue.\r\n");
+ 432:mri/core/cmd_query.c ****     PrepareStringResponse("OK");
+ 433:mri/core/cmd_query.c ****     return 0;
+ 434:mri/core/cmd_query.c **** }
+ 435:mri/core/cmd_query.c **** 
+ 436:mri/core/cmd_query.c **** static uint32_t handleMonitorShowFaultCommand(void)
+ 437:mri/core/cmd_query.c **** {
+ 438:mri/core/cmd_query.c ****     Platform_DisplayFaultCauseToGdbConsole();
+ 439:mri/core/cmd_query.c ****     PrepareStringResponse("OK");
+ 440:mri/core/cmd_query.c ****     return 0;
+ 441:mri/core/cmd_query.c **** }
+ 442:mri/core/cmd_query.c **** 
+ 443:mri/core/cmd_query.c **** static uint32_t handleMonitorHelpCommand(void)
+ 444:mri/core/cmd_query.c **** {
+ 1168              		.loc 1 444 1 is_stmt 1 view -0
+ 1169              		.cfi_startproc
+ 1170              		@ args = 0, pretend = 0, frame = 0
+ 1171              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1172 0000 08B5     		push	{r3, lr}
+ 1173              	.LCFI21:
+ 1174              		.cfi_def_cfa_offset 8
+ 1175              		.cfi_offset 3, -8
+ 1176              		.cfi_offset 14, -4
+ 445:mri/core/cmd_query.c ****     WriteStringToGdbConsole("Supported monitor commands:\r\n");
+ 1177              		.loc 1 445 5 view .LVU294
+ 1178 0002 0748     		ldr	r0, .L97
+ 1179 0004 FFF7FEFF 		bl	mriGdbConsole_WriteString
+ 1180              	.LVL112:
+ 446:mri/core/cmd_query.c ****     WriteStringToGdbConsole("reset\r\n");
+ 1181              		.loc 1 446 5 view .LVU295
+ 1182 0008 0648     		ldr	r0, .L97+4
+ 1183 000a FFF7FEFF 		bl	mriGdbConsole_WriteString
+ 1184              	.LVL113:
+ 447:mri/core/cmd_query.c ****     WriteStringToGdbConsole("showfault\r\n");
+ 1185              		.loc 1 447 5 view .LVU296
+ 1186 000e 0648     		ldr	r0, .L97+8
+ 1187 0010 FFF7FEFF 		bl	mriGdbConsole_WriteString
+ 1188              	.LVL114:
+ARM GAS  /tmp/ccjgvtfq.s 			page 34
+
+
+ 448:mri/core/cmd_query.c ****     PrepareStringResponse("OK");
+ 1189              		.loc 1 448 5 view .LVU297
+ 1190 0014 0548     		ldr	r0, .L97+12
+ 1191 0016 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1192              	.LVL115:
+ 449:mri/core/cmd_query.c ****     return 0;
+ 1193              		.loc 1 449 5 view .LVU298
+ 450:mri/core/cmd_query.c **** }
+ 1194              		.loc 1 450 1 is_stmt 0 view .LVU299
+ 1195 001a 0020     		movs	r0, #0
+ 1196 001c 08BD     		pop	{r3, pc}
+ 1197              	.L98:
+ 1198 001e 00BF     		.align	2
+ 1199              	.L97:
+ 1200 0020 00000000 		.word	.LC3
+ 1201 0024 20000000 		.word	.LC4
+ 1202 0028 28000000 		.word	.LC5
+ 1203 002c 34000000 		.word	.LC6
+ 1204              		.cfi_endproc
+ 1205              	.LFE21:
+ 1207              		.section	.rodata.handleMonitorResetCommand.str1.4,"aMS",%progbits,1
+ 1208              		.align	2
+ 1209              	.LC7:
+ 1210 0000 57696C6C 		.ascii	"Will reset on next continue.\015\012\000"
+ 1210      20726573 
+ 1210      6574206F 
+ 1210      6E206E65 
+ 1210      78742063 
+ 1211              		.section	.text.handleMonitorResetCommand,"ax",%progbits
+ 1212              		.align	1
+ 1213              		.syntax unified
+ 1214              		.thumb
+ 1215              		.thumb_func
+ 1217              	handleMonitorResetCommand:
+ 1218              	.LFB19:
+ 429:mri/core/cmd_query.c ****     RequestResetOnNextContinue();
+ 1219              		.loc 1 429 1 is_stmt 1 view -0
+ 1220              		.cfi_startproc
+ 1221              		@ args = 0, pretend = 0, frame = 0
+ 1222              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1223 0000 08B5     		push	{r3, lr}
+ 1224              	.LCFI22:
+ 1225              		.cfi_def_cfa_offset 8
+ 1226              		.cfi_offset 3, -8
+ 1227              		.cfi_offset 14, -4
+ 430:mri/core/cmd_query.c ****     WriteStringToGdbConsole("Will reset on next continue.\r\n");
+ 1228              		.loc 1 430 5 view .LVU301
+ 1229 0002 FFF7FEFF 		bl	mriCore_RequestResetOnNextContinue
+ 1230              	.LVL116:
+ 431:mri/core/cmd_query.c ****     PrepareStringResponse("OK");
+ 1231              		.loc 1 431 5 view .LVU302
+ 1232 0006 0448     		ldr	r0, .L101
+ 1233 0008 FFF7FEFF 		bl	mriGdbConsole_WriteString
+ 1234              	.LVL117:
+ 432:mri/core/cmd_query.c ****     return 0;
+ 1235              		.loc 1 432 5 view .LVU303
+ 1236 000c 0348     		ldr	r0, .L101+4
+ARM GAS  /tmp/ccjgvtfq.s 			page 35
+
+
+ 1237 000e FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1238              	.LVL118:
+ 433:mri/core/cmd_query.c **** }
+ 1239              		.loc 1 433 5 view .LVU304
+ 434:mri/core/cmd_query.c **** 
+ 1240              		.loc 1 434 1 is_stmt 0 view .LVU305
+ 1241 0012 0020     		movs	r0, #0
+ 1242 0014 08BD     		pop	{r3, pc}
+ 1243              	.L102:
+ 1244 0016 00BF     		.align	2
+ 1245              	.L101:
+ 1246 0018 00000000 		.word	.LC7
+ 1247 001c 34000000 		.word	.LC6
+ 1248              		.cfi_endproc
+ 1249              	.LFE19:
+ 1251              		.section	.text.handleMonitorShowFaultCommand,"ax",%progbits
+ 1252              		.align	1
+ 1253              		.syntax unified
+ 1254              		.thumb
+ 1255              		.thumb_func
+ 1257              	handleMonitorShowFaultCommand:
+ 1258              	.LFB20:
+ 437:mri/core/cmd_query.c ****     Platform_DisplayFaultCauseToGdbConsole();
+ 1259              		.loc 1 437 1 is_stmt 1 view -0
+ 1260              		.cfi_startproc
+ 1261              		@ args = 0, pretend = 0, frame = 0
+ 1262              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1263 0000 08B5     		push	{r3, lr}
+ 1264              	.LCFI23:
+ 1265              		.cfi_def_cfa_offset 8
+ 1266              		.cfi_offset 3, -8
+ 1267              		.cfi_offset 14, -4
+ 438:mri/core/cmd_query.c ****     PrepareStringResponse("OK");
+ 1268              		.loc 1 438 5 view .LVU307
+ 1269 0002 FFF7FEFF 		bl	mriPlatform_DisplayFaultCauseToGdbConsole
+ 1270              	.LVL119:
+ 439:mri/core/cmd_query.c ****     return 0;
+ 1271              		.loc 1 439 5 view .LVU308
+ 1272 0006 0248     		ldr	r0, .L105
+ 1273 0008 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1274              	.LVL120:
+ 440:mri/core/cmd_query.c **** }
+ 1275              		.loc 1 440 5 view .LVU309
+ 441:mri/core/cmd_query.c **** 
+ 1276              		.loc 1 441 1 is_stmt 0 view .LVU310
+ 1277 000c 0020     		movs	r0, #0
+ 1278 000e 08BD     		pop	{r3, pc}
+ 1279              	.L106:
+ 1280              		.align	2
+ 1281              	.L105:
+ 1282 0010 34000000 		.word	.LC6
+ 1283              		.cfi_endproc
+ 1284              	.LFE20:
+ 1286              		.section	.rodata.handleMonitorCommand.str1.4,"aMS",%progbits,1
+ 1287              		.align	2
+ 1288              	.LC8:
+ 1289 0000 556E7265 		.ascii	"Unrecognized monitor command!\015\012\000"
+ARM GAS  /tmp/ccjgvtfq.s 			page 36
+
+
+ 1289      636F676E 
+ 1289      697A6564 
+ 1289      206D6F6E 
+ 1289      69746F72 
+ 1290              		.section	.text.handleMonitorCommand,"ax",%progbits
+ 1291              		.align	1
+ 1292              		.syntax unified
+ 1293              		.thumb
+ 1294              		.thumb_func
+ 1296              	handleMonitorCommand:
+ 1297              	.LFB18:
+ 397:mri/core/cmd_query.c ****     Buffer*             pBuffer =GetBuffer();
+ 1298              		.loc 1 397 1 is_stmt 1 view -0
+ 1299              		.cfi_startproc
+ 1300              		@ args = 0, pretend = 0, frame = 0
+ 1301              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1302 0000 10B5     		push	{r4, lr}
+ 1303              	.LCFI24:
+ 1304              		.cfi_def_cfa_offset 8
+ 1305              		.cfi_offset 4, -8
+ 1306              		.cfi_offset 14, -4
+ 398:mri/core/cmd_query.c ****     static const char   reset[] = "reset";
+ 1307              		.loc 1 398 5 view .LVU312
+ 398:mri/core/cmd_query.c ****     static const char   reset[] = "reset";
+ 1308              		.loc 1 398 34 is_stmt 0 view .LVU313
+ 1309 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 1310              	.LVL121:
+ 1311 0006 0446     		mov	r4, r0
+ 1312              	.LVL122:
+ 399:mri/core/cmd_query.c ****     static const char   showfault[] = "showfault";
+ 1313              		.loc 1 399 5 is_stmt 1 view .LVU314
+ 400:mri/core/cmd_query.c ****     static const char   help[] = "help";
+ 1314              		.loc 1 400 5 view .LVU315
+ 401:mri/core/cmd_query.c **** 
+ 1315              		.loc 1 401 5 view .LVU316
+ 403:mri/core/cmd_query.c ****     {
+ 1316              		.loc 1 403 5 view .LVU317
+ 403:mri/core/cmd_query.c ****     {
+ 1317              		.loc 1 403 10 is_stmt 0 view .LVU318
+ 1318 0008 2C21     		movs	r1, #44
+ 1319 000a FFF7FEFF 		bl	mriBuffer_IsNextCharEqualTo
+ 1320              	.LVL123:
+ 403:mri/core/cmd_query.c ****     {
+ 1321              		.loc 1 403 8 view .LVU319
+ 1322 000e A0B1     		cbz	r0, .L114
+ 409:mri/core/cmd_query.c ****     {
+ 1323              		.loc 1 409 5 is_stmt 1 view .LVU320
+ 409:mri/core/cmd_query.c ****     {
+ 1324              		.loc 1 409 9 is_stmt 0 view .LVU321
+ 1325 0010 0522     		movs	r2, #5
+ 1326 0012 1249     		ldr	r1, .L117
+ 1327 0014 2046     		mov	r0, r4
+ 1328 0016 FFF7FEFF 		bl	mriBuffer_MatchesHexString
+ 1329              	.LVL124:
+ 409:mri/core/cmd_query.c ****     {
+ 1330              		.loc 1 409 8 view .LVU322
+ 1331 001a 98B9     		cbnz	r0, .L115
+ARM GAS  /tmp/ccjgvtfq.s 			page 37
+
+
+ 413:mri/core/cmd_query.c ****     {
+ 1332              		.loc 1 413 10 is_stmt 1 view .LVU323
+ 413:mri/core/cmd_query.c ****     {
+ 1333              		.loc 1 413 14 is_stmt 0 view .LVU324
+ 1334 001c 0922     		movs	r2, #9
+ 1335 001e 1049     		ldr	r1, .L117+4
+ 1336 0020 2046     		mov	r0, r4
+ 1337 0022 FFF7FEFF 		bl	mriBuffer_MatchesHexString
+ 1338              	.LVL125:
+ 413:mri/core/cmd_query.c ****     {
+ 1339              		.loc 1 413 13 view .LVU325
+ 1340 0026 80B9     		cbnz	r0, .L116
+ 417:mri/core/cmd_query.c ****     {
+ 1341              		.loc 1 417 10 is_stmt 1 view .LVU326
+ 417:mri/core/cmd_query.c ****     {
+ 1342              		.loc 1 417 14 is_stmt 0 view .LVU327
+ 1343 0028 0422     		movs	r2, #4
+ 1344 002a 0E49     		ldr	r1, .L117+8
+ 1345 002c 2046     		mov	r0, r4
+ 1346 002e FFF7FEFF 		bl	mriBuffer_MatchesHexString
+ 1347              	.LVL126:
+ 417:mri/core/cmd_query.c ****     {
+ 1348              		.loc 1 417 13 view .LVU328
+ 1349 0032 68B1     		cbz	r0, .L112
+ 419:mri/core/cmd_query.c ****     }
+ 1350              		.loc 1 419 9 is_stmt 1 view .LVU329
+ 419:mri/core/cmd_query.c ****     }
+ 1351              		.loc 1 419 16 is_stmt 0 view .LVU330
+ 1352 0034 FFF7FEFF 		bl	handleMonitorHelpCommand
+ 1353              	.LVL127:
+ 1354 0038 03E0     		b	.L107
+ 1355              	.L114:
+ 405:mri/core/cmd_query.c ****         return 0;
+ 1356              		.loc 1 405 9 is_stmt 1 view .LVU331
+ 1357 003a 0B48     		ldr	r0, .L117+12
+ 1358 003c FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1359              	.LVL128:
+ 406:mri/core/cmd_query.c ****     }
+ 1360              		.loc 1 406 9 view .LVU332
+ 406:mri/core/cmd_query.c ****     }
+ 1361              		.loc 1 406 16 is_stmt 0 view .LVU333
+ 1362 0040 0020     		movs	r0, #0
+ 1363              	.L107:
+ 426:mri/core/cmd_query.c **** 
+ 1364              		.loc 1 426 1 view .LVU334
+ 1365 0042 10BD     		pop	{r4, pc}
+ 1366              	.LVL129:
+ 1367              	.L115:
+ 411:mri/core/cmd_query.c ****     }
+ 1368              		.loc 1 411 9 is_stmt 1 view .LVU335
+ 411:mri/core/cmd_query.c ****     }
+ 1369              		.loc 1 411 16 is_stmt 0 view .LVU336
+ 1370 0044 FFF7FEFF 		bl	handleMonitorResetCommand
+ 1371              	.LVL130:
+ 1372 0048 FBE7     		b	.L107
+ 1373              	.L116:
+ 415:mri/core/cmd_query.c ****     }
+ARM GAS  /tmp/ccjgvtfq.s 			page 38
+
+
+ 1374              		.loc 1 415 9 is_stmt 1 view .LVU337
+ 415:mri/core/cmd_query.c ****     }
+ 1375              		.loc 1 415 16 is_stmt 0 view .LVU338
+ 1376 004a FFF7FEFF 		bl	handleMonitorShowFaultCommand
+ 1377              	.LVL131:
+ 1378 004e F8E7     		b	.L107
+ 1379              	.L112:
+ 423:mri/core/cmd_query.c ****         return handleMonitorHelpCommand();
+ 1380              		.loc 1 423 9 is_stmt 1 view .LVU339
+ 1381 0050 0648     		ldr	r0, .L117+16
+ 1382 0052 FFF7FEFF 		bl	mriGdbConsole_WriteString
+ 1383              	.LVL132:
+ 424:mri/core/cmd_query.c ****     }
+ 1384              		.loc 1 424 9 view .LVU340
+ 424:mri/core/cmd_query.c ****     }
+ 1385              		.loc 1 424 16 is_stmt 0 view .LVU341
+ 1386 0056 FFF7FEFF 		bl	handleMonitorHelpCommand
+ 1387              	.LVL133:
+ 1388 005a F2E7     		b	.L107
+ 1389              	.L118:
+ 1390              		.align	2
+ 1391              	.L117:
+ 1392 005c 00000000 		.word	reset.2
+ 1393 0060 00000000 		.word	showfault.1
+ 1394 0064 00000000 		.word	help.0
+ 1395 0068 00000000 		.word	.LC0
+ 1396 006c 00000000 		.word	.LC8
+ 1397              		.cfi_endproc
+ 1398              	.LFE18:
+ 1400              		.section	.text.mriCmd_HandleQueryCommand,"ax",%progbits
+ 1401              		.align	1
+ 1402              		.global	mriCmd_HandleQueryCommand
+ 1403              		.syntax unified
+ 1404              		.thumb
+ 1405              		.thumb_func
+ 1407              	mriCmd_HandleQueryCommand:
+ 1408              	.LFB3:
+  58:mri/core/cmd_query.c ****     Buffer*             pBuffer = GetBuffer();
+ 1409              		.loc 1 58 1 is_stmt 1 view -0
+ 1410              		.cfi_startproc
+ 1411              		@ args = 0, pretend = 0, frame = 0
+ 1412              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1413 0000 10B5     		push	{r4, lr}
+ 1414              	.LCFI25:
+ 1415              		.cfi_def_cfa_offset 8
+ 1416              		.cfi_offset 4, -8
+ 1417              		.cfi_offset 14, -4
+  59:mri/core/cmd_query.c ****     static const char   qSupportedCommand[] = "Supported";
+ 1418              		.loc 1 59 5 view .LVU343
+  59:mri/core/cmd_query.c ****     static const char   qSupportedCommand[] = "Supported";
+ 1419              		.loc 1 59 35 is_stmt 0 view .LVU344
+ 1420 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 1421              	.LVL134:
+ 1422 0006 0446     		mov	r4, r0
+ 1423              	.LVL135:
+  60:mri/core/cmd_query.c ****     static const char   qXferCommand[] = "Xfer";
+ 1424              		.loc 1 60 5 is_stmt 1 view .LVU345
+ARM GAS  /tmp/ccjgvtfq.s 			page 39
+
+
+  61:mri/core/cmd_query.c ****     static const char   qfThreadInfo[] = "fThreadInfo";
+ 1425              		.loc 1 61 5 view .LVU346
+  62:mri/core/cmd_query.c ****     static const char   qsThreadInfo[] = "sThreadInfo";
+ 1426              		.loc 1 62 5 view .LVU347
+  63:mri/core/cmd_query.c ****     static const char   qThreadExtraInfo[] = "ThreadExtraInfo";
+ 1427              		.loc 1 63 5 view .LVU348
+  64:mri/core/cmd_query.c ****     static const char   qRcmdCommand[] = "Rcmd";
+ 1428              		.loc 1 64 5 view .LVU349
+  65:mri/core/cmd_query.c **** 
+ 1429              		.loc 1 65 5 view .LVU350
+  67:mri/core/cmd_query.c ****     {
+ 1430              		.loc 1 67 5 view .LVU351
+  67:mri/core/cmd_query.c ****     {
+ 1431              		.loc 1 67 9 is_stmt 0 view .LVU352
+ 1432 0008 0922     		movs	r2, #9
+ 1433 000a 1C49     		ldr	r1, .L133
+ 1434 000c FFF7FEFF 		bl	mriBuffer_MatchesString
+ 1435              	.LVL136:
+  67:mri/core/cmd_query.c ****     {
+ 1436              		.loc 1 67 8 view .LVU353
+ 1437 0010 00BB     		cbnz	r0, .L128
+  71:mri/core/cmd_query.c ****     {
+ 1438              		.loc 1 71 10 is_stmt 1 view .LVU354
+  71:mri/core/cmd_query.c ****     {
+ 1439              		.loc 1 71 14 is_stmt 0 view .LVU355
+ 1440 0012 0422     		movs	r2, #4
+ 1441 0014 1A49     		ldr	r1, .L133+4
+ 1442 0016 2046     		mov	r0, r4
+ 1443 0018 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 1444              	.LVL137:
+  71:mri/core/cmd_query.c ****     {
+ 1445              		.loc 1 71 13 view .LVU356
+ 1446 001c E8B9     		cbnz	r0, .L129
+  75:mri/core/cmd_query.c ****     {
+ 1447              		.loc 1 75 10 is_stmt 1 view .LVU357
+  75:mri/core/cmd_query.c ****     {
+ 1448              		.loc 1 75 14 is_stmt 0 view .LVU358
+ 1449 001e 0B22     		movs	r2, #11
+ 1450 0020 1849     		ldr	r1, .L133+8
+ 1451 0022 2046     		mov	r0, r4
+ 1452 0024 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 1453              	.LVL138:
+  75:mri/core/cmd_query.c ****     {
+ 1454              		.loc 1 75 13 view .LVU359
+ 1455 0028 D0B9     		cbnz	r0, .L130
+  79:mri/core/cmd_query.c ****     {
+ 1456              		.loc 1 79 10 is_stmt 1 view .LVU360
+  79:mri/core/cmd_query.c ****     {
+ 1457              		.loc 1 79 14 is_stmt 0 view .LVU361
+ 1458 002a 0B22     		movs	r2, #11
+ 1459 002c 1649     		ldr	r1, .L133+12
+ 1460 002e 2046     		mov	r0, r4
+ 1461 0030 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 1462              	.LVL139:
+  79:mri/core/cmd_query.c ****     {
+ 1463              		.loc 1 79 13 view .LVU362
+ 1464 0034 B8B9     		cbnz	r0, .L131
+ARM GAS  /tmp/ccjgvtfq.s 			page 40
+
+
+  83:mri/core/cmd_query.c ****     {
+ 1465              		.loc 1 83 10 is_stmt 1 view .LVU363
+  83:mri/core/cmd_query.c ****     {
+ 1466              		.loc 1 83 14 is_stmt 0 view .LVU364
+ 1467 0036 0F22     		movs	r2, #15
+ 1468 0038 1449     		ldr	r1, .L133+16
+ 1469 003a 2046     		mov	r0, r4
+ 1470 003c FFF7FEFF 		bl	mriBuffer_MatchesString
+ 1471              	.LVL140:
+  83:mri/core/cmd_query.c ****     {
+ 1472              		.loc 1 83 13 view .LVU365
+ 1473 0040 A0B9     		cbnz	r0, .L132
+  87:mri/core/cmd_query.c ****     {
+ 1474              		.loc 1 87 10 is_stmt 1 view .LVU366
+  87:mri/core/cmd_query.c ****     {
+ 1475              		.loc 1 87 14 is_stmt 0 view .LVU367
+ 1476 0042 0422     		movs	r2, #4
+ 1477 0044 1249     		ldr	r1, .L133+20
+ 1478 0046 2046     		mov	r0, r4
+ 1479 0048 FFF7FEFF 		bl	mriBuffer_MatchesString
+ 1480              	.LVL141:
+  87:mri/core/cmd_query.c ****     {
+ 1481              		.loc 1 87 13 view .LVU368
+ 1482 004c 88B1     		cbz	r0, .L126
+  89:mri/core/cmd_query.c ****     }
+ 1483              		.loc 1 89 9 is_stmt 1 view .LVU369
+  89:mri/core/cmd_query.c ****     }
+ 1484              		.loc 1 89 16 is_stmt 0 view .LVU370
+ 1485 004e FFF7FEFF 		bl	handleMonitorCommand
+ 1486              	.LVL142:
+ 1487 0052 01E0     		b	.L119
+ 1488              	.L128:
+  69:mri/core/cmd_query.c ****     }
+ 1489              		.loc 1 69 9 is_stmt 1 view .LVU371
+  69:mri/core/cmd_query.c ****     }
+ 1490              		.loc 1 69 16 is_stmt 0 view .LVU372
+ 1491 0054 FFF7FEFF 		bl	handleQuerySupportedCommand
+ 1492              	.LVL143:
+ 1493              	.L119:
+  96:mri/core/cmd_query.c **** 
+ 1494              		.loc 1 96 1 view .LVU373
+ 1495 0058 10BD     		pop	{r4, pc}
+ 1496              	.LVL144:
+ 1497              	.L129:
+  73:mri/core/cmd_query.c ****     }
+ 1498              		.loc 1 73 9 is_stmt 1 view .LVU374
+  73:mri/core/cmd_query.c ****     }
+ 1499              		.loc 1 73 16 is_stmt 0 view .LVU375
+ 1500 005a FFF7FEFF 		bl	handleQueryTransferCommand
+ 1501              	.LVL145:
+ 1502 005e FBE7     		b	.L119
+ 1503              	.L130:
+  77:mri/core/cmd_query.c ****     }
+ 1504              		.loc 1 77 9 is_stmt 1 view .LVU376
+  77:mri/core/cmd_query.c ****     }
+ 1505              		.loc 1 77 16 is_stmt 0 view .LVU377
+ 1506 0060 FFF7FEFF 		bl	handleQueryFirstThreadInfoCommand
+ARM GAS  /tmp/ccjgvtfq.s 			page 41
+
+
+ 1507              	.LVL146:
+ 1508 0064 F8E7     		b	.L119
+ 1509              	.L131:
+  81:mri/core/cmd_query.c ****     }
+ 1510              		.loc 1 81 9 is_stmt 1 view .LVU378
+  81:mri/core/cmd_query.c ****     }
+ 1511              		.loc 1 81 16 is_stmt 0 view .LVU379
+ 1512 0066 FFF7FEFF 		bl	handleQuerySubsequentThreadInfoCommand
+ 1513              	.LVL147:
+ 1514 006a F5E7     		b	.L119
+ 1515              	.L132:
+  85:mri/core/cmd_query.c ****     }
+ 1516              		.loc 1 85 9 is_stmt 1 view .LVU380
+  85:mri/core/cmd_query.c ****     }
+ 1517              		.loc 1 85 16 is_stmt 0 view .LVU381
+ 1518 006c FFF7FEFF 		bl	handleQueryThreadExtraInfoCommand
+ 1519              	.LVL148:
+ 1520 0070 F2E7     		b	.L119
+ 1521              	.L126:
+  93:mri/core/cmd_query.c ****         return 0;
+ 1522              		.loc 1 93 9 is_stmt 1 view .LVU382
+ 1523 0072 0848     		ldr	r0, .L133+24
+ 1524 0074 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 1525              	.LVL149:
+  94:mri/core/cmd_query.c ****     }
+ 1526              		.loc 1 94 9 view .LVU383
+  94:mri/core/cmd_query.c ****     }
+ 1527              		.loc 1 94 16 is_stmt 0 view .LVU384
+ 1528 0078 0020     		movs	r0, #0
+ 1529 007a EDE7     		b	.L119
+ 1530              	.L134:
+ 1531              		.align	2
+ 1532              	.L133:
+ 1533 007c 00000000 		.word	qSupportedCommand.13
+ 1534 0080 00000000 		.word	qXferCommand.12
+ 1535 0084 00000000 		.word	qfThreadInfo.11
+ 1536 0088 00000000 		.word	qsThreadInfo.10
+ 1537 008c 00000000 		.word	qThreadExtraInfo.9
+ 1538 0090 00000000 		.word	qRcmdCommand.8
+ 1539 0094 00000000 		.word	.LC2
+ 1540              		.cfi_endproc
+ 1541              	.LFE3:
+ 1543              		.section	.rodata.help.0,"a"
+ 1544              		.align	2
+ 1547              	help.0:
+ 1548 0000 68656C70 		.ascii	"help\000"
+ 1548      00
+ 1549              		.section	.rodata.showfault.1,"a"
+ 1550              		.align	2
+ 1553              	showfault.1:
+ 1554 0000 73686F77 		.ascii	"showfault\000"
+ 1554      6661756C 
+ 1554      7400
+ 1555              		.section	.rodata.reset.2,"a"
+ 1556              		.align	2
+ 1559              	reset.2:
+ 1560 0000 72657365 		.ascii	"reset\000"
+ARM GAS  /tmp/ccjgvtfq.s 			page 42
+
+
+ 1560      7400
+ 1561              		.section	.rodata.targetXmlAnnex.3,"a"
+ 1562              		.align	2
+ 1565              	targetXmlAnnex.3:
+ 1566 0000 74617267 		.ascii	"target.xml\000"
+ 1566      65742E78 
+ 1566      6D6C00
+ 1567              		.section	.rodata.readCommand.4,"a"
+ 1568              		.align	2
+ 1571              	readCommand.4:
+ 1572 0000 72656164 		.ascii	"read\000"
+ 1572      00
+ 1573              		.section	.rodata.featureObject.5,"a"
+ 1574              		.align	2
+ 1577              	featureObject.5:
+ 1578 0000 66656174 		.ascii	"features\000"
+ 1578      75726573 
+ 1578      00
+ 1579              		.section	.rodata.memoryMapObject.6,"a"
+ 1580              		.align	2
+ 1583              	memoryMapObject.6:
+ 1584 0000 6D656D6F 		.ascii	"memory-map\000"
+ 1584      72792D6D 
+ 1584      617000
+ 1585              		.section	.rodata.querySupportResponse.7,"a"
+ 1586              		.align	2
+ 1589              	querySupportResponse.7:
+ 1590 0000 71586665 		.ascii	"qXfer:memory-map:read+;qXfer:features:read+;vContSu"
+ 1590      723A6D65 
+ 1590      6D6F7279 
+ 1590      2D6D6170 
+ 1590      3A726561 
+ 1591 0033 70706F72 		.ascii	"pported+;PacketSize=\000"
+ 1591      7465642B 
+ 1591      3B506163 
+ 1591      6B657453 
+ 1591      697A653D 
+ 1592              		.section	.rodata.qRcmdCommand.8,"a"
+ 1593              		.align	2
+ 1596              	qRcmdCommand.8:
+ 1597 0000 52636D64 		.ascii	"Rcmd\000"
+ 1597      00
+ 1598              		.section	.rodata.qThreadExtraInfo.9,"a"
+ 1599              		.align	2
+ 1602              	qThreadExtraInfo.9:
+ 1603 0000 54687265 		.ascii	"ThreadExtraInfo\000"
+ 1603      61644578 
+ 1603      74726149 
+ 1603      6E666F00 
+ 1604              		.section	.rodata.qsThreadInfo.10,"a"
+ 1605              		.align	2
+ 1608              	qsThreadInfo.10:
+ 1609 0000 73546872 		.ascii	"sThreadInfo\000"
+ 1609      65616449 
+ 1609      6E666F00 
+ 1610              		.section	.rodata.qfThreadInfo.11,"a"
+ 1611              		.align	2
+ARM GAS  /tmp/ccjgvtfq.s 			page 43
+
+
+ 1614              	qfThreadInfo.11:
+ 1615 0000 66546872 		.ascii	"fThreadInfo\000"
+ 1615      65616449 
+ 1615      6E666F00 
+ 1616              		.section	.rodata.qXferCommand.12,"a"
+ 1617              		.align	2
+ 1620              	qXferCommand.12:
+ 1621 0000 58666572 		.ascii	"Xfer\000"
+ 1621      00
+ 1622              		.section	.rodata.qSupportedCommand.13,"a"
+ 1623              		.align	2
+ 1626              	qSupportedCommand.13:
+ 1627 0000 53757070 		.ascii	"Supported\000"
+ 1627      6F727465 
+ 1627      6400
+ 1628              		.text
+ 1629              	.Letext0:
+ 1630              		.file 3 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 1631              		.file 4 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1632              		.file 5 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1633              		.file 6 "mri/core/buffer.h"
+ 1634              		.file 7 "mri/core/cmd_common.h"
+ 1635              		.file 8 "mri/core/platforms.h"
+ 1636              		.file 9 "mri/core/core.h"
+ 1637              		.file 10 "mri/core/gdb_console.h"
+ 1638              		.file 11 "mri/core/libc.h"
+ARM GAS  /tmp/ccjgvtfq.s 			page 44
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cmd_query.c
+     /tmp/ccjgvtfq.s:21     .text.validateAnnexIsNull:0000000000000000 $t
+     /tmp/ccjgvtfq.s:26     .text.validateAnnexIsNull:0000000000000000 validateAnnexIsNull
+     /tmp/ccjgvtfq.s:63     .text.validateAnnexIsNull:0000000000000010 $d
+     /tmp/ccjgvtfq.s:68     .text.handleQuerySupportedCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:73     .text.handleQuerySupportedCommand:0000000000000000 handleQuerySupportedCommand
+     /tmp/ccjgvtfq.s:118    .text.handleQuerySupportedCommand:0000000000000020 $d
+     /tmp/ccjgvtfq.s:1589   .rodata.querySupportResponse.7:0000000000000000 querySupportResponse.7
+     /tmp/ccjgvtfq.s:123    .text.readQueryTransferAnnexArgument:0000000000000000 $t
+     /tmp/ccjgvtfq.s:128    .text.readQueryTransferAnnexArgument:0000000000000000 readQueryTransferAnnexArgument
+     /tmp/ccjgvtfq.s:238    .text.readQueryTransferAnnexArgument:0000000000000050 $d
+     /tmp/ccjgvtfq.s:1565   .rodata.targetXmlAnnex.3:0000000000000000 targetXmlAnnex.3
+     /tmp/ccjgvtfq.s:244    .text.readQueryTransferOffsetLengthArguments:0000000000000000 $t
+     /tmp/ccjgvtfq.s:249    .text.readQueryTransferOffsetLengthArguments:0000000000000000 readQueryTransferOffsetLengthArguments
+     /tmp/ccjgvtfq.s:294    .text.readQueryTransferReadArguments:0000000000000000 $t
+     /tmp/ccjgvtfq.s:299    .text.readQueryTransferReadArguments:0000000000000000 readQueryTransferReadArguments
+     /tmp/ccjgvtfq.s:413    .text.readQueryTransferReadArguments:0000000000000060 $d
+     /tmp/ccjgvtfq.s:1571   .rodata.readCommand.4:0000000000000000 readCommand.4
+     /tmp/ccjgvtfq.s:419    .text.handleQueryTransferReadCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:424    .text.handleQueryTransferReadCommand:0000000000000000 handleQueryTransferReadCommand
+     /tmp/ccjgvtfq.s:535    .rodata.handleQueryTransferMemoryMapCommand.str1.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:539    .text.handleQueryTransferMemoryMapCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:544    .text.handleQueryTransferMemoryMapCommand:0000000000000000 handleQueryTransferMemoryMapCommand
+     /tmp/ccjgvtfq.s:637    .text.handleQueryTransferMemoryMapCommand:0000000000000048 $d
+     /tmp/ccjgvtfq.s:643    .text.validateAnnexIs:0000000000000000 $t
+     /tmp/ccjgvtfq.s:648    .text.validateAnnexIs:0000000000000000 validateAnnexIs
+     /tmp/ccjgvtfq.s:695    .text.validateAnnexIs:0000000000000018 $d
+     /tmp/ccjgvtfq.s:700    .rodata.handleQueryTransferFeaturesCommand.str1.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:704    .text.handleQueryTransferFeaturesCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:709    .text.handleQueryTransferFeaturesCommand:0000000000000000 handleQueryTransferFeaturesCommand
+     /tmp/ccjgvtfq.s:803    .text.handleQueryTransferFeaturesCommand:0000000000000048 $d
+     /tmp/ccjgvtfq.s:810    .rodata.handleQueryTransferCommand.str1.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:814    .text.handleQueryTransferCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:819    .text.handleQueryTransferCommand:0000000000000000 handleQueryTransferCommand
+     /tmp/ccjgvtfq.s:898    .text.handleQueryTransferCommand:0000000000000048 $d
+     /tmp/ccjgvtfq.s:1583   .rodata.memoryMapObject.6:0000000000000000 memoryMapObject.6
+     /tmp/ccjgvtfq.s:1577   .rodata.featureObject.5:0000000000000000 featureObject.5
+     /tmp/ccjgvtfq.s:906    .text.outputThreadIds:0000000000000000 $t
+     /tmp/ccjgvtfq.s:911    .text.outputThreadIds:0000000000000000 outputThreadIds
+     /tmp/ccjgvtfq.s:991    .text.handleQueryFirstThreadInfoCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:996    .text.handleQueryFirstThreadInfoCommand:0000000000000000 handleQueryFirstThreadInfoCommand
+     /tmp/ccjgvtfq.s:1040   .text.handleQueryFirstThreadInfoCommand:000000000000001c $d
+     /tmp/ccjgvtfq.s:1045   .text.handleQuerySubsequentThreadInfoCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:1050   .text.handleQuerySubsequentThreadInfoCommand:0000000000000000 handleQuerySubsequentThreadInfoCommand
+     /tmp/ccjgvtfq.s:1073   .text.handleQueryThreadExtraInfoCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:1078   .text.handleQueryThreadExtraInfoCommand:0000000000000000 handleQueryThreadExtraInfoCommand
+     /tmp/ccjgvtfq.s:1143   .text.handleQueryThreadExtraInfoCommand:0000000000000034 $d
+     /tmp/ccjgvtfq.s:1148   .rodata.handleMonitorHelpCommand.str1.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1161   .text.handleMonitorHelpCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:1166   .text.handleMonitorHelpCommand:0000000000000000 handleMonitorHelpCommand
+     /tmp/ccjgvtfq.s:1200   .text.handleMonitorHelpCommand:0000000000000020 $d
+     /tmp/ccjgvtfq.s:1208   .rodata.handleMonitorResetCommand.str1.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1212   .text.handleMonitorResetCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:1217   .text.handleMonitorResetCommand:0000000000000000 handleMonitorResetCommand
+     /tmp/ccjgvtfq.s:1246   .text.handleMonitorResetCommand:0000000000000018 $d
+     /tmp/ccjgvtfq.s:1252   .text.handleMonitorShowFaultCommand:0000000000000000 $t
+ARM GAS  /tmp/ccjgvtfq.s 			page 45
+
+
+     /tmp/ccjgvtfq.s:1257   .text.handleMonitorShowFaultCommand:0000000000000000 handleMonitorShowFaultCommand
+     /tmp/ccjgvtfq.s:1282   .text.handleMonitorShowFaultCommand:0000000000000010 $d
+     /tmp/ccjgvtfq.s:1287   .rodata.handleMonitorCommand.str1.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1291   .text.handleMonitorCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:1296   .text.handleMonitorCommand:0000000000000000 handleMonitorCommand
+     /tmp/ccjgvtfq.s:1392   .text.handleMonitorCommand:000000000000005c $d
+     /tmp/ccjgvtfq.s:1559   .rodata.reset.2:0000000000000000 reset.2
+     /tmp/ccjgvtfq.s:1553   .rodata.showfault.1:0000000000000000 showfault.1
+     /tmp/ccjgvtfq.s:1547   .rodata.help.0:0000000000000000 help.0
+     /tmp/ccjgvtfq.s:1401   .text.mriCmd_HandleQueryCommand:0000000000000000 $t
+     /tmp/ccjgvtfq.s:1407   .text.mriCmd_HandleQueryCommand:0000000000000000 mriCmd_HandleQueryCommand
+     /tmp/ccjgvtfq.s:1533   .text.mriCmd_HandleQueryCommand:000000000000007c $d
+     /tmp/ccjgvtfq.s:1626   .rodata.qSupportedCommand.13:0000000000000000 qSupportedCommand.13
+     /tmp/ccjgvtfq.s:1620   .rodata.qXferCommand.12:0000000000000000 qXferCommand.12
+     /tmp/ccjgvtfq.s:1614   .rodata.qfThreadInfo.11:0000000000000000 qfThreadInfo.11
+     /tmp/ccjgvtfq.s:1608   .rodata.qsThreadInfo.10:0000000000000000 qsThreadInfo.10
+     /tmp/ccjgvtfq.s:1602   .rodata.qThreadExtraInfo.9:0000000000000000 qThreadExtraInfo.9
+     /tmp/ccjgvtfq.s:1596   .rodata.qRcmdCommand.8:0000000000000000 qRcmdCommand.8
+     /tmp/ccjgvtfq.s:1544   .rodata.help.0:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1550   .rodata.showfault.1:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1556   .rodata.reset.2:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1562   .rodata.targetXmlAnnex.3:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1568   .rodata.readCommand.4:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1574   .rodata.featureObject.5:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1580   .rodata.memoryMapObject.6:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1586   .rodata.querySupportResponse.7:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1593   .rodata.qRcmdCommand.8:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1599   .rodata.qThreadExtraInfo.9:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1605   .rodata.qsThreadInfo.10:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1611   .rodata.qfThreadInfo.11:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1617   .rodata.qXferCommand.12:0000000000000000 $d
+     /tmp/ccjgvtfq.s:1623   .rodata.qSupportedCommand.13:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+mriExceptionCode
+mriPlatform_GetPacketBufferSize
+mriCore_GetInitializedBuffer
+mriBuffer_WriteString
+mriBuffer_WriteUIntegerAsHex
+mriBuffer_MatchesString
+mriBuffer_IsNextCharEqualTo
+mriCmd_ReadAddressAndLengthArguments
+mri_memset
+mriCore_GetBuffer
+mriCore_InitPacketBuffers
+mriBuffer_BytesLeft
+mriBuffer_WriteChar
+mriBuffer_WriteSizedString
+mriPlatform_GetDeviceMemoryMapXml
+mriPlatform_GetDeviceMemoryMapXmlSize
+mriCore_PrepareStringResponse
+mri_strcmp
+mriPlatform_GetTargetXml
+mriPlatform_GetTargetXmlSize
+mriPlatform_RtosGetNextThreadId
+mriPlatform_RtosGetFirstThreadId
+mriBuffer_ReadUIntegerAsHex
+ARM GAS  /tmp/ccjgvtfq.s 			page 46
+
+
+mriPlatform_RtosGetExtraThreadInfo
+mriBuffer_WriteStringAsHex
+mriGdbConsole_WriteString
+mriCore_RequestResetOnNextContinue
+mriPlatform_DisplayFaultCauseToGdbConsole
+mriBuffer_MatchesHexString

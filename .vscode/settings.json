@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "stm32f429xx_init.h": "c",
+        "token.h": "c"
+    }
+}

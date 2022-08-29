@@ -1,0 +1,303 @@
+ARM GAS  /tmp/ccB6kXyD.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"gdb_console.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/gdb_console.c"
+  20              		.section	.text.mriGdbConsole_WriteSizedString,"ax",%progbits
+  21              		.align	1
+  22              		.global	mriGdbConsole_WriteSizedString
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	mriGdbConsole_WriteSizedString:
+  28              	.LVL0:
+  29              	.LFB4:
+   1:mri/core/gdb_console.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/gdb_console.c **** 
+   3:mri/core/gdb_console.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/gdb_console.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/gdb_console.c ****    You may obtain a copy of the License at
+   6:mri/core/gdb_console.c **** 
+   7:mri/core/gdb_console.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/gdb_console.c **** 
+   9:mri/core/gdb_console.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/gdb_console.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/gdb_console.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/gdb_console.c ****    See the License for the specific language governing permissions and
+  13:mri/core/gdb_console.c ****    limitations under the License.
+  14:mri/core/gdb_console.c **** */
+  15:mri/core/gdb_console.c **** /* Routines to output text to stdout on the gdb console. */
+  16:mri/core/gdb_console.c **** #include <string.h>
+  17:mri/core/gdb_console.c **** #include <core/libc.h>
+  18:mri/core/gdb_console.c **** #include <core/buffer.h>
+  19:mri/core/gdb_console.c **** #include <core/platforms.h>
+  20:mri/core/gdb_console.c **** #include <core/core.h>
+  21:mri/core/gdb_console.c **** #include <core/memory.h>
+  22:mri/core/gdb_console.c **** #include <core/gdb_console.h>
+  23:mri/core/gdb_console.c **** 
+  24:mri/core/gdb_console.c **** 
+  25:mri/core/gdb_console.c **** void WriteStringToGdbConsole(const char* pString)
+  26:mri/core/gdb_console.c **** {
+  27:mri/core/gdb_console.c ****     WriteSizedStringToGdbConsole(pString, mri_strlen(pString));
+  28:mri/core/gdb_console.c **** }
+  29:mri/core/gdb_console.c **** 
+ARM GAS  /tmp/ccB6kXyD.s 			page 2
+
+
+  30:mri/core/gdb_console.c **** /* Send the 'O' command to gdb to output text to its console.
+  31:mri/core/gdb_console.c **** 
+  32:mri/core/gdb_console.c ****     Command Format: OXX...
+  33:mri/core/gdb_console.c ****     Where XX is the hexadecimal representation of each character in the string to be sent to the gd
+  34:mri/core/gdb_console.c **** */
+  35:mri/core/gdb_console.c **** void WriteSizedStringToGdbConsole(const char* pString, size_t length)
+  36:mri/core/gdb_console.c **** {
+  30              		.loc 1 36 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		.loc 1 36 1 is_stmt 0 view .LVU1
+  35 0000 70B5     		push	{r4, r5, r6, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 16
+  38              		.cfi_offset 4, -16
+  39              		.cfi_offset 5, -12
+  40              		.cfi_offset 6, -8
+  41              		.cfi_offset 14, -4
+  42 0002 0546     		mov	r5, r0
+  43 0004 0E46     		mov	r6, r1
+  37:mri/core/gdb_console.c ****     Buffer* pBuffer = GetInitializedBuffer();
+  44              		.loc 1 37 5 is_stmt 1 view .LVU2
+  45              		.loc 1 37 23 is_stmt 0 view .LVU3
+  46 0006 FFF7FEFF 		bl	mriCore_GetInitializedBuffer
+  47              	.LVL1:
+  48              		.loc 1 37 23 view .LVU4
+  49 000a 0446     		mov	r4, r0
+  50              	.LVL2:
+  38:mri/core/gdb_console.c **** 
+  39:mri/core/gdb_console.c ****     Buffer_WriteChar(pBuffer, 'O');
+  51              		.loc 1 39 5 is_stmt 1 view .LVU5
+  52 000c 4F21     		movs	r1, #79
+  53 000e FFF7FEFF 		bl	mriBuffer_WriteChar
+  54              	.LVL3:
+  40:mri/core/gdb_console.c ****     Buffer_WriteSizedStringAsHex(pBuffer, pString, length);
+  55              		.loc 1 40 5 view .LVU6
+  56 0012 3246     		mov	r2, r6
+  57 0014 2946     		mov	r1, r5
+  58 0016 2046     		mov	r0, r4
+  59 0018 FFF7FEFF 		bl	mriBuffer_WriteSizedStringAsHex
+  60              	.LVL4:
+  41:mri/core/gdb_console.c ****     if (!Buffer_OverrunDetected(pBuffer))
+  61              		.loc 1 41 5 view .LVU7
+  62              		.loc 1 41 10 is_stmt 0 view .LVU8
+  63 001c 2046     		mov	r0, r4
+  64 001e FFF7FEFF 		bl	mriBuffer_OverrunDetected
+  65              	.LVL5:
+  66              		.loc 1 41 8 view .LVU9
+  67 0022 00B1     		cbz	r0, .L4
+  68              	.L1:
+  42:mri/core/gdb_console.c ****         SendPacketToGdb();
+  43:mri/core/gdb_console.c **** }
+  69              		.loc 1 43 1 view .LVU10
+  70 0024 70BD     		pop	{r4, r5, r6, pc}
+  71              	.LVL6:
+  72              	.L4:
+ARM GAS  /tmp/ccB6kXyD.s 			page 3
+
+
+  42:mri/core/gdb_console.c ****         SendPacketToGdb();
+  73              		.loc 1 42 9 is_stmt 1 view .LVU11
+  74 0026 FFF7FEFF 		bl	mriCore_SendPacketToGdb
+  75              	.LVL7:
+  76              		.loc 1 43 1 is_stmt 0 view .LVU12
+  77 002a FBE7     		b	.L1
+  78              		.cfi_endproc
+  79              	.LFE4:
+  81              		.section	.text.mriGdbConsole_WriteString,"ax",%progbits
+  82              		.align	1
+  83              		.global	mriGdbConsole_WriteString
+  84              		.syntax unified
+  85              		.thumb
+  86              		.thumb_func
+  88              	mriGdbConsole_WriteString:
+  89              	.LVL8:
+  90              	.LFB3:
+  26:mri/core/gdb_console.c ****     WriteSizedStringToGdbConsole(pString, mri_strlen(pString));
+  91              		.loc 1 26 1 is_stmt 1 view -0
+  92              		.cfi_startproc
+  93              		@ args = 0, pretend = 0, frame = 0
+  94              		@ frame_needed = 0, uses_anonymous_args = 0
+  26:mri/core/gdb_console.c ****     WriteSizedStringToGdbConsole(pString, mri_strlen(pString));
+  95              		.loc 1 26 1 is_stmt 0 view .LVU14
+  96 0000 10B5     		push	{r4, lr}
+  97              	.LCFI1:
+  98              		.cfi_def_cfa_offset 8
+  99              		.cfi_offset 4, -8
+ 100              		.cfi_offset 14, -4
+ 101 0002 0446     		mov	r4, r0
+  27:mri/core/gdb_console.c **** }
+ 102              		.loc 1 27 5 is_stmt 1 view .LVU15
+ 103 0004 FFF7FEFF 		bl	mri_strlen
+ 104              	.LVL9:
+  27:mri/core/gdb_console.c **** }
+ 105              		.loc 1 27 5 is_stmt 0 view .LVU16
+ 106 0008 0146     		mov	r1, r0
+ 107 000a 2046     		mov	r0, r4
+ 108 000c FFF7FEFF 		bl	mriGdbConsole_WriteSizedString
+ 109              	.LVL10:
+  28:mri/core/gdb_console.c **** 
+ 110              		.loc 1 28 1 view .LVU17
+ 111 0010 10BD     		pop	{r4, pc}
+  28:mri/core/gdb_console.c **** 
+ 112              		.loc 1 28 1 view .LVU18
+ 113              		.cfi_endproc
+ 114              	.LFE3:
+ 116              		.section	.rodata.mriGdbConsole_WriteHexValue.str1.4,"aMS",%progbits,1
+ 117              		.align	2
+ 118              	.LC0:
+ 119 0000 307800   		.ascii	"0x\000"
+ 120              		.section	.text.mriGdbConsole_WriteHexValue,"ax",%progbits
+ 121              		.align	1
+ 122              		.global	mriGdbConsole_WriteHexValue
+ 123              		.syntax unified
+ 124              		.thumb
+ 125              		.thumb_func
+ARM GAS  /tmp/ccB6kXyD.s 			page 4
+
+
+ 127              	mriGdbConsole_WriteHexValue:
+ 128              	.LVL11:
+ 129              	.LFB5:
+  44:mri/core/gdb_console.c **** 
+  45:mri/core/gdb_console.c **** 
+  46:mri/core/gdb_console.c **** void WriteHexValueToGdbConsole(uint32_t Value)
+  47:mri/core/gdb_console.c **** {
+ 130              		.loc 1 47 1 is_stmt 1 view -0
+ 131              		.cfi_startproc
+ 132              		@ args = 0, pretend = 0, frame = 24
+ 133              		@ frame_needed = 0, uses_anonymous_args = 0
+ 134              		.loc 1 47 1 is_stmt 0 view .LVU20
+ 135 0000 10B5     		push	{r4, lr}
+ 136              	.LCFI2:
+ 137              		.cfi_def_cfa_offset 8
+ 138              		.cfi_offset 4, -8
+ 139              		.cfi_offset 14, -4
+ 140 0002 86B0     		sub	sp, sp, #24
+ 141              	.LCFI3:
+ 142              		.cfi_def_cfa_offset 32
+ 143 0004 0446     		mov	r4, r0
+  48:mri/core/gdb_console.c ****     Buffer BufferObject;
+ 144              		.loc 1 48 5 is_stmt 1 view .LVU21
+  49:mri/core/gdb_console.c ****     char   StringBuffer[11];
+ 145              		.loc 1 49 5 view .LVU22
+  50:mri/core/gdb_console.c **** 
+  51:mri/core/gdb_console.c ****     Buffer_Init(&BufferObject, StringBuffer, sizeof(StringBuffer));
+ 146              		.loc 1 51 5 view .LVU23
+ 147 0006 0B22     		movs	r2, #11
+ 148 0008 6946     		mov	r1, sp
+ 149 000a 03A8     		add	r0, sp, #12
+ 150              	.LVL12:
+ 151              		.loc 1 51 5 is_stmt 0 view .LVU24
+ 152 000c FFF7FEFF 		bl	mriBuffer_Init
+ 153              	.LVL13:
+  52:mri/core/gdb_console.c ****     Buffer_WriteString(&BufferObject, "0x");
+ 154              		.loc 1 52 5 is_stmt 1 view .LVU25
+ 155 0010 0B49     		ldr	r1, .L9
+ 156 0012 03A8     		add	r0, sp, #12
+ 157 0014 FFF7FEFF 		bl	mriBuffer_WriteString
+ 158              	.LVL14:
+  53:mri/core/gdb_console.c ****     Buffer_WriteUIntegerAsHex(&BufferObject, Value);
+ 159              		.loc 1 53 5 view .LVU26
+ 160 0018 2146     		mov	r1, r4
+ 161 001a 03A8     		add	r0, sp, #12
+ 162 001c FFF7FEFF 		bl	mriBuffer_WriteUIntegerAsHex
+ 163              	.LVL15:
+  54:mri/core/gdb_console.c ****     Buffer_SetEndOfBuffer(&BufferObject);
+ 164              		.loc 1 54 5 view .LVU27
+ 165 0020 03A8     		add	r0, sp, #12
+ 166 0022 FFF7FEFF 		bl	mriBuffer_SetEndOfBuffer
+ 167              	.LVL16:
+  55:mri/core/gdb_console.c **** 
+  56:mri/core/gdb_console.c ****     WriteSizedStringToGdbConsole(Buffer_GetArray(&BufferObject), Buffer_GetLength(&BufferObject));
+ 168              		.loc 1 56 5 view .LVU28
+ 169              		.loc 1 56 34 is_stmt 0 view .LVU29
+ 170 0026 03A8     		add	r0, sp, #12
+ARM GAS  /tmp/ccB6kXyD.s 			page 5
+
+
+ 171 0028 FFF7FEFF 		bl	mriBuffer_GetArray
+ 172              	.LVL17:
+ 173 002c 0446     		mov	r4, r0
+ 174              	.LVL18:
+ 175              		.loc 1 56 5 view .LVU30
+ 176 002e 03A8     		add	r0, sp, #12
+ 177 0030 FFF7FEFF 		bl	mriBuffer_GetLength
+ 178              	.LVL19:
+ 179 0034 0146     		mov	r1, r0
+ 180 0036 2046     		mov	r0, r4
+ 181 0038 FFF7FEFF 		bl	mriGdbConsole_WriteSizedString
+ 182              	.LVL20:
+  57:mri/core/gdb_console.c **** }
+ 183              		.loc 1 57 1 view .LVU31
+ 184 003c 06B0     		add	sp, sp, #24
+ 185              	.LCFI4:
+ 186              		.cfi_def_cfa_offset 8
+ 187              		@ sp needed
+ 188 003e 10BD     		pop	{r4, pc}
+ 189              	.L10:
+ 190              		.align	2
+ 191              	.L9:
+ 192 0040 00000000 		.word	.LC0
+ 193              		.cfi_endproc
+ 194              	.LFE5:
+ 196              		.text
+ 197              	.Letext0:
+ 198              		.file 2 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 199              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 200              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 201              		.file 5 "mri/core/buffer.h"
+ 202              		.file 6 "mri/core/libc.h"
+ 203              		.file 7 "mri/core/core.h"
+ARM GAS  /tmp/ccB6kXyD.s 			page 6
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 gdb_console.c
+     /tmp/ccB6kXyD.s:21     .text.mriGdbConsole_WriteSizedString:0000000000000000 $t
+     /tmp/ccB6kXyD.s:27     .text.mriGdbConsole_WriteSizedString:0000000000000000 mriGdbConsole_WriteSizedString
+     /tmp/ccB6kXyD.s:82     .text.mriGdbConsole_WriteString:0000000000000000 $t
+     /tmp/ccB6kXyD.s:88     .text.mriGdbConsole_WriteString:0000000000000000 mriGdbConsole_WriteString
+     /tmp/ccB6kXyD.s:117    .rodata.mriGdbConsole_WriteHexValue.str1.4:0000000000000000 $d
+     /tmp/ccB6kXyD.s:121    .text.mriGdbConsole_WriteHexValue:0000000000000000 $t
+     /tmp/ccB6kXyD.s:127    .text.mriGdbConsole_WriteHexValue:0000000000000000 mriGdbConsole_WriteHexValue
+     /tmp/ccB6kXyD.s:192    .text.mriGdbConsole_WriteHexValue:0000000000000040 $d
+
+UNDEFINED SYMBOLS
+mriCore_GetInitializedBuffer
+mriBuffer_WriteChar
+mriBuffer_WriteSizedStringAsHex
+mriBuffer_OverrunDetected
+mriCore_SendPacketToGdb
+mri_strlen
+mriBuffer_Init
+mriBuffer_WriteString
+mriBuffer_WriteUIntegerAsHex
+mriBuffer_SetEndOfBuffer
+mriBuffer_GetArray
+mriBuffer_GetLength

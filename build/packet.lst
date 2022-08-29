@@ -1,0 +1,1982 @@
+ARM GAS  /tmp/ccddhYcB.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"packet.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/packet.c"
+  20              		.section	.text.HexCharToNibble,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	HexCharToNibble:
+  27              	.LVL0:
+  28              	.LFB3:
+  29              		.file 2 "mri/core/hex_convert.h"
+   1:mri/core/hex_convert.h **** /* Copyright 2012 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/hex_convert.h **** 
+   3:mri/core/hex_convert.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/hex_convert.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/hex_convert.h ****    You may obtain a copy of the License at
+   6:mri/core/hex_convert.h **** 
+   7:mri/core/hex_convert.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/hex_convert.h **** 
+   9:mri/core/hex_convert.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/hex_convert.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/hex_convert.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/hex_convert.h ****    See the License for the specific language governing permissions and
+  13:mri/core/hex_convert.h ****    limitations under the License.
+  14:mri/core/hex_convert.h **** */
+  15:mri/core/hex_convert.h **** /* Hexadecimal to/from text conversion helpers. */
+  16:mri/core/hex_convert.h **** #ifndef HEX_CONVERT_H_
+  17:mri/core/hex_convert.h **** #define HEX_CONVERT_H_
+  18:mri/core/hex_convert.h **** 
+  19:mri/core/hex_convert.h **** #include <core/try_catch.h>
+  20:mri/core/hex_convert.h **** 
+  21:mri/core/hex_convert.h **** #define EXTRACT_HI_NIBBLE(X) (((X) >> 4) & 0xF)
+  22:mri/core/hex_convert.h **** #define EXTRACT_LO_NIBBLE(X) ((X) & 0xF)
+  23:mri/core/hex_convert.h **** 
+  24:mri/core/hex_convert.h **** static const char NibbleToHexChar[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
+  25:mri/core/hex_convert.h ****                                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+  26:mri/core/hex_convert.h **** 
+  27:mri/core/hex_convert.h **** static inline int HexCharToNibble(unsigned char HexChar)
+  28:mri/core/hex_convert.h **** {
+  30              		.loc 2 28 1 view -0
+ARM GAS  /tmp/ccddhYcB.s 			page 2
+
+
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  29:mri/core/hex_convert.h ****     if (HexChar >= 'a' && HexChar <= 'f')
+  35              		.loc 2 29 5 view .LVU1
+  36              		.loc 2 29 24 is_stmt 0 view .LVU2
+  37 0000 A0F16103 		sub	r3, r0, #97
+  38 0004 DBB2     		uxtb	r3, r3
+  39              		.loc 2 29 8 view .LVU3
+  40 0006 052B     		cmp	r3, #5
+  41 0008 0BD9     		bls	.L6
+  30:mri/core/hex_convert.h ****     {
+  31:mri/core/hex_convert.h ****         return HexChar - 'a' + 10;
+  32:mri/core/hex_convert.h ****     }
+  33:mri/core/hex_convert.h ****     if (HexChar >= 'A' && HexChar <= 'F')
+  42              		.loc 2 33 5 is_stmt 1 view .LVU4
+  43              		.loc 2 33 24 is_stmt 0 view .LVU5
+  44 000a A0F14103 		sub	r3, r0, #65
+  45 000e DBB2     		uxtb	r3, r3
+  46              		.loc 2 33 8 view .LVU6
+  47 0010 052B     		cmp	r3, #5
+  48 0012 08D9     		bls	.L7
+  34:mri/core/hex_convert.h ****     {
+  35:mri/core/hex_convert.h ****         return HexChar - 'A' + 10;
+  36:mri/core/hex_convert.h ****     }
+  37:mri/core/hex_convert.h ****     if (HexChar >= '0' && HexChar <= '9')
+  49              		.loc 2 37 5 is_stmt 1 view .LVU7
+  50              		.loc 2 37 24 is_stmt 0 view .LVU8
+  51 0014 A0F13003 		sub	r3, r0, #48
+  52 0018 DBB2     		uxtb	r3, r3
+  53              		.loc 2 37 8 view .LVU9
+  54 001a 092B     		cmp	r3, #9
+  55 001c 05D8     		bhi	.L5
+  38:mri/core/hex_convert.h ****     {
+  39:mri/core/hex_convert.h ****         return HexChar - '0';
+  56              		.loc 2 39 9 is_stmt 1 view .LVU10
+  57              		.loc 2 39 24 is_stmt 0 view .LVU11
+  58 001e 3038     		subs	r0, r0, #48
+  59              	.LVL1:
+  60              		.loc 2 39 24 view .LVU12
+  61 0020 7047     		bx	lr
+  62              	.LVL2:
+  63              	.L6:
+  31:mri/core/hex_convert.h ****     }
+  64              		.loc 2 31 9 is_stmt 1 view .LVU13
+  31:mri/core/hex_convert.h ****     }
+  65              		.loc 2 31 30 is_stmt 0 view .LVU14
+  66 0022 5738     		subs	r0, r0, #87
+  67              	.LVL3:
+  31:mri/core/hex_convert.h ****     }
+  68              		.loc 2 31 30 view .LVU15
+  69 0024 7047     		bx	lr
+  70              	.LVL4:
+  71              	.L7:
+  35:mri/core/hex_convert.h ****     }
+  72              		.loc 2 35 9 is_stmt 1 view .LVU16
+ARM GAS  /tmp/ccddhYcB.s 			page 3
+
+
+  35:mri/core/hex_convert.h ****     }
+  73              		.loc 2 35 30 is_stmt 0 view .LVU17
+  74 0026 3738     		subs	r0, r0, #55
+  75              	.LVL5:
+  35:mri/core/hex_convert.h ****     }
+  76              		.loc 2 35 30 view .LVU18
+  77 0028 7047     		bx	lr
+  78              	.LVL6:
+  79              	.L5:
+  40:mri/core/hex_convert.h ****     }
+  41:mri/core/hex_convert.h **** 
+  42:mri/core/hex_convert.h ****     __throw_and_return(invalidHexDigitException, -1);
+  80              		.loc 2 42 5 is_stmt 1 view .LVU19
+  81              	.LBB7:
+  82              	.LBI7:
+  83              		.file 3 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+ARM GAS  /tmp/ccddhYcB.s 			page 4
+
+
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  84              		.loc 3 71 20 view .LVU20
+  85              	.LBB8:
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  86              		.loc 3 73 5 view .LVU21
+  87              		.loc 3 73 73 is_stmt 0 view .LVU22
+  88 002a 044A     		ldr	r2, .L8
+  89 002c 1368     		ldr	r3, [r2]
+  90 002e 022B     		cmp	r3, #2
+  91 0030 B8BF     		it	lt
+  92 0032 0223     		movlt	r3, #2
+  93              		.loc 3 73 22 view .LVU23
+  94 0034 1360     		str	r3, [r2]
+  95              	.LVL7:
+  96              		.loc 3 73 22 view .LVU24
+  97              	.LBE8:
+  98              	.LBE7:
+  99              		.loc 2 42 5 view .LVU25
+ 100 0036 4FF0FF30 		mov	r0, #-1
+ 101              	.LVL8:
+  43:mri/core/hex_convert.h **** }
+ 102              		.loc 2 43 1 view .LVU26
+ 103 003a 7047     		bx	lr
+ 104              	.L9:
+ 105              		.align	2
+ 106              	.L8:
+ 107 003c 00000000 		.word	mriExceptionCode
+ARM GAS  /tmp/ccddhYcB.s 			page 5
+
+
+ 108              		.cfi_endproc
+ 109              	.LFE3:
+ 111              		.section	.text.clearChecksum,"ax",%progbits
+ 112              		.align	1
+ 113              		.syntax unified
+ 114              		.thumb
+ 115              		.thumb_func
+ 117              	clearChecksum:
+ 118              	.LVL9:
+ 119              	.LFB15:
+   1:mri/core/packet.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/packet.c **** 
+   3:mri/core/packet.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/packet.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/packet.c ****    You may obtain a copy of the License at
+   6:mri/core/packet.c **** 
+   7:mri/core/packet.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/packet.c **** 
+   9:mri/core/packet.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/packet.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/packet.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/packet.c ****    See the License for the specific language governing permissions and
+  13:mri/core/packet.c ****    limitations under the License.
+  14:mri/core/packet.c **** */
+  15:mri/core/packet.c **** /* 'Class' to manage the sending and receiving of packets to/from gdb.  Takes care of crc and ack/n
+  16:mri/core/packet.c **** #include <stdint.h>
+  17:mri/core/packet.c **** #include <core/core.h>
+  18:mri/core/packet.c **** #include <core/hex_convert.h>
+  19:mri/core/packet.c **** #include <core/platforms.h>
+  20:mri/core/packet.c **** #include <core/packet.h>
+  21:mri/core/packet.c **** 
+  22:mri/core/packet.c **** 
+  23:mri/core/packet.c **** void Packet_Init(Packet* pPacket, char* pBufferStart, size_t bufferSize)
+  24:mri/core/packet.c **** {
+  25:mri/core/packet.c ****     Buffer_Init(&pPacket->dataBuffer, pBufferStart+1, bufferSize-4);
+  26:mri/core/packet.c ****     Buffer_Init(&pPacket->packetBuffer, pBufferStart, bufferSize);
+  27:mri/core/packet.c **** }
+  28:mri/core/packet.c **** 
+  29:mri/core/packet.c **** 
+  30:mri/core/packet.c **** static void initPacketStructure(Packet* pPacket);
+  31:mri/core/packet.c **** static void getMostRecentPacket(Packet* pPacket);
+  32:mri/core/packet.c **** static void getPacketDataAndExpectedChecksum(Packet* pPacket);
+  33:mri/core/packet.c **** static void waitForStartOfNextPacket(Packet* pPacket);
+  34:mri/core/packet.c **** static char getNextCharFromGdb(Packet* pPacket);
+  35:mri/core/packet.c **** static int  getPacketData(Packet* pPacket);
+  36:mri/core/packet.c **** static void clearChecksum(Packet* pPacket);
+  37:mri/core/packet.c **** static void updateChecksum(Packet* pPacket, char nextChar);
+  38:mri/core/packet.c **** static int  isEscapePrefixChar(char charToCheck);
+  39:mri/core/packet.c **** static char unescapeChar(char charToUnescape);
+  40:mri/core/packet.c **** static void extractExpectedChecksum(Packet* pPacket);
+  41:mri/core/packet.c **** static int  isChecksumValid(Packet* pPacket);
+  42:mri/core/packet.c **** static void sendACKToGDB(void);
+  43:mri/core/packet.c **** static void sendNAKToGDB(void);
+  44:mri/core/packet.c **** static void resetBufferToEnableFutureReadingOfValidPacketData(Packet* pPacket);
+  45:mri/core/packet.c **** void Packet_GetFromGDB(Packet* pPacket)
+  46:mri/core/packet.c **** {
+  47:mri/core/packet.c ****     initPacketStructure(pPacket);
+ARM GAS  /tmp/ccddhYcB.s 			page 6
+
+
+  48:mri/core/packet.c ****     do
+  49:mri/core/packet.c ****     {
+  50:mri/core/packet.c ****         getMostRecentPacket(pPacket);
+  51:mri/core/packet.c ****     } while(!isChecksumValid(pPacket));
+  52:mri/core/packet.c **** 
+  53:mri/core/packet.c ****     resetBufferToEnableFutureReadingOfValidPacketData(pPacket);
+  54:mri/core/packet.c **** }
+  55:mri/core/packet.c **** 
+  56:mri/core/packet.c **** static void initPacketStructure(Packet* pPacket)
+  57:mri/core/packet.c **** {
+  58:mri/core/packet.c ****     pPacket->lastChar = '\0';
+  59:mri/core/packet.c ****     pPacket->calculatedChecksum = 0;
+  60:mri/core/packet.c ****     pPacket->expectedChecksum = 0;
+  61:mri/core/packet.c ****     Buffer_Reset(&pPacket->packetBuffer);
+  62:mri/core/packet.c **** }
+  63:mri/core/packet.c **** 
+  64:mri/core/packet.c **** static void getMostRecentPacket(Packet* pPacket)
+  65:mri/core/packet.c **** {
+  66:mri/core/packet.c ****     do
+  67:mri/core/packet.c ****     {
+  68:mri/core/packet.c ****         getPacketDataAndExpectedChecksum(pPacket);
+  69:mri/core/packet.c ****     } while (Platform_CommHasReceiveData());
+  70:mri/core/packet.c **** 
+  71:mri/core/packet.c ****     if (!isChecksumValid(pPacket))
+  72:mri/core/packet.c ****     {
+  73:mri/core/packet.c ****         sendNAKToGDB();
+  74:mri/core/packet.c ****         return;
+  75:mri/core/packet.c ****     }
+  76:mri/core/packet.c **** 
+  77:mri/core/packet.c ****     sendACKToGDB();
+  78:mri/core/packet.c **** }
+  79:mri/core/packet.c **** 
+  80:mri/core/packet.c **** static void getPacketDataAndExpectedChecksum(Packet* pPacket)
+  81:mri/core/packet.c **** {
+  82:mri/core/packet.c ****     int completePacket;
+  83:mri/core/packet.c **** 
+  84:mri/core/packet.c ****     do
+  85:mri/core/packet.c ****     {
+  86:mri/core/packet.c ****         waitForStartOfNextPacket(pPacket);
+  87:mri/core/packet.c ****         completePacket = getPacketData(pPacket);
+  88:mri/core/packet.c ****     } while (!completePacket);
+  89:mri/core/packet.c **** 
+  90:mri/core/packet.c ****     extractExpectedChecksum(pPacket);
+  91:mri/core/packet.c **** }
+  92:mri/core/packet.c **** 
+  93:mri/core/packet.c **** static void waitForStartOfNextPacket(Packet* pPacket)
+  94:mri/core/packet.c **** {
+  95:mri/core/packet.c ****     char nextChar = pPacket->lastChar;
+  96:mri/core/packet.c **** 
+  97:mri/core/packet.c ****     /* Wait for the packet start character, '$', and ignore all other characters. */
+  98:mri/core/packet.c ****     while (nextChar != '$')
+  99:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 100:mri/core/packet.c **** }
+ 101:mri/core/packet.c **** 
+ 102:mri/core/packet.c **** static char getNextCharFromGdb(Packet* pPacket)
+ 103:mri/core/packet.c **** {
+ 104:mri/core/packet.c ****     char nextChar = Platform_CommReceiveChar();
+ARM GAS  /tmp/ccddhYcB.s 			page 7
+
+
+ 105:mri/core/packet.c ****     pPacket->lastChar = nextChar;
+ 106:mri/core/packet.c ****     return nextChar;
+ 107:mri/core/packet.c **** }
+ 108:mri/core/packet.c **** 
+ 109:mri/core/packet.c **** static int getPacketData(Packet* pPacket)
+ 110:mri/core/packet.c **** {
+ 111:mri/core/packet.c ****     char nextChar;
+ 112:mri/core/packet.c **** 
+ 113:mri/core/packet.c ****     Buffer_Reset(&pPacket->dataBuffer);
+ 114:mri/core/packet.c ****     clearChecksum(pPacket);
+ 115:mri/core/packet.c ****     nextChar = getNextCharFromGdb(pPacket);
+ 116:mri/core/packet.c ****     while (Buffer_BytesLeft(&pPacket->dataBuffer) > 0 && nextChar != '$' && nextChar != '#')
+ 117:mri/core/packet.c ****     {
+ 118:mri/core/packet.c ****         updateChecksum(pPacket, nextChar);
+ 119:mri/core/packet.c ****         if (isEscapePrefixChar(nextChar))
+ 120:mri/core/packet.c ****         {
+ 121:mri/core/packet.c ****             nextChar = getNextCharFromGdb(pPacket);
+ 122:mri/core/packet.c ****             if (nextChar == '$' || nextChar == '#')
+ 123:mri/core/packet.c ****                 break;
+ 124:mri/core/packet.c ****             updateChecksum(pPacket, nextChar);
+ 125:mri/core/packet.c ****             nextChar = unescapeChar(nextChar);
+ 126:mri/core/packet.c ****         }
+ 127:mri/core/packet.c ****         Buffer_WriteChar(&pPacket->dataBuffer, nextChar);
+ 128:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 129:mri/core/packet.c ****     }
+ 130:mri/core/packet.c **** 
+ 131:mri/core/packet.c ****     /* Return success if the expected end of packet character, '#', was received. */
+ 132:mri/core/packet.c ****     return (nextChar == '#');
+ 133:mri/core/packet.c **** }
+ 134:mri/core/packet.c **** 
+ 135:mri/core/packet.c **** static void clearChecksum(Packet* pPacket)
+ 136:mri/core/packet.c **** {
+ 120              		.loc 1 136 1 is_stmt 1 view -0
+ 121              		.cfi_startproc
+ 122              		@ args = 0, pretend = 0, frame = 0
+ 123              		@ frame_needed = 0, uses_anonymous_args = 0
+ 124              		@ link register save eliminated.
+ 137:mri/core/packet.c ****     pPacket->calculatedChecksum = 0;
+ 125              		.loc 1 137 5 view .LVU28
+ 126              		.loc 1 137 33 is_stmt 0 view .LVU29
+ 127 0000 0023     		movs	r3, #0
+ 128 0002 4376     		strb	r3, [r0, #25]
+ 138:mri/core/packet.c **** }
+ 129              		.loc 1 138 1 view .LVU30
+ 130 0004 7047     		bx	lr
+ 131              		.cfi_endproc
+ 132              	.LFE15:
+ 134              		.section	.text.updateChecksum,"ax",%progbits
+ 135              		.align	1
+ 136              		.syntax unified
+ 137              		.thumb
+ 138              		.thumb_func
+ 140              	updateChecksum:
+ 141              	.LVL10:
+ 142              	.LFB16:
+ 139:mri/core/packet.c **** 
+ 140:mri/core/packet.c **** static void updateChecksum(Packet* pPacket, char nextChar)
+ARM GAS  /tmp/ccddhYcB.s 			page 8
+
+
+ 141:mri/core/packet.c **** {
+ 143              		.loc 1 141 1 is_stmt 1 view -0
+ 144              		.cfi_startproc
+ 145              		@ args = 0, pretend = 0, frame = 0
+ 146              		@ frame_needed = 0, uses_anonymous_args = 0
+ 147              		@ link register save eliminated.
+ 142:mri/core/packet.c ****     pPacket->calculatedChecksum += (unsigned char)nextChar;
+ 148              		.loc 1 142 5 view .LVU32
+ 149              		.loc 1 142 12 is_stmt 0 view .LVU33
+ 150 0000 437E     		ldrb	r3, [r0, #25]	@ zero_extendqisi2
+ 151              		.loc 1 142 33 view .LVU34
+ 152 0002 0B44     		add	r3, r3, r1
+ 153 0004 4376     		strb	r3, [r0, #25]
+ 143:mri/core/packet.c **** }
+ 154              		.loc 1 143 1 view .LVU35
+ 155 0006 7047     		bx	lr
+ 156              		.cfi_endproc
+ 157              	.LFE16:
+ 159              		.section	.text.isEscapePrefixChar,"ax",%progbits
+ 160              		.align	1
+ 161              		.syntax unified
+ 162              		.thumb
+ 163              		.thumb_func
+ 165              	isEscapePrefixChar:
+ 166              	.LVL11:
+ 167              	.LFB17:
+ 144:mri/core/packet.c **** 
+ 145:mri/core/packet.c **** static int isEscapePrefixChar(char charToCheck)
+ 146:mri/core/packet.c **** {
+ 168              		.loc 1 146 1 is_stmt 1 view -0
+ 169              		.cfi_startproc
+ 170              		@ args = 0, pretend = 0, frame = 0
+ 171              		@ frame_needed = 0, uses_anonymous_args = 0
+ 172              		@ link register save eliminated.
+ 147:mri/core/packet.c ****     return charToCheck == '}';
+ 173              		.loc 1 147 5 view .LVU37
+ 148:mri/core/packet.c **** }
+ 174              		.loc 1 148 1 is_stmt 0 view .LVU38
+ 175 0000 7D28     		cmp	r0, #125
+ 176 0002 14BF     		ite	ne
+ 177 0004 0020     		movne	r0, #0
+ 178              	.LVL12:
+ 179              		.loc 1 148 1 view .LVU39
+ 180 0006 0120     		moveq	r0, #1
+ 181 0008 7047     		bx	lr
+ 182              		.cfi_endproc
+ 183              	.LFE17:
+ 185              		.section	.text.unescapeChar,"ax",%progbits
+ 186              		.align	1
+ 187              		.syntax unified
+ 188              		.thumb
+ 189              		.thumb_func
+ 191              	unescapeChar:
+ 192              	.LVL13:
+ 193              	.LFB18:
+ 149:mri/core/packet.c **** 
+ 150:mri/core/packet.c **** static char unescapeChar(char charToUnescape)
+ARM GAS  /tmp/ccddhYcB.s 			page 9
+
+
+ 151:mri/core/packet.c **** {
+ 194              		.loc 1 151 1 is_stmt 1 view -0
+ 195              		.cfi_startproc
+ 196              		@ args = 0, pretend = 0, frame = 0
+ 197              		@ frame_needed = 0, uses_anonymous_args = 0
+ 198              		@ link register save eliminated.
+ 152:mri/core/packet.c ****     return charToUnescape ^ 0x20;
+ 199              		.loc 1 152 5 view .LVU41
+ 153:mri/core/packet.c **** }
+ 200              		.loc 1 153 1 is_stmt 0 view .LVU42
+ 201 0000 80F02000 		eor	r0, r0, #32
+ 202              	.LVL14:
+ 203              		.loc 1 153 1 view .LVU43
+ 204 0004 7047     		bx	lr
+ 205              		.cfi_endproc
+ 206              	.LFE18:
+ 208              		.section	.text.isChecksumValid,"ax",%progbits
+ 209              		.align	1
+ 210              		.syntax unified
+ 211              		.thumb
+ 212              		.thumb_func
+ 214              	isChecksumValid:
+ 215              	.LVL15:
+ 216              	.LFB20:
+ 154:mri/core/packet.c **** 
+ 155:mri/core/packet.c **** static void extractExpectedChecksum(Packet* pPacket)
+ 156:mri/core/packet.c **** {
+ 157:mri/core/packet.c ****     __try
+ 158:mri/core/packet.c ****     {
+ 159:mri/core/packet.c ****         char char1 = getNextCharFromGdb(pPacket);
+ 160:mri/core/packet.c ****         char char2 = getNextCharFromGdb(pPacket);
+ 161:mri/core/packet.c ****         unsigned char expectedChecksumHiNibble;
+ 162:mri/core/packet.c ****         unsigned char expectedChecksumLoNibble;
+ 163:mri/core/packet.c **** 
+ 164:mri/core/packet.c ****         __throwing_func( expectedChecksumHiNibble = HexCharToNibble(char1) );
+ 165:mri/core/packet.c ****         __throwing_func( expectedChecksumLoNibble = HexCharToNibble(char2) );
+ 166:mri/core/packet.c ****         pPacket->expectedChecksum = (expectedChecksumHiNibble << 4) | expectedChecksumLoNibble;
+ 167:mri/core/packet.c ****     }
+ 168:mri/core/packet.c ****     __catch
+ 169:mri/core/packet.c ****     {
+ 170:mri/core/packet.c ****         /* Force the checksum to mismatch if invalid hex digit was encountered. */
+ 171:mri/core/packet.c ****         pPacket->expectedChecksum = ~pPacket->calculatedChecksum;
+ 172:mri/core/packet.c ****     }
+ 173:mri/core/packet.c **** }
+ 174:mri/core/packet.c **** 
+ 175:mri/core/packet.c **** static int isChecksumValid(Packet* pPacket)
+ 176:mri/core/packet.c **** {
+ 217              		.loc 1 176 1 is_stmt 1 view -0
+ 218              		.cfi_startproc
+ 219              		@ args = 0, pretend = 0, frame = 0
+ 220              		@ frame_needed = 0, uses_anonymous_args = 0
+ 221              		@ link register save eliminated.
+ 177:mri/core/packet.c ****     return (pPacket->expectedChecksum == pPacket->calculatedChecksum);
+ 222              		.loc 1 177 5 view .LVU45
+ 223              		.loc 1 177 20 is_stmt 0 view .LVU46
+ 224 0000 827E     		ldrb	r2, [r0, #26]	@ zero_extendqisi2
+ 225              		.loc 1 177 49 view .LVU47
+ARM GAS  /tmp/ccddhYcB.s 			page 10
+
+
+ 226 0002 407E     		ldrb	r0, [r0, #25]	@ zero_extendqisi2
+ 227              	.LVL16:
+ 178:mri/core/packet.c **** }
+ 228              		.loc 1 178 1 view .LVU48
+ 229 0004 8242     		cmp	r2, r0
+ 230 0006 14BF     		ite	ne
+ 231 0008 0020     		movne	r0, #0
+ 232 000a 0120     		moveq	r0, #1
+ 233 000c 7047     		bx	lr
+ 234              		.cfi_endproc
+ 235              	.LFE20:
+ 237              		.section	.text.initPacketStructure,"ax",%progbits
+ 238              		.align	1
+ 239              		.syntax unified
+ 240              		.thumb
+ 241              		.thumb_func
+ 243              	initPacketStructure:
+ 244              	.LVL17:
+ 245              	.LFB9:
+  57:mri/core/packet.c ****     pPacket->lastChar = '\0';
+ 246              		.loc 1 57 1 is_stmt 1 view -0
+ 247              		.cfi_startproc
+ 248              		@ args = 0, pretend = 0, frame = 0
+ 249              		@ frame_needed = 0, uses_anonymous_args = 0
+  57:mri/core/packet.c ****     pPacket->lastChar = '\0';
+ 250              		.loc 1 57 1 is_stmt 0 view .LVU50
+ 251 0000 08B5     		push	{r3, lr}
+ 252              	.LCFI0:
+ 253              		.cfi_def_cfa_offset 8
+ 254              		.cfi_offset 3, -8
+ 255              		.cfi_offset 14, -4
+  58:mri/core/packet.c ****     pPacket->calculatedChecksum = 0;
+ 256              		.loc 1 58 5 is_stmt 1 view .LVU51
+  58:mri/core/packet.c ****     pPacket->calculatedChecksum = 0;
+ 257              		.loc 1 58 23 is_stmt 0 view .LVU52
+ 258 0002 0022     		movs	r2, #0
+ 259 0004 0276     		strb	r2, [r0, #24]
+  59:mri/core/packet.c ****     pPacket->expectedChecksum = 0;
+ 260              		.loc 1 59 5 is_stmt 1 view .LVU53
+  59:mri/core/packet.c ****     pPacket->expectedChecksum = 0;
+ 261              		.loc 1 59 33 is_stmt 0 view .LVU54
+ 262 0006 4276     		strb	r2, [r0, #25]
+  60:mri/core/packet.c ****     Buffer_Reset(&pPacket->packetBuffer);
+ 263              		.loc 1 60 5 is_stmt 1 view .LVU55
+  60:mri/core/packet.c ****     Buffer_Reset(&pPacket->packetBuffer);
+ 264              		.loc 1 60 31 is_stmt 0 view .LVU56
+ 265 0008 8276     		strb	r2, [r0, #26]
+  61:mri/core/packet.c **** }
+ 266              		.loc 1 61 5 is_stmt 1 view .LVU57
+ 267 000a FFF7FEFF 		bl	mriBuffer_Reset
+ 268              	.LVL18:
+  62:mri/core/packet.c **** 
+ 269              		.loc 1 62 1 is_stmt 0 view .LVU58
+ 270 000e 08BD     		pop	{r3, pc}
+ 271              		.cfi_endproc
+ 272              	.LFE9:
+ 274              		.section	.text.getNextCharFromGdb,"ax",%progbits
+ARM GAS  /tmp/ccddhYcB.s 			page 11
+
+
+ 275              		.align	1
+ 276              		.syntax unified
+ 277              		.thumb
+ 278              		.thumb_func
+ 280              	getNextCharFromGdb:
+ 281              	.LVL19:
+ 282              	.LFB13:
+ 103:mri/core/packet.c ****     char nextChar = Platform_CommReceiveChar();
+ 283              		.loc 1 103 1 is_stmt 1 view -0
+ 284              		.cfi_startproc
+ 285              		@ args = 0, pretend = 0, frame = 0
+ 286              		@ frame_needed = 0, uses_anonymous_args = 0
+ 103:mri/core/packet.c ****     char nextChar = Platform_CommReceiveChar();
+ 287              		.loc 1 103 1 is_stmt 0 view .LVU60
+ 288 0000 10B5     		push	{r4, lr}
+ 289              	.LCFI1:
+ 290              		.cfi_def_cfa_offset 8
+ 291              		.cfi_offset 4, -8
+ 292              		.cfi_offset 14, -4
+ 293 0002 0446     		mov	r4, r0
+ 104:mri/core/packet.c ****     pPacket->lastChar = nextChar;
+ 294              		.loc 1 104 5 is_stmt 1 view .LVU61
+ 104:mri/core/packet.c ****     pPacket->lastChar = nextChar;
+ 295              		.loc 1 104 21 is_stmt 0 view .LVU62
+ 296 0004 FFF7FEFF 		bl	mriPlatform_CommReceiveChar
+ 297              	.LVL20:
+ 104:mri/core/packet.c ****     pPacket->lastChar = nextChar;
+ 298              		.loc 1 104 10 view .LVU63
+ 299 0008 C0B2     		uxtb	r0, r0
+ 300              	.LVL21:
+ 105:mri/core/packet.c ****     return nextChar;
+ 301              		.loc 1 105 5 is_stmt 1 view .LVU64
+ 105:mri/core/packet.c ****     return nextChar;
+ 302              		.loc 1 105 23 is_stmt 0 view .LVU65
+ 303 000a 2076     		strb	r0, [r4, #24]
+ 106:mri/core/packet.c **** }
+ 304              		.loc 1 106 5 is_stmt 1 view .LVU66
+ 107:mri/core/packet.c **** 
+ 305              		.loc 1 107 1 is_stmt 0 view .LVU67
+ 306 000c 10BD     		pop	{r4, pc}
+ 107:mri/core/packet.c **** 
+ 307              		.loc 1 107 1 view .LVU68
+ 308              		.cfi_endproc
+ 309              	.LFE13:
+ 311              		.section	.text.waitForStartOfNextPacket,"ax",%progbits
+ 312              		.align	1
+ 313              		.syntax unified
+ 314              		.thumb
+ 315              		.thumb_func
+ 317              	waitForStartOfNextPacket:
+ 318              	.LVL22:
+ 319              	.LFB12:
+  94:mri/core/packet.c ****     char nextChar = pPacket->lastChar;
+ 320              		.loc 1 94 1 is_stmt 1 view -0
+ 321              		.cfi_startproc
+ 322              		@ args = 0, pretend = 0, frame = 0
+ 323              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccddhYcB.s 			page 12
+
+
+  94:mri/core/packet.c ****     char nextChar = pPacket->lastChar;
+ 324              		.loc 1 94 1 is_stmt 0 view .LVU70
+ 325 0000 10B5     		push	{r4, lr}
+ 326              	.LCFI2:
+ 327              		.cfi_def_cfa_offset 8
+ 328              		.cfi_offset 4, -8
+ 329              		.cfi_offset 14, -4
+ 330 0002 0446     		mov	r4, r0
+  95:mri/core/packet.c **** 
+ 331              		.loc 1 95 5 is_stmt 1 view .LVU71
+  95:mri/core/packet.c **** 
+ 332              		.loc 1 95 10 is_stmt 0 view .LVU72
+ 333 0004 007E     		ldrb	r0, [r0, #24]	@ zero_extendqisi2
+ 334              	.LVL23:
+  98:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 335              		.loc 1 98 5 is_stmt 1 view .LVU73
+  98:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 336              		.loc 1 98 11 is_stmt 0 view .LVU74
+ 337 0006 02E0     		b	.L20
+ 338              	.L21:
+  99:mri/core/packet.c **** }
+ 339              		.loc 1 99 9 is_stmt 1 view .LVU75
+  99:mri/core/packet.c **** }
+ 340              		.loc 1 99 20 is_stmt 0 view .LVU76
+ 341 0008 2046     		mov	r0, r4
+ 342              	.LVL24:
+  99:mri/core/packet.c **** }
+ 343              		.loc 1 99 20 view .LVU77
+ 344 000a FFF7FEFF 		bl	getNextCharFromGdb
+ 345              	.LVL25:
+ 346              	.L20:
+  98:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 347              		.loc 1 98 21 is_stmt 1 view .LVU78
+ 348 000e 2428     		cmp	r0, #36
+ 349 0010 FAD1     		bne	.L21
+ 100:mri/core/packet.c **** 
+ 350              		.loc 1 100 1 is_stmt 0 view .LVU79
+ 351 0012 10BD     		pop	{r4, pc}
+ 100:mri/core/packet.c **** 
+ 352              		.loc 1 100 1 view .LVU80
+ 353              		.cfi_endproc
+ 354              	.LFE12:
+ 356              		.section	.text.extractExpectedChecksum,"ax",%progbits
+ 357              		.align	1
+ 358              		.syntax unified
+ 359              		.thumb
+ 360              		.thumb_func
+ 362              	extractExpectedChecksum:
+ 363              	.LVL26:
+ 364              	.LFB19:
+ 156:mri/core/packet.c ****     __try
+ 365              		.loc 1 156 1 is_stmt 1 view -0
+ 366              		.cfi_startproc
+ 367              		@ args = 0, pretend = 0, frame = 0
+ 368              		@ frame_needed = 0, uses_anonymous_args = 0
+ 156:mri/core/packet.c ****     __try
+ 369              		.loc 1 156 1 is_stmt 0 view .LVU82
+ARM GAS  /tmp/ccddhYcB.s 			page 13
+
+
+ 370 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 371              	.LCFI3:
+ 372              		.cfi_def_cfa_offset 24
+ 373              		.cfi_offset 3, -24
+ 374              		.cfi_offset 4, -20
+ 375              		.cfi_offset 5, -16
+ 376              		.cfi_offset 6, -12
+ 377              		.cfi_offset 7, -8
+ 378              		.cfi_offset 14, -4
+ 379 0002 0446     		mov	r4, r0
+ 157:mri/core/packet.c ****     {
+ 380              		.loc 1 157 5 is_stmt 1 view .LVU83
+ 157:mri/core/packet.c ****     {
+ 381              		.loc 1 157 5 view .LVU84
+ 382              	.LBB9:
+ 383              	.LBI9:
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+ 384              		.loc 3 76 20 view .LVU85
+ 385              	.LBB10:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+ 386              		.loc 3 78 5 view .LVU86
+ 387              		.loc 3 78 22 is_stmt 0 view .LVU87
+ 388 0004 104F     		ldr	r7, .L28
+ 389 0006 0023     		movs	r3, #0
+ 390 0008 3B60     		str	r3, [r7]
+ 391              	.LBE10:
+ 392              	.LBE9:
+ 393              	.LBB11:
+ 159:mri/core/packet.c ****         char char2 = getNextCharFromGdb(pPacket);
+ 394              		.loc 1 159 9 is_stmt 1 view .LVU88
+ 159:mri/core/packet.c ****         char char2 = getNextCharFromGdb(pPacket);
+ 395              		.loc 1 159 22 is_stmt 0 view .LVU89
+ 396 000a FFF7FEFF 		bl	getNextCharFromGdb
+ 397              	.LVL27:
+ 159:mri/core/packet.c ****         char char2 = getNextCharFromGdb(pPacket);
+ 398              		.loc 1 159 22 view .LVU90
+ 399 000e 0546     		mov	r5, r0
+ 400              	.LVL28:
+ 160:mri/core/packet.c ****         unsigned char expectedChecksumHiNibble;
+ 401              		.loc 1 160 9 is_stmt 1 view .LVU91
+ 160:mri/core/packet.c ****         unsigned char expectedChecksumHiNibble;
+ 402              		.loc 1 160 22 is_stmt 0 view .LVU92
+ 403 0010 2046     		mov	r0, r4
+ 404 0012 FFF7FEFF 		bl	getNextCharFromGdb
+ 405              	.LVL29:
+ 406 0016 0646     		mov	r6, r0
+ 407              	.LVL30:
+ 161:mri/core/packet.c ****         unsigned char expectedChecksumLoNibble;
+ 408              		.loc 1 161 9 is_stmt 1 view .LVU93
+ 162:mri/core/packet.c **** 
+ 409              		.loc 1 162 9 view .LVU94
+ 164:mri/core/packet.c ****         __throwing_func( expectedChecksumLoNibble = HexCharToNibble(char2) );
+ 410              		.loc 1 164 9 view .LVU95
+ 411 0018 2846     		mov	r0, r5
+ARM GAS  /tmp/ccddhYcB.s 			page 14
+
+
+ 412 001a FFF7FEFF 		bl	HexCharToNibble
+ 413              	.LVL31:
+ 164:mri/core/packet.c ****         __throwing_func( expectedChecksumLoNibble = HexCharToNibble(char2) );
+ 414              		.loc 1 164 9 view .LVU96
+ 415 001e 3B68     		ldr	r3, [r7]
+ 416 0020 33B1     		cbz	r3, .L27
+ 417              	.LVL32:
+ 418              	.L24:
+ 164:mri/core/packet.c ****         __throwing_func( expectedChecksumLoNibble = HexCharToNibble(char2) );
+ 419              		.loc 1 164 9 is_stmt 0 view .LVU97
+ 420              	.LBE11:
+ 157:mri/core/packet.c ****     {
+ 421              		.loc 1 157 5 is_stmt 1 view .LVU98
+ 168:mri/core/packet.c ****     {
+ 422              		.loc 1 168 5 view .LVU99
+ 423 0022 094B     		ldr	r3, .L28
+ 424 0024 1B68     		ldr	r3, [r3]
+ 425 0026 13B1     		cbz	r3, .L23
+ 171:mri/core/packet.c ****     }
+ 426              		.loc 1 171 9 view .LVU100
+ 171:mri/core/packet.c ****     }
+ 427              		.loc 1 171 45 is_stmt 0 view .LVU101
+ 428 0028 637E     		ldrb	r3, [r4, #25]	@ zero_extendqisi2
+ 171:mri/core/packet.c ****     }
+ 429              		.loc 1 171 35 view .LVU102
+ 430 002a DB43     		mvns	r3, r3
+ 431 002c A376     		strb	r3, [r4, #26]
+ 432              	.L23:
+ 173:mri/core/packet.c **** 
+ 433              		.loc 1 173 1 view .LVU103
+ 434 002e F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 435              	.LVL33:
+ 436              	.L27:
+ 173:mri/core/packet.c **** 
+ 437              		.loc 1 173 1 view .LVU104
+ 438 0030 0546     		mov	r5, r0
+ 439              	.LVL34:
+ 440              	.LBB12:
+ 164:mri/core/packet.c ****         __throwing_func( expectedChecksumLoNibble = HexCharToNibble(char2) );
+ 441              		.loc 1 164 77 is_stmt 1 discriminator 1 view .LVU105
+ 165:mri/core/packet.c ****         pPacket->expectedChecksum = (expectedChecksumHiNibble << 4) | expectedChecksumLoNibble;
+ 442              		.loc 1 165 9 discriminator 1 view .LVU106
+ 443 0032 3046     		mov	r0, r6
+ 444              	.LVL35:
+ 165:mri/core/packet.c ****         pPacket->expectedChecksum = (expectedChecksumHiNibble << 4) | expectedChecksumLoNibble;
+ 445              		.loc 1 165 9 is_stmt 0 discriminator 1 view .LVU107
+ 446 0034 FFF7FEFF 		bl	HexCharToNibble
+ 447              	.LVL36:
+ 165:mri/core/packet.c ****         pPacket->expectedChecksum = (expectedChecksumHiNibble << 4) | expectedChecksumLoNibble;
+ 448              		.loc 1 165 9 is_stmt 1 discriminator 1 view .LVU108
+ 449 0038 3B68     		ldr	r3, [r7]
+ 450 003a 002B     		cmp	r3, #0
+ 451 003c F1D1     		bne	.L24
+ 165:mri/core/packet.c ****         pPacket->expectedChecksum = (expectedChecksumHiNibble << 4) | expectedChecksumLoNibble;
+ 452              		.loc 1 165 77 discriminator 1 view .LVU109
+ 166:mri/core/packet.c ****     }
+ 453              		.loc 1 166 9 discriminator 1 view .LVU110
+ARM GAS  /tmp/ccddhYcB.s 			page 15
+
+
+ 166:mri/core/packet.c ****     }
+ 454              		.loc 1 166 63 is_stmt 0 discriminator 1 view .LVU111
+ 455 003e EDB2     		uxtb	r5, r5
+ 166:mri/core/packet.c ****     }
+ 456              		.loc 1 166 69 discriminator 1 view .LVU112
+ 457 0040 40EA0510 		orr	r0, r0, r5, lsl #4
+ 458              	.LVL37:
+ 166:mri/core/packet.c ****     }
+ 459              		.loc 1 166 35 discriminator 1 view .LVU113
+ 460 0044 A076     		strb	r0, [r4, #26]
+ 461 0046 ECE7     		b	.L24
+ 462              	.L29:
+ 463              		.align	2
+ 464              	.L28:
+ 465 0048 00000000 		.word	mriExceptionCode
+ 466              	.LBE12:
+ 467              		.cfi_endproc
+ 468              	.LFE19:
+ 470              		.section	.text.storePacketHeaderByte,"ax",%progbits
+ 471              		.align	1
+ 472              		.syntax unified
+ 473              		.thumb
+ 474              		.thumb_func
+ 476              	storePacketHeaderByte:
+ 477              	.LVL38:
+ 478              	.LFB26:
+ 179:mri/core/packet.c **** 
+ 180:mri/core/packet.c **** static void sendACKToGDB(void)
+ 181:mri/core/packet.c **** {
+ 182:mri/core/packet.c ****     Platform_CommSendChar('+');
+ 183:mri/core/packet.c **** }
+ 184:mri/core/packet.c **** 
+ 185:mri/core/packet.c **** static void sendNAKToGDB(void)
+ 186:mri/core/packet.c **** {
+ 187:mri/core/packet.c ****     Platform_CommSendChar('-');
+ 188:mri/core/packet.c **** }
+ 189:mri/core/packet.c **** 
+ 190:mri/core/packet.c **** static void resetBufferToEnableFutureReadingOfValidPacketData(Packet* pPacket)
+ 191:mri/core/packet.c **** {
+ 192:mri/core/packet.c ****     Buffer_SetEndOfBuffer(&pPacket->dataBuffer);
+ 193:mri/core/packet.c ****     Buffer_Reset(&pPacket->dataBuffer);
+ 194:mri/core/packet.c **** }
+ 195:mri/core/packet.c **** 
+ 196:mri/core/packet.c **** 
+ 197:mri/core/packet.c **** static void completePacket(Packet* pPacket);
+ 198:mri/core/packet.c **** static void storePacketHeaderByte(Packet* pPacket);
+ 199:mri/core/packet.c **** static void processPacketData(Packet* pPacket);
+ 200:mri/core/packet.c **** static void storePacketChecksum(Packet* pPacket);
+ 201:mri/core/packet.c **** static void sendPacket(Packet* pPacket);
+ 202:mri/core/packet.c **** static int  receiveCharAfterSkippingControlC(Packet* pPacket);
+ 203:mri/core/packet.c **** void Packet_SendToGDB(Packet* pPacket)
+ 204:mri/core/packet.c **** {
+ 205:mri/core/packet.c ****     char  charFromGdb;
+ 206:mri/core/packet.c **** 
+ 207:mri/core/packet.c ****     /* Keeps looping until GDB sends back the '+' packet acknowledge character.  If GDB sends a '$'
+ 208:mri/core/packet.c ****        to send a packet so cancel this send attempt. */
+ 209:mri/core/packet.c ****     initPacketStructure(pPacket);
+ARM GAS  /tmp/ccddhYcB.s 			page 16
+
+
+ 210:mri/core/packet.c ****     completePacket(pPacket);
+ 211:mri/core/packet.c ****     do
+ 212:mri/core/packet.c ****     {
+ 213:mri/core/packet.c ****         sendPacket(pPacket);
+ 214:mri/core/packet.c ****         charFromGdb = receiveCharAfterSkippingControlC(pPacket);
+ 215:mri/core/packet.c ****     } while (charFromGdb != '+' && charFromGdb != '$');
+ 216:mri/core/packet.c **** }
+ 217:mri/core/packet.c **** 
+ 218:mri/core/packet.c **** static void completePacket(Packet* pPacket)
+ 219:mri/core/packet.c **** {
+ 220:mri/core/packet.c ****     /* Complete packet by adding '$' header and '#' checksum terminator -> "$<DataInHex>#<2HexDigit
+ 221:mri/core/packet.c ****     Buffer_Reset(&pPacket->dataBuffer);
+ 222:mri/core/packet.c ****     clearChecksum(pPacket);
+ 223:mri/core/packet.c **** 
+ 224:mri/core/packet.c ****     storePacketHeaderByte(pPacket);
+ 225:mri/core/packet.c ****     processPacketData(pPacket);
+ 226:mri/core/packet.c ****     storePacketChecksum(pPacket);
+ 227:mri/core/packet.c **** 
+ 228:mri/core/packet.c ****     Buffer_SetEndOfBuffer(&pPacket->packetBuffer);
+ 229:mri/core/packet.c **** }
+ 230:mri/core/packet.c **** 
+ 231:mri/core/packet.c **** static void storePacketHeaderByte(Packet* pPacket)
+ 232:mri/core/packet.c **** {
+ 479              		.loc 1 232 1 is_stmt 1 view -0
+ 480              		.cfi_startproc
+ 481              		@ args = 0, pretend = 0, frame = 0
+ 482              		@ frame_needed = 0, uses_anonymous_args = 0
+ 483              		.loc 1 232 1 is_stmt 0 view .LVU115
+ 484 0000 08B5     		push	{r3, lr}
+ 485              	.LCFI4:
+ 486              		.cfi_def_cfa_offset 8
+ 487              		.cfi_offset 3, -8
+ 488              		.cfi_offset 14, -4
+ 233:mri/core/packet.c ****     Buffer_WriteChar(&pPacket->packetBuffer, '$');
+ 489              		.loc 1 233 5 is_stmt 1 view .LVU116
+ 490 0002 2421     		movs	r1, #36
+ 491 0004 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 492              	.LVL39:
+ 234:mri/core/packet.c **** }
+ 493              		.loc 1 234 1 is_stmt 0 view .LVU117
+ 494 0008 08BD     		pop	{r3, pc}
+ 495              		.cfi_endproc
+ 496              	.LFE26:
+ 498              		.section	.text.getPacketData,"ax",%progbits
+ 499              		.align	1
+ 500              		.syntax unified
+ 501              		.thumb
+ 502              		.thumb_func
+ 504              	getPacketData:
+ 505              	.LVL40:
+ 506              	.LFB14:
+ 110:mri/core/packet.c ****     char nextChar;
+ 507              		.loc 1 110 1 is_stmt 1 view -0
+ 508              		.cfi_startproc
+ 509              		@ args = 0, pretend = 0, frame = 0
+ 510              		@ frame_needed = 0, uses_anonymous_args = 0
+ 110:mri/core/packet.c ****     char nextChar;
+ARM GAS  /tmp/ccddhYcB.s 			page 17
+
+
+ 511              		.loc 1 110 1 is_stmt 0 view .LVU119
+ 512 0000 70B5     		push	{r4, r5, r6, lr}
+ 513              	.LCFI5:
+ 514              		.cfi_def_cfa_offset 16
+ 515              		.cfi_offset 4, -16
+ 516              		.cfi_offset 5, -12
+ 517              		.cfi_offset 6, -8
+ 518              		.cfi_offset 14, -4
+ 519 0002 0546     		mov	r5, r0
+ 111:mri/core/packet.c **** 
+ 520              		.loc 1 111 5 is_stmt 1 view .LVU120
+ 113:mri/core/packet.c ****     clearChecksum(pPacket);
+ 521              		.loc 1 113 5 view .LVU121
+ 522 0004 00F10C06 		add	r6, r0, #12
+ 523 0008 3046     		mov	r0, r6
+ 524              	.LVL41:
+ 113:mri/core/packet.c ****     clearChecksum(pPacket);
+ 525              		.loc 1 113 5 is_stmt 0 view .LVU122
+ 526 000a FFF7FEFF 		bl	mriBuffer_Reset
+ 527              	.LVL42:
+ 114:mri/core/packet.c ****     nextChar = getNextCharFromGdb(pPacket);
+ 528              		.loc 1 114 5 is_stmt 1 view .LVU123
+ 529 000e 2846     		mov	r0, r5
+ 530 0010 FFF7FEFF 		bl	clearChecksum
+ 531              	.LVL43:
+ 115:mri/core/packet.c ****     while (Buffer_BytesLeft(&pPacket->dataBuffer) > 0 && nextChar != '$' && nextChar != '#')
+ 532              		.loc 1 115 5 view .LVU124
+ 115:mri/core/packet.c ****     while (Buffer_BytesLeft(&pPacket->dataBuffer) > 0 && nextChar != '$' && nextChar != '#')
+ 533              		.loc 1 115 16 is_stmt 0 view .LVU125
+ 534 0014 2846     		mov	r0, r5
+ 535 0016 FFF7FEFF 		bl	getNextCharFromGdb
+ 536              	.LVL44:
+ 537 001a 0446     		mov	r4, r0
+ 538              	.LVL45:
+ 116:mri/core/packet.c ****     {
+ 539              		.loc 1 116 5 is_stmt 1 view .LVU126
+ 116:mri/core/packet.c ****     {
+ 540              		.loc 1 116 11 is_stmt 0 view .LVU127
+ 541 001c 07E0     		b	.L33
+ 542              	.L34:
+ 127:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 543              		.loc 1 127 9 is_stmt 1 view .LVU128
+ 544 001e 2146     		mov	r1, r4
+ 545 0020 3046     		mov	r0, r6
+ 546 0022 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 547              	.LVL46:
+ 128:mri/core/packet.c ****     }
+ 548              		.loc 1 128 9 view .LVU129
+ 128:mri/core/packet.c ****     }
+ 549              		.loc 1 128 20 is_stmt 0 view .LVU130
+ 550 0026 2846     		mov	r0, r5
+ 551 0028 FFF7FEFF 		bl	getNextCharFromGdb
+ 552              	.LVL47:
+ 553 002c 0446     		mov	r4, r0
+ 554              	.LVL48:
+ 555              	.L33:
+ 116:mri/core/packet.c ****     {
+ARM GAS  /tmp/ccddhYcB.s 			page 18
+
+
+ 556              		.loc 1 116 74 is_stmt 1 view .LVU131
+ 116:mri/core/packet.c ****     {
+ 557              		.loc 1 116 12 is_stmt 0 view .LVU132
+ 558 002e 3046     		mov	r0, r6
+ 559 0030 FFF7FEFF 		bl	mriBuffer_BytesLeft
+ 560              	.LVL49:
+ 116:mri/core/packet.c ****     {
+ 561              		.loc 1 116 74 view .LVU133
+ 562 0034 F0B1     		cbz	r0, .L35
+ 116:mri/core/packet.c ****     {
+ 563              		.loc 1 116 55 discriminator 1 view .LVU134
+ 564 0036 242C     		cmp	r4, #36
+ 565 0038 1CD0     		beq	.L35
+ 116:mri/core/packet.c ****     {
+ 566              		.loc 1 116 74 discriminator 2 view .LVU135
+ 567 003a 232C     		cmp	r4, #35
+ 568 003c 1AD0     		beq	.L35
+ 118:mri/core/packet.c ****         if (isEscapePrefixChar(nextChar))
+ 569              		.loc 1 118 9 is_stmt 1 view .LVU136
+ 570 003e 2146     		mov	r1, r4
+ 571 0040 2846     		mov	r0, r5
+ 572 0042 FFF7FEFF 		bl	updateChecksum
+ 573              	.LVL50:
+ 119:mri/core/packet.c ****         {
+ 574              		.loc 1 119 9 view .LVU137
+ 119:mri/core/packet.c ****         {
+ 575              		.loc 1 119 13 is_stmt 0 view .LVU138
+ 576 0046 2046     		mov	r0, r4
+ 577 0048 FFF7FEFF 		bl	isEscapePrefixChar
+ 578              	.LVL51:
+ 119:mri/core/packet.c ****         {
+ 579              		.loc 1 119 12 view .LVU139
+ 580 004c 0028     		cmp	r0, #0
+ 581 004e E6D0     		beq	.L34
+ 121:mri/core/packet.c ****             if (nextChar == '$' || nextChar == '#')
+ 582              		.loc 1 121 13 is_stmt 1 view .LVU140
+ 121:mri/core/packet.c ****             if (nextChar == '$' || nextChar == '#')
+ 583              		.loc 1 121 24 is_stmt 0 view .LVU141
+ 584 0050 2846     		mov	r0, r5
+ 585 0052 FFF7FEFF 		bl	getNextCharFromGdb
+ 586              	.LVL52:
+ 587 0056 0446     		mov	r4, r0
+ 588              	.LVL53:
+ 122:mri/core/packet.c ****                 break;
+ 589              		.loc 1 122 13 is_stmt 1 view .LVU142
+ 122:mri/core/packet.c ****                 break;
+ 590              		.loc 1 122 33 is_stmt 0 view .LVU143
+ 591 0058 A0F12303 		sub	r3, r0, #35
+ 592 005c DBB2     		uxtb	r3, r3
+ 122:mri/core/packet.c ****                 break;
+ 593              		.loc 1 122 16 view .LVU144
+ 594 005e 012B     		cmp	r3, #1
+ 595 0060 08D9     		bls	.L35
+ 124:mri/core/packet.c ****             nextChar = unescapeChar(nextChar);
+ 596              		.loc 1 124 13 is_stmt 1 view .LVU145
+ 597 0062 0146     		mov	r1, r0
+ 598 0064 2846     		mov	r0, r5
+ARM GAS  /tmp/ccddhYcB.s 			page 19
+
+
+ 599              	.LVL54:
+ 124:mri/core/packet.c ****             nextChar = unescapeChar(nextChar);
+ 600              		.loc 1 124 13 is_stmt 0 view .LVU146
+ 601 0066 FFF7FEFF 		bl	updateChecksum
+ 602              	.LVL55:
+ 125:mri/core/packet.c ****         }
+ 603              		.loc 1 125 13 is_stmt 1 view .LVU147
+ 125:mri/core/packet.c ****         }
+ 604              		.loc 1 125 24 is_stmt 0 view .LVU148
+ 605 006a 2046     		mov	r0, r4
+ 606 006c FFF7FEFF 		bl	unescapeChar
+ 607              	.LVL56:
+ 608 0070 0446     		mov	r4, r0
+ 609              	.LVL57:
+ 125:mri/core/packet.c ****         }
+ 610              		.loc 1 125 24 view .LVU149
+ 611 0072 D4E7     		b	.L34
+ 612              	.LVL58:
+ 613              	.L35:
+ 132:mri/core/packet.c **** }
+ 614              		.loc 1 132 5 is_stmt 1 view .LVU150
+ 133:mri/core/packet.c **** 
+ 615              		.loc 1 133 1 is_stmt 0 view .LVU151
+ 616 0074 232C     		cmp	r4, #35
+ 617 0076 14BF     		ite	ne
+ 618 0078 0020     		movne	r0, #0
+ 619 007a 0120     		moveq	r0, #1
+ 620 007c 70BD     		pop	{r4, r5, r6, pc}
+ 133:mri/core/packet.c **** 
+ 621              		.loc 1 133 1 view .LVU152
+ 622              		.cfi_endproc
+ 623              	.LFE14:
+ 625              		.section	.text.getPacketDataAndExpectedChecksum,"ax",%progbits
+ 626              		.align	1
+ 627              		.syntax unified
+ 628              		.thumb
+ 629              		.thumb_func
+ 631              	getPacketDataAndExpectedChecksum:
+ 632              	.LVL59:
+ 633              	.LFB11:
+  81:mri/core/packet.c ****     int completePacket;
+ 634              		.loc 1 81 1 is_stmt 1 view -0
+ 635              		.cfi_startproc
+ 636              		@ args = 0, pretend = 0, frame = 0
+ 637              		@ frame_needed = 0, uses_anonymous_args = 0
+  81:mri/core/packet.c ****     int completePacket;
+ 638              		.loc 1 81 1 is_stmt 0 view .LVU154
+ 639 0000 10B5     		push	{r4, lr}
+ 640              	.LCFI6:
+ 641              		.cfi_def_cfa_offset 8
+ 642              		.cfi_offset 4, -8
+ 643              		.cfi_offset 14, -4
+ 644 0002 0446     		mov	r4, r0
+ 645              	.LVL60:
+ 646              	.L39:
+  82:mri/core/packet.c **** 
+ 647              		.loc 1 82 5 is_stmt 1 discriminator 1 view .LVU155
+ARM GAS  /tmp/ccddhYcB.s 			page 20
+
+
+  84:mri/core/packet.c ****     {
+ 648              		.loc 1 84 5 discriminator 1 view .LVU156
+  86:mri/core/packet.c ****         completePacket = getPacketData(pPacket);
+ 649              		.loc 1 86 9 discriminator 1 view .LVU157
+ 650 0004 2046     		mov	r0, r4
+ 651 0006 FFF7FEFF 		bl	waitForStartOfNextPacket
+ 652              	.LVL61:
+  87:mri/core/packet.c ****     } while (!completePacket);
+ 653              		.loc 1 87 9 discriminator 1 view .LVU158
+  87:mri/core/packet.c ****     } while (!completePacket);
+ 654              		.loc 1 87 26 is_stmt 0 discriminator 1 view .LVU159
+ 655 000a 2046     		mov	r0, r4
+ 656 000c FFF7FEFF 		bl	getPacketData
+ 657              	.LVL62:
+  88:mri/core/packet.c **** 
+ 658              		.loc 1 88 14 is_stmt 1 discriminator 1 view .LVU160
+ 659 0010 0028     		cmp	r0, #0
+ 660 0012 F7D0     		beq	.L39
+  90:mri/core/packet.c **** }
+ 661              		.loc 1 90 5 view .LVU161
+ 662 0014 2046     		mov	r0, r4
+ 663              	.LVL63:
+  90:mri/core/packet.c **** }
+ 664              		.loc 1 90 5 is_stmt 0 view .LVU162
+ 665 0016 FFF7FEFF 		bl	extractExpectedChecksum
+ 666              	.LVL64:
+  91:mri/core/packet.c **** 
+ 667              		.loc 1 91 1 view .LVU163
+ 668 001a 10BD     		pop	{r4, pc}
+  91:mri/core/packet.c **** 
+ 669              		.loc 1 91 1 view .LVU164
+ 670              		.cfi_endproc
+ 671              	.LFE11:
+ 673              		.section	.text.sendNAKToGDB,"ax",%progbits
+ 674              		.align	1
+ 675              		.syntax unified
+ 676              		.thumb
+ 677              		.thumb_func
+ 679              	sendNAKToGDB:
+ 680              	.LFB22:
+ 186:mri/core/packet.c ****     Platform_CommSendChar('-');
+ 681              		.loc 1 186 1 is_stmt 1 view -0
+ 682              		.cfi_startproc
+ 683              		@ args = 0, pretend = 0, frame = 0
+ 684              		@ frame_needed = 0, uses_anonymous_args = 0
+ 685 0000 08B5     		push	{r3, lr}
+ 686              	.LCFI7:
+ 687              		.cfi_def_cfa_offset 8
+ 688              		.cfi_offset 3, -8
+ 689              		.cfi_offset 14, -4
+ 187:mri/core/packet.c **** }
+ 690              		.loc 1 187 5 view .LVU166
+ 691 0002 2D20     		movs	r0, #45
+ 692 0004 FFF7FEFF 		bl	mriPlatform_CommSendChar
+ 693              	.LVL65:
+ 188:mri/core/packet.c **** 
+ 694              		.loc 1 188 1 is_stmt 0 view .LVU167
+ARM GAS  /tmp/ccddhYcB.s 			page 21
+
+
+ 695 0008 08BD     		pop	{r3, pc}
+ 696              		.cfi_endproc
+ 697              	.LFE22:
+ 699              		.section	.text.sendACKToGDB,"ax",%progbits
+ 700              		.align	1
+ 701              		.syntax unified
+ 702              		.thumb
+ 703              		.thumb_func
+ 705              	sendACKToGDB:
+ 706              	.LFB21:
+ 181:mri/core/packet.c ****     Platform_CommSendChar('+');
+ 707              		.loc 1 181 1 is_stmt 1 view -0
+ 708              		.cfi_startproc
+ 709              		@ args = 0, pretend = 0, frame = 0
+ 710              		@ frame_needed = 0, uses_anonymous_args = 0
+ 711 0000 08B5     		push	{r3, lr}
+ 712              	.LCFI8:
+ 713              		.cfi_def_cfa_offset 8
+ 714              		.cfi_offset 3, -8
+ 715              		.cfi_offset 14, -4
+ 182:mri/core/packet.c **** }
+ 716              		.loc 1 182 5 view .LVU169
+ 717 0002 2B20     		movs	r0, #43
+ 718 0004 FFF7FEFF 		bl	mriPlatform_CommSendChar
+ 719              	.LVL66:
+ 183:mri/core/packet.c **** 
+ 720              		.loc 1 183 1 is_stmt 0 view .LVU170
+ 721 0008 08BD     		pop	{r3, pc}
+ 722              		.cfi_endproc
+ 723              	.LFE21:
+ 725              		.section	.text.getMostRecentPacket,"ax",%progbits
+ 726              		.align	1
+ 727              		.syntax unified
+ 728              		.thumb
+ 729              		.thumb_func
+ 731              	getMostRecentPacket:
+ 732              	.LVL67:
+ 733              	.LFB10:
+  65:mri/core/packet.c ****     do
+ 734              		.loc 1 65 1 is_stmt 1 view -0
+ 735              		.cfi_startproc
+ 736              		@ args = 0, pretend = 0, frame = 0
+ 737              		@ frame_needed = 0, uses_anonymous_args = 0
+  65:mri/core/packet.c ****     do
+ 738              		.loc 1 65 1 is_stmt 0 view .LVU172
+ 739 0000 10B5     		push	{r4, lr}
+ 740              	.LCFI9:
+ 741              		.cfi_def_cfa_offset 8
+ 742              		.cfi_offset 4, -8
+ 743              		.cfi_offset 14, -4
+ 744 0002 0446     		mov	r4, r0
+ 745              	.LVL68:
+ 746              	.L46:
+  66:mri/core/packet.c ****     {
+ 747              		.loc 1 66 5 is_stmt 1 discriminator 1 view .LVU173
+  68:mri/core/packet.c ****     } while (Platform_CommHasReceiveData());
+ 748              		.loc 1 68 9 discriminator 1 view .LVU174
+ARM GAS  /tmp/ccddhYcB.s 			page 22
+
+
+ 749 0004 2046     		mov	r0, r4
+ 750 0006 FFF7FEFF 		bl	getPacketDataAndExpectedChecksum
+ 751              	.LVL69:
+  69:mri/core/packet.c **** 
+ 752              		.loc 1 69 14 discriminator 1 view .LVU175
+ 753 000a FFF7FEFF 		bl	mriPlatform_CommHasReceiveData
+ 754              	.LVL70:
+ 755 000e 0028     		cmp	r0, #0
+ 756 0010 F8D1     		bne	.L46
+  71:mri/core/packet.c ****     {
+ 757              		.loc 1 71 5 view .LVU176
+  71:mri/core/packet.c ****     {
+ 758              		.loc 1 71 10 is_stmt 0 view .LVU177
+ 759 0012 2046     		mov	r0, r4
+ 760 0014 FFF7FEFF 		bl	isChecksumValid
+ 761              	.LVL71:
+  71:mri/core/packet.c ****     {
+ 762              		.loc 1 71 8 view .LVU178
+ 763 0018 10B1     		cbz	r0, .L50
+  77:mri/core/packet.c **** }
+ 764              		.loc 1 77 5 is_stmt 1 view .LVU179
+ 765 001a FFF7FEFF 		bl	sendACKToGDB
+ 766              	.LVL72:
+ 767              	.L45:
+  78:mri/core/packet.c **** 
+ 768              		.loc 1 78 1 is_stmt 0 view .LVU180
+ 769 001e 10BD     		pop	{r4, pc}
+ 770              	.LVL73:
+ 771              	.L50:
+  73:mri/core/packet.c ****         return;
+ 772              		.loc 1 73 9 is_stmt 1 view .LVU181
+ 773 0020 FFF7FEFF 		bl	sendNAKToGDB
+ 774              	.LVL74:
+  74:mri/core/packet.c ****     }
+ 775              		.loc 1 74 9 view .LVU182
+ 776 0024 FBE7     		b	.L45
+ 777              		.cfi_endproc
+ 778              	.LFE10:
+ 780              		.section	.text.resetBufferToEnableFutureReadingOfValidPacketData,"ax",%progbits
+ 781              		.align	1
+ 782              		.syntax unified
+ 783              		.thumb
+ 784              		.thumb_func
+ 786              	resetBufferToEnableFutureReadingOfValidPacketData:
+ 787              	.LVL75:
+ 788              	.LFB23:
+ 191:mri/core/packet.c ****     Buffer_SetEndOfBuffer(&pPacket->dataBuffer);
+ 789              		.loc 1 191 1 view -0
+ 790              		.cfi_startproc
+ 791              		@ args = 0, pretend = 0, frame = 0
+ 792              		@ frame_needed = 0, uses_anonymous_args = 0
+ 191:mri/core/packet.c ****     Buffer_SetEndOfBuffer(&pPacket->dataBuffer);
+ 793              		.loc 1 191 1 is_stmt 0 view .LVU184
+ 794 0000 10B5     		push	{r4, lr}
+ 795              	.LCFI10:
+ 796              		.cfi_def_cfa_offset 8
+ 797              		.cfi_offset 4, -8
+ARM GAS  /tmp/ccddhYcB.s 			page 23
+
+
+ 798              		.cfi_offset 14, -4
+ 192:mri/core/packet.c ****     Buffer_Reset(&pPacket->dataBuffer);
+ 799              		.loc 1 192 5 is_stmt 1 view .LVU185
+ 800 0002 00F10C04 		add	r4, r0, #12
+ 801 0006 2046     		mov	r0, r4
+ 802              	.LVL76:
+ 192:mri/core/packet.c ****     Buffer_Reset(&pPacket->dataBuffer);
+ 803              		.loc 1 192 5 is_stmt 0 view .LVU186
+ 804 0008 FFF7FEFF 		bl	mriBuffer_SetEndOfBuffer
+ 805              	.LVL77:
+ 193:mri/core/packet.c **** }
+ 806              		.loc 1 193 5 is_stmt 1 view .LVU187
+ 807 000c 2046     		mov	r0, r4
+ 808 000e FFF7FEFF 		bl	mriBuffer_Reset
+ 809              	.LVL78:
+ 194:mri/core/packet.c **** 
+ 810              		.loc 1 194 1 is_stmt 0 view .LVU188
+ 811 0012 10BD     		pop	{r4, pc}
+ 194:mri/core/packet.c **** 
+ 812              		.loc 1 194 1 view .LVU189
+ 813              		.cfi_endproc
+ 814              	.LFE23:
+ 816              		.section	.text.processPacketData,"ax",%progbits
+ 817              		.align	1
+ 818              		.syntax unified
+ 819              		.thumb
+ 820              		.thumb_func
+ 822              	processPacketData:
+ 823              	.LVL79:
+ 824              	.LFB27:
+ 235:mri/core/packet.c **** 
+ 236:mri/core/packet.c **** static void processPacketData(Packet* pPacket)
+ 237:mri/core/packet.c **** {
+ 825              		.loc 1 237 1 is_stmt 1 view -0
+ 826              		.cfi_startproc
+ 827              		@ args = 0, pretend = 0, frame = 0
+ 828              		@ frame_needed = 0, uses_anonymous_args = 0
+ 829              		.loc 1 237 1 is_stmt 0 view .LVU191
+ 830 0000 70B5     		push	{r4, r5, r6, lr}
+ 831              	.LCFI11:
+ 832              		.cfi_def_cfa_offset 16
+ 833              		.cfi_offset 4, -16
+ 834              		.cfi_offset 5, -12
+ 835              		.cfi_offset 6, -8
+ 836              		.cfi_offset 14, -4
+ 837 0002 0546     		mov	r5, r0
+ 238:mri/core/packet.c ****     size_t length = 0;
+ 838              		.loc 1 238 5 is_stmt 1 view .LVU192
+ 839              	.LVL80:
+ 239:mri/core/packet.c ****     while (Buffer_BytesLeft(&pPacket->dataBuffer) > 0)
+ 840              		.loc 1 239 5 view .LVU193
+ 238:mri/core/packet.c ****     size_t length = 0;
+ 841              		.loc 1 238 12 is_stmt 0 view .LVU194
+ 842 0004 0026     		movs	r6, #0
+ 843              		.loc 1 239 11 view .LVU195
+ 844 0006 07E0     		b	.L54
+ 845              	.LVL81:
+ARM GAS  /tmp/ccddhYcB.s 			page 24
+
+
+ 846              	.L55:
+ 847              	.LBB13:
+ 240:mri/core/packet.c ****     {
+ 241:mri/core/packet.c ****         char currChar = Buffer_ReadChar(&pPacket->dataBuffer);
+ 848              		.loc 1 241 9 is_stmt 1 view .LVU196
+ 849              		.loc 1 241 25 is_stmt 0 view .LVU197
+ 850 0008 2046     		mov	r0, r4
+ 851 000a FFF7FEFF 		bl	mriBuffer_ReadChar
+ 852              	.LVL82:
+ 853 000e 0146     		mov	r1, r0
+ 854              	.LVL83:
+ 242:mri/core/packet.c ****         updateChecksum(pPacket, currChar);
+ 855              		.loc 1 242 9 is_stmt 1 view .LVU198
+ 856 0010 2846     		mov	r0, r5
+ 857 0012 FFF7FEFF 		bl	updateChecksum
+ 858              	.LVL84:
+ 243:mri/core/packet.c ****         length++;
+ 859              		.loc 1 243 9 view .LVU199
+ 860              		.loc 1 243 15 is_stmt 0 view .LVU200
+ 861 0016 0136     		adds	r6, r6, #1
+ 862              	.LVL85:
+ 863              	.L54:
+ 864              		.loc 1 243 15 view .LVU201
+ 865              	.LBE13:
+ 239:mri/core/packet.c ****     {
+ 866              		.loc 1 239 51 is_stmt 1 view .LVU202
+ 239:mri/core/packet.c ****     {
+ 867              		.loc 1 239 12 is_stmt 0 view .LVU203
+ 868 0018 05F10C04 		add	r4, r5, #12
+ 869 001c 2046     		mov	r0, r4
+ 870 001e FFF7FEFF 		bl	mriBuffer_BytesLeft
+ 871              	.LVL86:
+ 239:mri/core/packet.c ****     {
+ 872              		.loc 1 239 51 view .LVU204
+ 873 0022 0028     		cmp	r0, #0
+ 874 0024 F0D1     		bne	.L55
+ 244:mri/core/packet.c ****     }
+ 245:mri/core/packet.c ****     Buffer_Advance(&pPacket->packetBuffer, length);
+ 875              		.loc 1 245 5 is_stmt 1 view .LVU205
+ 876 0026 3146     		mov	r1, r6
+ 877 0028 2846     		mov	r0, r5
+ 878 002a FFF7FEFF 		bl	mriBuffer_Advance
+ 879              	.LVL87:
+ 246:mri/core/packet.c **** }
+ 880              		.loc 1 246 1 is_stmt 0 view .LVU206
+ 881 002e 70BD     		pop	{r4, r5, r6, pc}
+ 882              		.loc 1 246 1 view .LVU207
+ 883              		.cfi_endproc
+ 884              	.LFE27:
+ 886              		.section	.text.storePacketChecksum,"ax",%progbits
+ 887              		.align	1
+ 888              		.syntax unified
+ 889              		.thumb
+ 890              		.thumb_func
+ 892              	storePacketChecksum:
+ 893              	.LVL88:
+ 894              	.LFB28:
+ARM GAS  /tmp/ccddhYcB.s 			page 25
+
+
+ 247:mri/core/packet.c **** 
+ 248:mri/core/packet.c **** static void storePacketChecksum(Packet* pPacket)
+ 249:mri/core/packet.c **** {
+ 895              		.loc 1 249 1 is_stmt 1 view -0
+ 896              		.cfi_startproc
+ 897              		@ args = 0, pretend = 0, frame = 0
+ 898              		@ frame_needed = 0, uses_anonymous_args = 0
+ 899              		.loc 1 249 1 is_stmt 0 view .LVU209
+ 900 0000 10B5     		push	{r4, lr}
+ 901              	.LCFI12:
+ 902              		.cfi_def_cfa_offset 8
+ 903              		.cfi_offset 4, -8
+ 904              		.cfi_offset 14, -4
+ 905 0002 0446     		mov	r4, r0
+ 250:mri/core/packet.c ****     Buffer_WriteChar(&pPacket->packetBuffer, '#');
+ 906              		.loc 1 250 5 is_stmt 1 view .LVU210
+ 907 0004 2321     		movs	r1, #35
+ 908 0006 FFF7FEFF 		bl	mriBuffer_WriteChar
+ 909              	.LVL89:
+ 251:mri/core/packet.c ****     Buffer_WriteByteAsHex(&pPacket->packetBuffer, pPacket->calculatedChecksum);
+ 910              		.loc 1 251 5 view .LVU211
+ 911 000a 617E     		ldrb	r1, [r4, #25]	@ zero_extendqisi2
+ 912 000c 2046     		mov	r0, r4
+ 913 000e FFF7FEFF 		bl	mriBuffer_WriteByteAsHex
+ 914              	.LVL90:
+ 252:mri/core/packet.c **** }
+ 915              		.loc 1 252 1 is_stmt 0 view .LVU212
+ 916 0012 10BD     		pop	{r4, pc}
+ 917              		.loc 1 252 1 view .LVU213
+ 918              		.cfi_endproc
+ 919              	.LFE28:
+ 921              		.section	.text.completePacket,"ax",%progbits
+ 922              		.align	1
+ 923              		.syntax unified
+ 924              		.thumb
+ 925              		.thumb_func
+ 927              	completePacket:
+ 928              	.LVL91:
+ 929              	.LFB25:
+ 219:mri/core/packet.c ****     /* Complete packet by adding '$' header and '#' checksum terminator -> "$<DataInHex>#<2HexDigit
+ 930              		.loc 1 219 1 is_stmt 1 view -0
+ 931              		.cfi_startproc
+ 932              		@ args = 0, pretend = 0, frame = 0
+ 933              		@ frame_needed = 0, uses_anonymous_args = 0
+ 219:mri/core/packet.c ****     /* Complete packet by adding '$' header and '#' checksum terminator -> "$<DataInHex>#<2HexDigit
+ 934              		.loc 1 219 1 is_stmt 0 view .LVU215
+ 935 0000 10B5     		push	{r4, lr}
+ 936              	.LCFI13:
+ 937              		.cfi_def_cfa_offset 8
+ 938              		.cfi_offset 4, -8
+ 939              		.cfi_offset 14, -4
+ 940 0002 0446     		mov	r4, r0
+ 221:mri/core/packet.c ****     clearChecksum(pPacket);
+ 941              		.loc 1 221 5 is_stmt 1 view .LVU216
+ 942 0004 0C30     		adds	r0, r0, #12
+ 943              	.LVL92:
+ 221:mri/core/packet.c ****     clearChecksum(pPacket);
+ARM GAS  /tmp/ccddhYcB.s 			page 26
+
+
+ 944              		.loc 1 221 5 is_stmt 0 view .LVU217
+ 945 0006 FFF7FEFF 		bl	mriBuffer_Reset
+ 946              	.LVL93:
+ 222:mri/core/packet.c **** 
+ 947              		.loc 1 222 5 is_stmt 1 view .LVU218
+ 948 000a 2046     		mov	r0, r4
+ 949 000c FFF7FEFF 		bl	clearChecksum
+ 950              	.LVL94:
+ 224:mri/core/packet.c ****     processPacketData(pPacket);
+ 951              		.loc 1 224 5 view .LVU219
+ 952 0010 2046     		mov	r0, r4
+ 953 0012 FFF7FEFF 		bl	storePacketHeaderByte
+ 954              	.LVL95:
+ 225:mri/core/packet.c ****     storePacketChecksum(pPacket);
+ 955              		.loc 1 225 5 view .LVU220
+ 956 0016 2046     		mov	r0, r4
+ 957 0018 FFF7FEFF 		bl	processPacketData
+ 958              	.LVL96:
+ 226:mri/core/packet.c **** 
+ 959              		.loc 1 226 5 view .LVU221
+ 960 001c 2046     		mov	r0, r4
+ 961 001e FFF7FEFF 		bl	storePacketChecksum
+ 962              	.LVL97:
+ 228:mri/core/packet.c **** }
+ 963              		.loc 1 228 5 view .LVU222
+ 964 0022 2046     		mov	r0, r4
+ 965 0024 FFF7FEFF 		bl	mriBuffer_SetEndOfBuffer
+ 966              	.LVL98:
+ 229:mri/core/packet.c **** 
+ 967              		.loc 1 229 1 is_stmt 0 view .LVU223
+ 968 0028 10BD     		pop	{r4, pc}
+ 229:mri/core/packet.c **** 
+ 969              		.loc 1 229 1 view .LVU224
+ 970              		.cfi_endproc
+ 971              	.LFE25:
+ 973              		.section	.text.receiveCharAfterSkippingControlC,"ax",%progbits
+ 974              		.align	1
+ 975              		.syntax unified
+ 976              		.thumb
+ 977              		.thumb_func
+ 979              	receiveCharAfterSkippingControlC:
+ 980              	.LVL99:
+ 981              	.LFB30:
+ 253:mri/core/packet.c **** 
+ 254:mri/core/packet.c **** static void sendPacket(Packet* pPacket)
+ 255:mri/core/packet.c **** {
+ 256:mri/core/packet.c ****     Buffer_Reset(&pPacket->packetBuffer);
+ 257:mri/core/packet.c ****     Platform_CommSendBuffer(&pPacket->packetBuffer);
+ 258:mri/core/packet.c **** }
+ 259:mri/core/packet.c **** 
+ 260:mri/core/packet.c **** static int receiveCharAfterSkippingControlC(Packet* pPacket)
+ 261:mri/core/packet.c **** {
+ 982              		.loc 1 261 1 is_stmt 1 view -0
+ 983              		.cfi_startproc
+ 984              		@ args = 0, pretend = 0, frame = 0
+ 985              		@ frame_needed = 0, uses_anonymous_args = 0
+ 986              		.loc 1 261 1 is_stmt 0 view .LVU226
+ARM GAS  /tmp/ccddhYcB.s 			page 27
+
+
+ 987 0000 10B5     		push	{r4, lr}
+ 988              	.LCFI14:
+ 989              		.cfi_def_cfa_offset 8
+ 990              		.cfi_offset 4, -8
+ 991              		.cfi_offset 14, -4
+ 992 0002 0446     		mov	r4, r0
+ 262:mri/core/packet.c ****     static const int controlC = 0x03;
+ 993              		.loc 1 262 5 is_stmt 1 view .LVU227
+ 263:mri/core/packet.c ****     int              nextChar;
+ 994              		.loc 1 263 5 view .LVU228
+ 264:mri/core/packet.c **** 
+ 265:mri/core/packet.c ****     nextChar = getNextCharFromGdb(pPacket);
+ 995              		.loc 1 265 5 view .LVU229
+ 996              		.loc 1 265 16 is_stmt 0 view .LVU230
+ 997 0004 FFF7FEFF 		bl	getNextCharFromGdb
+ 998              	.LVL100:
+ 266:mri/core/packet.c ****     while (nextChar == controlC)
+ 999              		.loc 1 266 5 is_stmt 1 view .LVU231
+ 1000              		.loc 1 266 11 is_stmt 0 view .LVU232
+ 1001 0008 04E0     		b	.L62
+ 1002              	.L63:
+ 267:mri/core/packet.c ****     {
+ 268:mri/core/packet.c ****         ControlCEncountered();
+ 1003              		.loc 1 268 9 is_stmt 1 view .LVU233
+ 1004 000a FFF7FEFF 		bl	mriCore_ControlCEncountered
+ 1005              	.LVL101:
+ 269:mri/core/packet.c ****         nextChar = getNextCharFromGdb(pPacket);
+ 1006              		.loc 1 269 9 view .LVU234
+ 1007              		.loc 1 269 20 is_stmt 0 view .LVU235
+ 1008 000e 2046     		mov	r0, r4
+ 1009 0010 FFF7FEFF 		bl	getNextCharFromGdb
+ 1010              	.LVL102:
+ 1011              	.L62:
+ 266:mri/core/packet.c ****     while (nextChar == controlC)
+ 1012              		.loc 1 266 21 is_stmt 1 view .LVU236
+ 1013 0014 0328     		cmp	r0, #3
+ 1014 0016 F8D0     		beq	.L63
+ 270:mri/core/packet.c ****     }
+ 271:mri/core/packet.c **** 
+ 272:mri/core/packet.c ****     return nextChar;
+ 1015              		.loc 1 272 5 view .LVU237
+ 273:mri/core/packet.c **** }
+ 1016              		.loc 1 273 1 is_stmt 0 view .LVU238
+ 1017 0018 10BD     		pop	{r4, pc}
+ 1018              		.loc 1 273 1 view .LVU239
+ 1019              		.cfi_endproc
+ 1020              	.LFE30:
+ 1022              		.section	.text.mriPacket_Init,"ax",%progbits
+ 1023              		.align	1
+ 1024              		.global	mriPacket_Init
+ 1025              		.syntax unified
+ 1026              		.thumb
+ 1027              		.thumb_func
+ 1029              	mriPacket_Init:
+ 1030              	.LVL103:
+ 1031              	.LFB7:
+  24:mri/core/packet.c ****     Buffer_Init(&pPacket->dataBuffer, pBufferStart+1, bufferSize-4);
+ARM GAS  /tmp/ccddhYcB.s 			page 28
+
+
+ 1032              		.loc 1 24 1 is_stmt 1 view -0
+ 1033              		.cfi_startproc
+ 1034              		@ args = 0, pretend = 0, frame = 0
+ 1035              		@ frame_needed = 0, uses_anonymous_args = 0
+  24:mri/core/packet.c ****     Buffer_Init(&pPacket->dataBuffer, pBufferStart+1, bufferSize-4);
+ 1036              		.loc 1 24 1 is_stmt 0 view .LVU241
+ 1037 0000 70B5     		push	{r4, r5, r6, lr}
+ 1038              	.LCFI15:
+ 1039              		.cfi_def_cfa_offset 16
+ 1040              		.cfi_offset 4, -16
+ 1041              		.cfi_offset 5, -12
+ 1042              		.cfi_offset 6, -8
+ 1043              		.cfi_offset 14, -4
+ 1044 0002 0446     		mov	r4, r0
+ 1045 0004 0D46     		mov	r5, r1
+ 1046 0006 1646     		mov	r6, r2
+  25:mri/core/packet.c ****     Buffer_Init(&pPacket->packetBuffer, pBufferStart, bufferSize);
+ 1047              		.loc 1 25 5 is_stmt 1 view .LVU242
+ 1048 0008 043A     		subs	r2, r2, #4
+ 1049              	.LVL104:
+  25:mri/core/packet.c ****     Buffer_Init(&pPacket->packetBuffer, pBufferStart, bufferSize);
+ 1050              		.loc 1 25 5 is_stmt 0 view .LVU243
+ 1051 000a 0131     		adds	r1, r1, #1
+ 1052              	.LVL105:
+  25:mri/core/packet.c ****     Buffer_Init(&pPacket->packetBuffer, pBufferStart, bufferSize);
+ 1053              		.loc 1 25 5 view .LVU244
+ 1054 000c 0C30     		adds	r0, r0, #12
+ 1055              	.LVL106:
+  25:mri/core/packet.c ****     Buffer_Init(&pPacket->packetBuffer, pBufferStart, bufferSize);
+ 1056              		.loc 1 25 5 view .LVU245
+ 1057 000e FFF7FEFF 		bl	mriBuffer_Init
+ 1058              	.LVL107:
+  26:mri/core/packet.c **** }
+ 1059              		.loc 1 26 5 is_stmt 1 view .LVU246
+ 1060 0012 3246     		mov	r2, r6
+ 1061 0014 2946     		mov	r1, r5
+ 1062 0016 2046     		mov	r0, r4
+ 1063 0018 FFF7FEFF 		bl	mriBuffer_Init
+ 1064              	.LVL108:
+  27:mri/core/packet.c **** 
+ 1065              		.loc 1 27 1 is_stmt 0 view .LVU247
+ 1066 001c 70BD     		pop	{r4, r5, r6, pc}
+  27:mri/core/packet.c **** 
+ 1067              		.loc 1 27 1 view .LVU248
+ 1068              		.cfi_endproc
+ 1069              	.LFE7:
+ 1071              		.section	.text.mriPacket_GetFromGDB,"ax",%progbits
+ 1072              		.align	1
+ 1073              		.global	mriPacket_GetFromGDB
+ 1074              		.syntax unified
+ 1075              		.thumb
+ 1076              		.thumb_func
+ 1078              	mriPacket_GetFromGDB:
+ 1079              	.LVL109:
+ 1080              	.LFB8:
+  46:mri/core/packet.c ****     initPacketStructure(pPacket);
+ 1081              		.loc 1 46 1 is_stmt 1 view -0
+ARM GAS  /tmp/ccddhYcB.s 			page 29
+
+
+ 1082              		.cfi_startproc
+ 1083              		@ args = 0, pretend = 0, frame = 0
+ 1084              		@ frame_needed = 0, uses_anonymous_args = 0
+  46:mri/core/packet.c ****     initPacketStructure(pPacket);
+ 1085              		.loc 1 46 1 is_stmt 0 view .LVU250
+ 1086 0000 10B5     		push	{r4, lr}
+ 1087              	.LCFI16:
+ 1088              		.cfi_def_cfa_offset 8
+ 1089              		.cfi_offset 4, -8
+ 1090              		.cfi_offset 14, -4
+ 1091 0002 0446     		mov	r4, r0
+  47:mri/core/packet.c ****     do
+ 1092              		.loc 1 47 5 is_stmt 1 view .LVU251
+ 1093 0004 FFF7FEFF 		bl	initPacketStructure
+ 1094              	.LVL110:
+ 1095              	.L68:
+  48:mri/core/packet.c ****     {
+ 1096              		.loc 1 48 5 discriminator 1 view .LVU252
+  50:mri/core/packet.c ****     } while(!isChecksumValid(pPacket));
+ 1097              		.loc 1 50 9 discriminator 1 view .LVU253
+ 1098 0008 2046     		mov	r0, r4
+ 1099 000a FFF7FEFF 		bl	getMostRecentPacket
+ 1100              	.LVL111:
+  51:mri/core/packet.c **** 
+ 1101              		.loc 1 51 13 discriminator 1 view .LVU254
+  51:mri/core/packet.c **** 
+ 1102              		.loc 1 51 14 is_stmt 0 discriminator 1 view .LVU255
+ 1103 000e 2046     		mov	r0, r4
+ 1104 0010 FFF7FEFF 		bl	isChecksumValid
+ 1105              	.LVL112:
+  51:mri/core/packet.c **** 
+ 1106              		.loc 1 51 13 discriminator 1 view .LVU256
+ 1107 0014 0028     		cmp	r0, #0
+ 1108 0016 F7D0     		beq	.L68
+  53:mri/core/packet.c **** }
+ 1109              		.loc 1 53 5 is_stmt 1 view .LVU257
+ 1110 0018 2046     		mov	r0, r4
+ 1111 001a FFF7FEFF 		bl	resetBufferToEnableFutureReadingOfValidPacketData
+ 1112              	.LVL113:
+  54:mri/core/packet.c **** 
+ 1113              		.loc 1 54 1 is_stmt 0 view .LVU258
+ 1114 001e 10BD     		pop	{r4, pc}
+  54:mri/core/packet.c **** 
+ 1115              		.loc 1 54 1 view .LVU259
+ 1116              		.cfi_endproc
+ 1117              	.LFE8:
+ 1119              		.section	.text.mriPlatform_CommSendBuffer,"ax",%progbits
+ 1120              		.align	1
+ 1121              		.weak	mriPlatform_CommSendBuffer
+ 1122              		.syntax unified
+ 1123              		.thumb
+ 1124              		.thumb_func
+ 1126              	mriPlatform_CommSendBuffer:
+ 1127              	.LVL114:
+ 1128              	.LFB31:
+ 274:mri/core/packet.c **** 
+ 275:mri/core/packet.c **** 
+ARM GAS  /tmp/ccddhYcB.s 			page 30
+
+
+ 276:mri/core/packet.c **** __attribute__((weak)) void Platform_CommSendBuffer(Buffer* pBuffer)
+ 277:mri/core/packet.c **** {
+ 1129              		.loc 1 277 1 is_stmt 1 view -0
+ 1130              		.cfi_startproc
+ 1131              		@ args = 0, pretend = 0, frame = 0
+ 1132              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1133              		.loc 1 277 1 is_stmt 0 view .LVU261
+ 1134 0000 10B5     		push	{r4, lr}
+ 1135              	.LCFI17:
+ 1136              		.cfi_def_cfa_offset 8
+ 1137              		.cfi_offset 4, -8
+ 1138              		.cfi_offset 14, -4
+ 1139 0002 0446     		mov	r4, r0
+ 278:mri/core/packet.c ****     while (Buffer_BytesLeft(pBuffer))
+ 1140              		.loc 1 278 5 is_stmt 1 view .LVU262
+ 1141              		.loc 1 278 11 is_stmt 0 view .LVU263
+ 1142 0004 04E0     		b	.L71
+ 1143              	.LVL115:
+ 1144              	.L72:
+ 279:mri/core/packet.c ****         Platform_CommSendChar(Buffer_ReadChar(pBuffer));
+ 1145              		.loc 1 279 9 is_stmt 1 view .LVU264
+ 1146              		.loc 1 279 31 is_stmt 0 view .LVU265
+ 1147 0006 2046     		mov	r0, r4
+ 1148 0008 FFF7FEFF 		bl	mriBuffer_ReadChar
+ 1149              	.LVL116:
+ 1150              		.loc 1 279 9 view .LVU266
+ 1151 000c FFF7FEFF 		bl	mriPlatform_CommSendChar
+ 1152              	.LVL117:
+ 1153              	.L71:
+ 278:mri/core/packet.c ****     while (Buffer_BytesLeft(pBuffer))
+ 1154              		.loc 1 278 12 is_stmt 1 view .LVU267
+ 1155 0010 2046     		mov	r0, r4
+ 1156 0012 FFF7FEFF 		bl	mriBuffer_BytesLeft
+ 1157              	.LVL118:
+ 1158 0016 0028     		cmp	r0, #0
+ 1159 0018 F5D1     		bne	.L72
+ 280:mri/core/packet.c **** }
+ 1160              		.loc 1 280 1 is_stmt 0 view .LVU268
+ 1161 001a 10BD     		pop	{r4, pc}
+ 1162              		.loc 1 280 1 view .LVU269
+ 1163              		.cfi_endproc
+ 1164              	.LFE31:
+ 1166              		.section	.text.sendPacket,"ax",%progbits
+ 1167              		.align	1
+ 1168              		.syntax unified
+ 1169              		.thumb
+ 1170              		.thumb_func
+ 1172              	sendPacket:
+ 1173              	.LVL119:
+ 1174              	.LFB29:
+ 255:mri/core/packet.c ****     Buffer_Reset(&pPacket->packetBuffer);
+ 1175              		.loc 1 255 1 is_stmt 1 view -0
+ 1176              		.cfi_startproc
+ 1177              		@ args = 0, pretend = 0, frame = 0
+ 1178              		@ frame_needed = 0, uses_anonymous_args = 0
+ 255:mri/core/packet.c ****     Buffer_Reset(&pPacket->packetBuffer);
+ 1179              		.loc 1 255 1 is_stmt 0 view .LVU271
+ARM GAS  /tmp/ccddhYcB.s 			page 31
+
+
+ 1180 0000 10B5     		push	{r4, lr}
+ 1181              	.LCFI18:
+ 1182              		.cfi_def_cfa_offset 8
+ 1183              		.cfi_offset 4, -8
+ 1184              		.cfi_offset 14, -4
+ 1185 0002 0446     		mov	r4, r0
+ 256:mri/core/packet.c ****     Platform_CommSendBuffer(&pPacket->packetBuffer);
+ 1186              		.loc 1 256 5 is_stmt 1 view .LVU272
+ 1187 0004 FFF7FEFF 		bl	mriBuffer_Reset
+ 1188              	.LVL120:
+ 257:mri/core/packet.c **** }
+ 1189              		.loc 1 257 5 view .LVU273
+ 1190 0008 2046     		mov	r0, r4
+ 1191 000a FFF7FEFF 		bl	mriPlatform_CommSendBuffer
+ 1192              	.LVL121:
+ 258:mri/core/packet.c **** 
+ 1193              		.loc 1 258 1 is_stmt 0 view .LVU274
+ 1194 000e 10BD     		pop	{r4, pc}
+ 258:mri/core/packet.c **** 
+ 1195              		.loc 1 258 1 view .LVU275
+ 1196              		.cfi_endproc
+ 1197              	.LFE29:
+ 1199              		.section	.text.mriPacket_SendToGDB,"ax",%progbits
+ 1200              		.align	1
+ 1201              		.global	mriPacket_SendToGDB
+ 1202              		.syntax unified
+ 1203              		.thumb
+ 1204              		.thumb_func
+ 1206              	mriPacket_SendToGDB:
+ 1207              	.LVL122:
+ 1208              	.LFB24:
+ 204:mri/core/packet.c ****     char  charFromGdb;
+ 1209              		.loc 1 204 1 is_stmt 1 view -0
+ 1210              		.cfi_startproc
+ 1211              		@ args = 0, pretend = 0, frame = 0
+ 1212              		@ frame_needed = 0, uses_anonymous_args = 0
+ 204:mri/core/packet.c ****     char  charFromGdb;
+ 1213              		.loc 1 204 1 is_stmt 0 view .LVU277
+ 1214 0000 10B5     		push	{r4, lr}
+ 1215              	.LCFI19:
+ 1216              		.cfi_def_cfa_offset 8
+ 1217              		.cfi_offset 4, -8
+ 1218              		.cfi_offset 14, -4
+ 1219 0002 0446     		mov	r4, r0
+ 205:mri/core/packet.c **** 
+ 1220              		.loc 1 205 5 is_stmt 1 view .LVU278
+ 209:mri/core/packet.c ****     completePacket(pPacket);
+ 1221              		.loc 1 209 5 view .LVU279
+ 1222 0004 FFF7FEFF 		bl	initPacketStructure
+ 1223              	.LVL123:
+ 210:mri/core/packet.c ****     do
+ 1224              		.loc 1 210 5 view .LVU280
+ 1225 0008 2046     		mov	r0, r4
+ 1226 000a FFF7FEFF 		bl	completePacket
+ 1227              	.LVL124:
+ 1228              	.L78:
+ 211:mri/core/packet.c ****     {
+ARM GAS  /tmp/ccddhYcB.s 			page 32
+
+
+ 1229              		.loc 1 211 5 discriminator 2 view .LVU281
+ 213:mri/core/packet.c ****         charFromGdb = receiveCharAfterSkippingControlC(pPacket);
+ 1230              		.loc 1 213 9 discriminator 2 view .LVU282
+ 1231 000e 2046     		mov	r0, r4
+ 1232 0010 FFF7FEFF 		bl	sendPacket
+ 1233              	.LVL125:
+ 214:mri/core/packet.c ****     } while (charFromGdb != '+' && charFromGdb != '$');
+ 1234              		.loc 1 214 9 discriminator 2 view .LVU283
+ 214:mri/core/packet.c ****     } while (charFromGdb != '+' && charFromGdb != '$');
+ 1235              		.loc 1 214 23 is_stmt 0 discriminator 2 view .LVU284
+ 1236 0014 2046     		mov	r0, r4
+ 1237 0016 FFF7FEFF 		bl	receiveCharAfterSkippingControlC
+ 1238              	.LVL126:
+ 214:mri/core/packet.c ****     } while (charFromGdb != '+' && charFromGdb != '$');
+ 1239              		.loc 1 214 21 discriminator 2 view .LVU285
+ 1240 001a C0B2     		uxtb	r0, r0
+ 1241              	.LVL127:
+ 215:mri/core/packet.c **** }
+ 1242              		.loc 1 215 33 is_stmt 1 discriminator 2 view .LVU286
+ 1243 001c 2B28     		cmp	r0, #43
+ 1244 001e 01D0     		beq	.L76
+ 215:mri/core/packet.c **** }
+ 1245              		.loc 1 215 33 is_stmt 0 discriminator 1 view .LVU287
+ 1246 0020 2428     		cmp	r0, #36
+ 1247 0022 F4D1     		bne	.L78
+ 1248              	.L76:
+ 216:mri/core/packet.c **** 
+ 1249              		.loc 1 216 1 view .LVU288
+ 1250 0024 10BD     		pop	{r4, pc}
+ 216:mri/core/packet.c **** 
+ 1251              		.loc 1 216 1 view .LVU289
+ 1252              		.cfi_endproc
+ 1253              	.LFE24:
+ 1255              		.text
+ 1256              	.Letext0:
+ 1257              		.file 4 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1258              		.file 5 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1259              		.file 6 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 1260              		.file 7 "mri/core/buffer.h"
+ 1261              		.file 8 "mri/core/packet.h"
+ 1262              		.file 9 "mri/core/platforms.h"
+ 1263              		.file 10 "mri/core/core.h"
+ARM GAS  /tmp/ccddhYcB.s 			page 33
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 packet.c
+     /tmp/ccddhYcB.s:21     .text.HexCharToNibble:0000000000000000 $t
+     /tmp/ccddhYcB.s:26     .text.HexCharToNibble:0000000000000000 HexCharToNibble
+     /tmp/ccddhYcB.s:107    .text.HexCharToNibble:000000000000003c $d
+     /tmp/ccddhYcB.s:112    .text.clearChecksum:0000000000000000 $t
+     /tmp/ccddhYcB.s:117    .text.clearChecksum:0000000000000000 clearChecksum
+     /tmp/ccddhYcB.s:135    .text.updateChecksum:0000000000000000 $t
+     /tmp/ccddhYcB.s:140    .text.updateChecksum:0000000000000000 updateChecksum
+     /tmp/ccddhYcB.s:160    .text.isEscapePrefixChar:0000000000000000 $t
+     /tmp/ccddhYcB.s:165    .text.isEscapePrefixChar:0000000000000000 isEscapePrefixChar
+     /tmp/ccddhYcB.s:186    .text.unescapeChar:0000000000000000 $t
+     /tmp/ccddhYcB.s:191    .text.unescapeChar:0000000000000000 unescapeChar
+     /tmp/ccddhYcB.s:209    .text.isChecksumValid:0000000000000000 $t
+     /tmp/ccddhYcB.s:214    .text.isChecksumValid:0000000000000000 isChecksumValid
+     /tmp/ccddhYcB.s:238    .text.initPacketStructure:0000000000000000 $t
+     /tmp/ccddhYcB.s:243    .text.initPacketStructure:0000000000000000 initPacketStructure
+     /tmp/ccddhYcB.s:275    .text.getNextCharFromGdb:0000000000000000 $t
+     /tmp/ccddhYcB.s:280    .text.getNextCharFromGdb:0000000000000000 getNextCharFromGdb
+     /tmp/ccddhYcB.s:312    .text.waitForStartOfNextPacket:0000000000000000 $t
+     /tmp/ccddhYcB.s:317    .text.waitForStartOfNextPacket:0000000000000000 waitForStartOfNextPacket
+     /tmp/ccddhYcB.s:357    .text.extractExpectedChecksum:0000000000000000 $t
+     /tmp/ccddhYcB.s:362    .text.extractExpectedChecksum:0000000000000000 extractExpectedChecksum
+     /tmp/ccddhYcB.s:465    .text.extractExpectedChecksum:0000000000000048 $d
+     /tmp/ccddhYcB.s:471    .text.storePacketHeaderByte:0000000000000000 $t
+     /tmp/ccddhYcB.s:476    .text.storePacketHeaderByte:0000000000000000 storePacketHeaderByte
+     /tmp/ccddhYcB.s:499    .text.getPacketData:0000000000000000 $t
+     /tmp/ccddhYcB.s:504    .text.getPacketData:0000000000000000 getPacketData
+     /tmp/ccddhYcB.s:626    .text.getPacketDataAndExpectedChecksum:0000000000000000 $t
+     /tmp/ccddhYcB.s:631    .text.getPacketDataAndExpectedChecksum:0000000000000000 getPacketDataAndExpectedChecksum
+     /tmp/ccddhYcB.s:674    .text.sendNAKToGDB:0000000000000000 $t
+     /tmp/ccddhYcB.s:679    .text.sendNAKToGDB:0000000000000000 sendNAKToGDB
+     /tmp/ccddhYcB.s:700    .text.sendACKToGDB:0000000000000000 $t
+     /tmp/ccddhYcB.s:705    .text.sendACKToGDB:0000000000000000 sendACKToGDB
+     /tmp/ccddhYcB.s:726    .text.getMostRecentPacket:0000000000000000 $t
+     /tmp/ccddhYcB.s:731    .text.getMostRecentPacket:0000000000000000 getMostRecentPacket
+     /tmp/ccddhYcB.s:781    .text.resetBufferToEnableFutureReadingOfValidPacketData:0000000000000000 $t
+     /tmp/ccddhYcB.s:786    .text.resetBufferToEnableFutureReadingOfValidPacketData:0000000000000000 resetBufferToEnableFutureReadingOfValidPacketData
+     /tmp/ccddhYcB.s:817    .text.processPacketData:0000000000000000 $t
+     /tmp/ccddhYcB.s:822    .text.processPacketData:0000000000000000 processPacketData
+     /tmp/ccddhYcB.s:887    .text.storePacketChecksum:0000000000000000 $t
+     /tmp/ccddhYcB.s:892    .text.storePacketChecksum:0000000000000000 storePacketChecksum
+     /tmp/ccddhYcB.s:922    .text.completePacket:0000000000000000 $t
+     /tmp/ccddhYcB.s:927    .text.completePacket:0000000000000000 completePacket
+     /tmp/ccddhYcB.s:974    .text.receiveCharAfterSkippingControlC:0000000000000000 $t
+     /tmp/ccddhYcB.s:979    .text.receiveCharAfterSkippingControlC:0000000000000000 receiveCharAfterSkippingControlC
+     /tmp/ccddhYcB.s:1023   .text.mriPacket_Init:0000000000000000 $t
+     /tmp/ccddhYcB.s:1029   .text.mriPacket_Init:0000000000000000 mriPacket_Init
+     /tmp/ccddhYcB.s:1072   .text.mriPacket_GetFromGDB:0000000000000000 $t
+     /tmp/ccddhYcB.s:1078   .text.mriPacket_GetFromGDB:0000000000000000 mriPacket_GetFromGDB
+     /tmp/ccddhYcB.s:1120   .text.mriPlatform_CommSendBuffer:0000000000000000 $t
+     /tmp/ccddhYcB.s:1126   .text.mriPlatform_CommSendBuffer:0000000000000000 mriPlatform_CommSendBuffer
+     /tmp/ccddhYcB.s:1167   .text.sendPacket:0000000000000000 $t
+     /tmp/ccddhYcB.s:1172   .text.sendPacket:0000000000000000 sendPacket
+     /tmp/ccddhYcB.s:1200   .text.mriPacket_SendToGDB:0000000000000000 $t
+     /tmp/ccddhYcB.s:1206   .text.mriPacket_SendToGDB:0000000000000000 mriPacket_SendToGDB
+
+ARM GAS  /tmp/ccddhYcB.s 			page 34
+
+
+UNDEFINED SYMBOLS
+mriExceptionCode
+mriBuffer_Reset
+mriPlatform_CommReceiveChar
+mriBuffer_WriteChar
+mriBuffer_BytesLeft
+mriPlatform_CommSendChar
+mriPlatform_CommHasReceiveData
+mriBuffer_SetEndOfBuffer
+mriBuffer_ReadChar
+mriBuffer_Advance
+mriBuffer_WriteByteAsHex
+mriCore_ControlCEncountered
+mriBuffer_Init

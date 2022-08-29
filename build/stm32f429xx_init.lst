@@ -1,0 +1,494 @@
+ARM GAS  /tmp/cciqCJKI.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"stm32f429xx_init.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/devices/stm32f429xx/stm32f429xx_init.c"
+  20              		.section	.text.USART1_IRQHandler,"ax",%progbits
+  21              		.align	1
+  22              		.global	USART1_IRQHandler
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	USART1_IRQHandler:
+  28              	.LFB218:
+   1:mri/devices/stm32f429xx/stm32f429xx_init.c **** /* Copyright 2020 Adam Green     (https://github.com/adamgreen/)
+   2:mri/devices/stm32f429xx/stm32f429xx_init.c ****    Copyright 2015 Chang,Jia-Rung (https://github.com/JaredCJR)
+   3:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+   4:mri/devices/stm32f429xx/stm32f429xx_init.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   5:mri/devices/stm32f429xx/stm32f429xx_init.c ****    you may not use this file except in compliance with the License.
+   6:mri/devices/stm32f429xx/stm32f429xx_init.c ****    You may obtain a copy of the License at
+   7:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+   8:mri/devices/stm32f429xx/stm32f429xx_init.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   9:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  10:mri/devices/stm32f429xx/stm32f429xx_init.c ****    Unless required by applicable law or agreed to in writing, software
+  11:mri/devices/stm32f429xx/stm32f429xx_init.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  12:mri/devices/stm32f429xx/stm32f429xx_init.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:mri/devices/stm32f429xx/stm32f429xx_init.c ****    See the License for the specific language governing permissions and
+  14:mri/devices/stm32f429xx/stm32f429xx_init.c ****    limitations under the License.
+  15:mri/devices/stm32f429xx/stm32f429xx_init.c **** */
+  16:mri/devices/stm32f429xx/stm32f429xx_init.c **** /* Routines used by mri that are specific to the STM32F429xx device. */
+  17:mri/devices/stm32f429xx/stm32f429xx_init.c **** #include <core/try_catch.h>
+  18:mri/devices/stm32f429xx/stm32f429xx_init.c **** #include <core/platforms.h>
+  19:mri/devices/stm32f429xx/stm32f429xx_init.c **** #include "stm32f429xx_init.h"
+  20:mri/devices/stm32f429xx/stm32f429xx_init.c **** #include <architectures/armv7-m/armv7-m.h>
+  21:mri/devices/stm32f429xx/stm32f429xx_init.c **** #include <architectures/armv7-m/debug_cm3.h>
+  22:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  23:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  24:mri/devices/stm32f429xx/stm32f429xx_init.c **** static const char g_memoryMapXml[] = "<?xml version=\"1.0\"?>"
+  25:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<!DOCTYPE memory-map PUBLIC \"+//IDN gnu.org//DTD GDB Memory 
+  26:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory-map>"
+  27:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"flash\" start=\"0x08000000\" length=\"0x10000\
+  28:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"flash\" start=\"0x08010000\" length=\"0x10000\
+  29:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"flash\" start=\"0x08020000\" length=\"0xE0000\
+  30:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"flash\" start=\"0x08100000\" length=\"0x10000\
+ARM GAS  /tmp/cciqCJKI.s 			page 2
+
+
+  31:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"flash\" start=\"0x08110000\" length=\"0x10000\
+  32:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"flash\" start=\"0x08120000\" length=\"0xE0000\
+  33:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"ram\" start=\"0x20000000\" length=\"0x1C000\">
+  34:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"ram\" start=\"0x2001C000\" length=\"0x4000\"> 
+  35:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "<memory type=\"ram\" start=\"0x20020000\" length=\"0x10000\">
+  36:mri/devices/stm32f429xx/stm32f429xx_init.c ****                                      "</memory-map>";
+  37:mri/devices/stm32f429xx/stm32f429xx_init.c **** Stm32f429xxState mriStm32f429xxState;
+  38:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  39:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  40:mri/devices/stm32f429xx/stm32f429xx_init.c **** /* Reference this handler in the ASM module to make sure that it gets linked in. */
+  41:mri/devices/stm32f429xx/stm32f429xx_init.c **** void USART1_IRQHandler(void)
+  42:mri/devices/stm32f429xx/stm32f429xx_init.c **** {
+  29              		.loc 1 42 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  43:mri/devices/stm32f429xx/stm32f429xx_init.c ****      __asm__ ("b       mriExceptionHandler");
+  34              		.loc 1 43 6 view .LVU1
+  35              		.syntax unified
+  36              	@ 43 "mri/devices/stm32f429xx/stm32f429xx_init.c" 1
+  37 0000 FFF7FEBF 		b       mriExceptionHandler
+  38              	@ 0 "" 2
+  44:mri/devices/stm32f429xx/stm32f429xx_init.c **** }
+  39              		.loc 1 44 1 is_stmt 0 view .LVU2
+  40              		.thumb
+  41              		.syntax unified
+  42 0004 7047     		bx	lr
+  43              		.cfi_endproc
+  44              	.LFE218:
+  46              		.section	.text.mriStm32f429xx_Init,"ax",%progbits
+  47              		.align	1
+  48              		.global	mriStm32f429xx_Init
+  49              		.syntax unified
+  50              		.thumb
+  51              		.thumb_func
+  53              	mriStm32f429xx_Init:
+  54              	.LVL0:
+  55              	.LFB219:
+  45:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  46:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  47:mri/devices/stm32f429xx/stm32f429xx_init.c **** void mriStm32f429xx_Init(Token* pParameterTokens)
+  48:mri/devices/stm32f429xx/stm32f429xx_init.c **** {
+  56              		.loc 1 48 1 is_stmt 1 view -0
+  57              		.cfi_startproc
+  58              		@ args = 0, pretend = 0, frame = 8
+  59              		@ frame_needed = 0, uses_anonymous_args = 0
+  60              		.loc 1 48 1 is_stmt 0 view .LVU4
+  61 0000 30B5     		push	{r4, r5, lr}
+  62              	.LCFI0:
+  63              		.cfi_def_cfa_offset 12
+  64              		.cfi_offset 4, -12
+  65              		.cfi_offset 5, -8
+  66              		.cfi_offset 14, -4
+  67 0002 83B0     		sub	sp, sp, #12
+  68              	.LCFI1:
+  69              		.cfi_def_cfa_offset 24
+ARM GAS  /tmp/cciqCJKI.s 			page 3
+
+
+  70 0004 0446     		mov	r4, r0
+  49:mri/devices/stm32f429xx/stm32f429xx_init.c ****     /* Reference handler in ASM module to make sure that is gets linked in. */
+  50:mri/devices/stm32f429xx/stm32f429xx_init.c ****     void (* volatile dummyReference)(void) = USART1_IRQHandler;
+  71              		.loc 1 50 5 is_stmt 1 view .LVU5
+  72              		.loc 1 50 22 is_stmt 0 view .LVU6
+  73 0006 084B     		ldr	r3, .L6
+  74 0008 0193     		str	r3, [sp, #4]
+  51:mri/devices/stm32f429xx/stm32f429xx_init.c ****     (void)dummyReference;
+  75              		.loc 1 51 5 is_stmt 1 view .LVU7
+  76 000a 019B     		ldr	r3, [sp, #4]
+  52:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  53:mri/devices/stm32f429xx/stm32f429xx_init.c ****     __try
+  77              		.loc 1 53 5 view .LVU8
+  78              		.loc 1 53 5 view .LVU9
+  79              	.LBB4:
+  80              	.LBI4:
+  81              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+ARM GAS  /tmp/cciqCJKI.s 			page 4
+
+
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+  82              		.loc 2 76 20 view .LVU10
+  83              	.LBB5:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+  84              		.loc 2 78 5 view .LVU11
+  85              		.loc 2 78 22 is_stmt 0 view .LVU12
+  86 000c 074D     		ldr	r5, .L6+4
+  87 000e 0021     		movs	r1, #0
+  88 0010 2960     		str	r1, [r5]
+  89              	.LBE5:
+  90              	.LBE4:
+  54:mri/devices/stm32f429xx/stm32f429xx_init.c ****         mriCortexMInit(pParameterTokens, 0, 90);
+  91              		.loc 1 54 9 is_stmt 1 view .LVU13
+  92 0012 5A22     		movs	r2, #90
+  93 0014 FFF7FEFF 		bl	mriCortexMInit
+  94              	.LVL1:
+  53:mri/devices/stm32f429xx/stm32f429xx_init.c ****         mriCortexMInit(pParameterTokens, 0, 90);
+  95              		.loc 1 53 5 view .LVU14
+  55:mri/devices/stm32f429xx/stm32f429xx_init.c ****     __catch
+  96              		.loc 1 55 5 view .LVU15
+  97 0018 2B68     		ldr	r3, [r5]
+ARM GAS  /tmp/cciqCJKI.s 			page 5
+
+
+  98 001a 0BB1     		cbz	r3, .L5
+  99              	.L2:
+  56:mri/devices/stm32f429xx/stm32f429xx_init.c ****         __rethrow;
+  57:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  58:mri/devices/stm32f429xx/stm32f429xx_init.c ****     /* mriCortexInit() sets all interrupts to lower priority than debug monitor. Interrupt for UART
+  59:mri/devices/stm32f429xx/stm32f429xx_init.c ****        elevated to the same level as DebugMon_Handler, so initialize it after calling mriCortexInit
+  60:mri/devices/stm32f429xx/stm32f429xx_init.c ****     */
+  61:mri/devices/stm32f429xx/stm32f429xx_init.c ****     mriStm32f429xxUart_Init(pParameterTokens);
+  62:mri/devices/stm32f429xx/stm32f429xx_init.c **** }
+ 100              		.loc 1 62 1 is_stmt 0 view .LVU16
+ 101 001c 03B0     		add	sp, sp, #12
+ 102              	.LCFI2:
+ 103              		.cfi_remember_state
+ 104              		.cfi_def_cfa_offset 12
+ 105              		@ sp needed
+ 106 001e 30BD     		pop	{r4, r5, pc}
+ 107              	.LVL2:
+ 108              	.L5:
+ 109              	.LCFI3:
+ 110              		.cfi_restore_state
+  61:mri/devices/stm32f429xx/stm32f429xx_init.c **** }
+ 111              		.loc 1 61 5 is_stmt 1 view .LVU17
+ 112 0020 2046     		mov	r0, r4
+ 113 0022 FFF7FEFF 		bl	mriStm32f429xxUart_Init
+ 114              	.LVL3:
+ 115 0026 F9E7     		b	.L2
+ 116              	.L7:
+ 117              		.align	2
+ 118              	.L6:
+ 119 0028 00000000 		.word	USART1_IRQHandler
+ 120 002c 00000000 		.word	mriExceptionCode
+ 121              		.cfi_endproc
+ 122              	.LFE219:
+ 124              		.section	.text.mriPlatform_GetDeviceMemoryMapXmlSize,"ax",%progbits
+ 125              		.align	1
+ 126              		.global	mriPlatform_GetDeviceMemoryMapXmlSize
+ 127              		.syntax unified
+ 128              		.thumb
+ 129              		.thumb_func
+ 131              	mriPlatform_GetDeviceMemoryMapXmlSize:
+ 132              	.LFB220:
+  63:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  64:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  65:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  66:mri/devices/stm32f429xx/stm32f429xx_init.c **** uint32_t Platform_GetDeviceMemoryMapXmlSize(void)
+  67:mri/devices/stm32f429xx/stm32f429xx_init.c **** {
+ 133              		.loc 1 67 1 view -0
+ 134              		.cfi_startproc
+ 135              		@ args = 0, pretend = 0, frame = 0
+ 136              		@ frame_needed = 0, uses_anonymous_args = 0
+ 137              		@ link register save eliminated.
+  68:mri/devices/stm32f429xx/stm32f429xx_init.c ****     return sizeof(g_memoryMapXml) - 1;
+ 138              		.loc 1 68 5 view .LVU19
+  69:mri/devices/stm32f429xx/stm32f429xx_init.c **** }
+ 139              		.loc 1 69 1 is_stmt 0 view .LVU20
+ 140 0000 40F20740 		movw	r0, #1031
+ 141 0004 7047     		bx	lr
+ARM GAS  /tmp/cciqCJKI.s 			page 6
+
+
+ 142              		.cfi_endproc
+ 143              	.LFE220:
+ 145              		.section	.text.mriPlatform_GetDeviceMemoryMapXml,"ax",%progbits
+ 146              		.align	1
+ 147              		.global	mriPlatform_GetDeviceMemoryMapXml
+ 148              		.syntax unified
+ 149              		.thumb
+ 150              		.thumb_func
+ 152              	mriPlatform_GetDeviceMemoryMapXml:
+ 153              	.LFB221:
+  70:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  71:mri/devices/stm32f429xx/stm32f429xx_init.c **** 
+  72:mri/devices/stm32f429xx/stm32f429xx_init.c **** const char* Platform_GetDeviceMemoryMapXml(void)
+  73:mri/devices/stm32f429xx/stm32f429xx_init.c **** {
+ 154              		.loc 1 73 1 is_stmt 1 view -0
+ 155              		.cfi_startproc
+ 156              		@ args = 0, pretend = 0, frame = 0
+ 157              		@ frame_needed = 0, uses_anonymous_args = 0
+ 158              		@ link register save eliminated.
+  74:mri/devices/stm32f429xx/stm32f429xx_init.c ****     return g_memoryMapXml;
+ 159              		.loc 1 74 5 view .LVU22
+  75:mri/devices/stm32f429xx/stm32f429xx_init.c **** }
+ 160              		.loc 1 75 1 is_stmt 0 view .LVU23
+ 161 0000 0048     		ldr	r0, .L10
+ 162 0002 7047     		bx	lr
+ 163              	.L11:
+ 164              		.align	2
+ 165              	.L10:
+ 166 0004 00000000 		.word	g_memoryMapXml
+ 167              		.cfi_endproc
+ 168              	.LFE221:
+ 170              		.global	mriStm32f429xxState
+ 171              		.section	.bss.mriStm32f429xxState,"aw",%nobits
+ 172              		.align	2
+ 175              	mriStm32f429xxState:
+ 176 0000 00000000 		.space	8
+ 176      00000000 
+ 177              		.section	.rodata.g_memoryMapXml,"a"
+ 178              		.align	2
+ 181              	g_memoryMapXml:
+ 182 0000 3C3F786D 		.ascii	"<?xml version=\"1.0\"?><!DOCTYPE memory-map PUBLIC "
+ 182      6C207665 
+ 182      7273696F 
+ 182      6E3D2231 
+ 182      2E30223F 
+ 183 0031 222B2F2F 		.ascii	"\"+//IDN gnu.org//DTD GDB Memory Map V1.0//EN\" \"h"
+ 183      49444E20 
+ 183      676E752E 
+ 183      6F72672F 
+ 183      2F445444 
+ 184 0061 7474703A 		.ascii	"ttp://sourceware.org/gdb/gdb-memory-map.dtd\"><memo"
+ 184      2F2F736F 
+ 184      75726365 
+ 184      77617265 
+ 184      2E6F7267 
+ 185 0093 72792D6D 		.ascii	"ry-map><memory type=\"flash\" start=\"0x08000000\" "
+ 185      61703E3C 
+ARM GAS  /tmp/cciqCJKI.s 			page 7
+
+
+ 185      6D656D6F 
+ 185      72792074 
+ 185      7970653D 
+ 186 00c2 6C656E67 		.ascii	"length=\"0x10000\"> <property name=\"blocksize\">0x"
+ 186      74683D22 
+ 186      30783130 
+ 186      30303022 
+ 186      3E203C70 
+ 187 00f1 34303030 		.ascii	"4000</property></memory><memory type=\"flash\" star"
+ 187      3C2F7072 
+ 187      6F706572 
+ 187      74793E3C 
+ 187      2F6D656D 
+ 188 0122 743D2230 		.ascii	"t=\"0x08010000\" length=\"0x10000\"> <property name"
+ 188      78303830 
+ 188      31303030 
+ 188      3022206C 
+ 188      656E6774 
+ 189 0151 3D22626C 		.ascii	"=\"blocksize\">0x10000</property></memory><memory t"
+ 189      6F636B73 
+ 189      697A6522 
+ 189      3E307831 
+ 189      30303030 
+ 190 0182 7970653D 		.ascii	"ype=\"flash\" start=\"0x08020000\" length=\"0xE0000"
+ 190      22666C61 
+ 190      73682220 
+ 190      73746172 
+ 190      743D2230 
+ 191 01b0 223E203C 		.ascii	"\"> <property name=\"blocksize\">0x20000</property>"
+ 191      70726F70 
+ 191      65727479 
+ 191      206E616D 
+ 191      653D2262 
+ 192 01e0 3C2F6D65 		.ascii	"</memory><memory type=\"flash\" start=\"0x08100000\""
+ 192      6D6F7279 
+ 192      3E3C6D65 
+ 192      6D6F7279 
+ 192      20747970 
+ 193 0210 206C656E 		.ascii	" length=\"0x10000\"> <property name=\"blocksize\">0"
+ 193      6774683D 
+ 193      22307831 
+ 193      30303030 
+ 193      223E203C 
+ 194 023f 78343030 		.ascii	"x4000</property></memory><memory type=\"flash\" sta"
+ 194      303C2F70 
+ 194      726F7065 
+ 194      7274793E 
+ 194      3C2F6D65 
+ 195 0270 72743D22 		.ascii	"rt=\"0x08110000\" length=\"0x10000\"> <property nam"
+ 195      30783038 
+ 195      31313030 
+ 195      30302220 
+ 195      6C656E67 
+ 196 029f 653D2262 		.ascii	"e=\"blocksize\">0x10000</property></memory><memory "
+ 196      6C6F636B 
+ 196      73697A65 
+ 196      223E3078 
+ARM GAS  /tmp/cciqCJKI.s 			page 8
+
+
+ 196      31303030 
+ 197 02d0 74797065 		.ascii	"type=\"flash\" start=\"0x08120000\" length=\"0xE000"
+ 197      3D22666C 
+ 197      61736822 
+ 197      20737461 
+ 197      72743D22 
+ 198 02fe 30223E20 		.ascii	"0\"> <property name=\"blocksize\">0x20000</property"
+ 198      3C70726F 
+ 198      70657274 
+ 198      79206E61 
+ 198      6D653D22 
+ 199 032e 3E3C2F6D 		.ascii	"></memory><memory type=\"ram\" start=\"0x20000000\""
+ 199      656D6F72 
+ 199      793E3C6D 
+ 199      656D6F72 
+ 199      79207479 
+ 200 035d 206C656E 		.ascii	" length=\"0x1C000\"> </memory><memory type=\"ram\" "
+ 200      6774683D 
+ 200      22307831 
+ 200      43303030 
+ 200      223E203C 
+ 201 038c 73746172 		.ascii	"start=\"0x2001C000\" length=\"0x4000\"> </memory><m"
+ 201      743D2230 
+ 201      78323030 
+ 201      31433030 
+ 201      3022206C 
+ 202 03bb 656D6F72 		.ascii	"emory type=\"ram\" start=\"0x20020000\" length=\"0x"
+ 202      79207479 
+ 202      70653D22 
+ 202      72616D22 
+ 202      20737461 
+ 203 03e9 31303030 		.ascii	"10000\"> </memory></memory-map>\000"
+ 203      30223E20 
+ 203      3C2F6D65 
+ 203      6D6F7279 
+ 203      3E3C2F6D 
+ 204              		.text
+ 205              	.Letext0:
+ 206              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 207              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 208              		.file 5 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 209              		.file 6 "mri/core/token.h"
+ 210              		.file 7 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f401xc.h"
+ 211              		.file 8 "mri/devices/stm32f429xx/stm32f429xx_usart.h"
+ 212              		.file 9 "mri/devices/stm32f429xx/stm32f429xx_init.h"
+ 213              		.file 10 "mri/architectures/armv7-m/armv7-m.h"
+ARM GAS  /tmp/cciqCJKI.s 			page 9
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 stm32f429xx_init.c
+     /tmp/cciqCJKI.s:21     .text.USART1_IRQHandler:0000000000000000 $t
+     /tmp/cciqCJKI.s:27     .text.USART1_IRQHandler:0000000000000000 USART1_IRQHandler
+     /tmp/cciqCJKI.s:47     .text.mriStm32f429xx_Init:0000000000000000 $t
+     /tmp/cciqCJKI.s:53     .text.mriStm32f429xx_Init:0000000000000000 mriStm32f429xx_Init
+     /tmp/cciqCJKI.s:119    .text.mriStm32f429xx_Init:0000000000000028 $d
+     /tmp/cciqCJKI.s:125    .text.mriPlatform_GetDeviceMemoryMapXmlSize:0000000000000000 $t
+     /tmp/cciqCJKI.s:131    .text.mriPlatform_GetDeviceMemoryMapXmlSize:0000000000000000 mriPlatform_GetDeviceMemoryMapXmlSize
+     /tmp/cciqCJKI.s:146    .text.mriPlatform_GetDeviceMemoryMapXml:0000000000000000 $t
+     /tmp/cciqCJKI.s:152    .text.mriPlatform_GetDeviceMemoryMapXml:0000000000000000 mriPlatform_GetDeviceMemoryMapXml
+     /tmp/cciqCJKI.s:166    .text.mriPlatform_GetDeviceMemoryMapXml:0000000000000004 $d
+     /tmp/cciqCJKI.s:181    .rodata.g_memoryMapXml:0000000000000000 g_memoryMapXml
+     /tmp/cciqCJKI.s:175    .bss.mriStm32f429xxState:0000000000000000 mriStm32f429xxState
+     /tmp/cciqCJKI.s:172    .bss.mriStm32f429xxState:0000000000000000 $d
+     /tmp/cciqCJKI.s:178    .rodata.g_memoryMapXml:0000000000000000 $d
+
+UNDEFINED SYMBOLS
+mriExceptionHandler
+mriCortexMInit
+mriStm32f429xxUart_Init
+mriExceptionCode

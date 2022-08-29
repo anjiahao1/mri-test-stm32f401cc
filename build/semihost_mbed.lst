@@ -1,0 +1,1493 @@
+ARM GAS  /tmp/ccPZkjYW.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"semihost_mbed.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/semihost/mbed/semihost_mbed.c"
+  20              		.section	.text.convertRealViewOpenModeToPosixOpenFlags,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	convertRealViewOpenModeToPosixOpenFlags:
+  27              	.LVL0:
+  28              	.LFB6:
+   1:mri/semihost/mbed/semihost_mbed.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/semihost/mbed/semihost_mbed.c **** 
+   3:mri/semihost/mbed/semihost_mbed.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/semihost/mbed/semihost_mbed.c ****    you may not use this file except in compliance with the License.
+   5:mri/semihost/mbed/semihost_mbed.c ****    You may obtain a copy of the License at
+   6:mri/semihost/mbed/semihost_mbed.c **** 
+   7:mri/semihost/mbed/semihost_mbed.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/semihost/mbed/semihost_mbed.c **** 
+   9:mri/semihost/mbed/semihost_mbed.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/semihost/mbed/semihost_mbed.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/semihost/mbed/semihost_mbed.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/semihost/mbed/semihost_mbed.c ****    See the License for the specific language governing permissions and
+  13:mri/semihost/mbed/semihost_mbed.c ****    limitations under the License.
+  14:mri/semihost/mbed/semihost_mbed.c **** */
+  15:mri/semihost/mbed/semihost_mbed.c **** /* Semihost functionality for redirecting mbed LocalFileSystem operations to the GNU host. */
+  16:mri/semihost/mbed/semihost_mbed.c **** #include <stdint.h>
+  17:mri/semihost/mbed/semihost_mbed.c **** #include <core/libc.h>
+  18:mri/semihost/mbed/semihost_mbed.c **** #include <core/core.h>
+  19:mri/semihost/mbed/semihost_mbed.c **** #include <core/semihost.h>
+  20:mri/semihost/mbed/semihost_mbed.c **** #include <core/cmd_file.h>
+  21:mri/semihost/mbed/semihost_mbed.c **** #include <core/fileio.h>
+  22:mri/semihost/mbed/semihost_mbed.c **** #include <core/mbedsys.h>
+  23:mri/semihost/mbed/semihost_mbed.c **** 
+  24:mri/semihost/mbed/semihost_mbed.c **** 
+  25:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostUidRequest(PlatformSemihostParameters* pParameters);
+  26:mri/semihost/mbed/semihost_mbed.c **** static uint32_t convertRealViewOpenModeToPosixOpenFlags(uint32_t openMode);
+  27:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostOpenRequest(PlatformSemihostParameters* pSemihostParameters);
+  28:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostIsTtyRequest(PlatformSemihostParameters* pSemihostParameters);
+  29:mri/semihost/mbed/semihost_mbed.c **** static void     convertBytesTransferredToBytesNotTransferred(int bytesThatWereToBeTransferred);
+  30:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostWriteRequest(PlatformSemihostParameters* pSemihostParameters);
+ARM GAS  /tmp/ccPZkjYW.s 			page 2
+
+
+  31:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostCloseRequest(PlatformSemihostParameters* pSemihostParameters);
+  32:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostReadRequest(PlatformSemihostParameters* pSemihostParameters);
+  33:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostSeekRequest(PlatformSemihostParameters* pSemihostParameters);
+  34:mri/semihost/mbed/semihost_mbed.c **** static uint32_t extractWordFromBigEndianByteArray(const void* pBigEndianValueToExtract);
+  35:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostFileLengthRequest(PlatformSemihostParameters* pSemihostParameters
+  36:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostRemoveRequest(PlatformSemihostParameters* pSemihostParameters);
+  37:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostRenameRequest(PlatformSemihostParameters* pSemihostParameters);
+  38:mri/semihost/mbed/semihost_mbed.c **** static int      handleMbedSemihostErrorNoRequest(PlatformSemihostParameters* pSemihostParameters);
+  39:mri/semihost/mbed/semihost_mbed.c **** int Semihost_HandleMbedSemihostRequest(PlatformSemihostParameters* pParameters)
+  40:mri/semihost/mbed/semihost_mbed.c **** {
+  41:mri/semihost/mbed/semihost_mbed.c ****     uint32_t opCode;
+  42:mri/semihost/mbed/semihost_mbed.c **** 
+  43:mri/semihost/mbed/semihost_mbed.c ****     opCode = pParameters->parameter1;
+  44:mri/semihost/mbed/semihost_mbed.c ****     switch (opCode)
+  45:mri/semihost/mbed/semihost_mbed.c ****     {
+  46:mri/semihost/mbed/semihost_mbed.c ****     case 1:
+  47:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostOpenRequest(pParameters);
+  48:mri/semihost/mbed/semihost_mbed.c ****     case 2:
+  49:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostCloseRequest(pParameters);
+  50:mri/semihost/mbed/semihost_mbed.c ****     case 5:
+  51:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostWriteRequest(pParameters);
+  52:mri/semihost/mbed/semihost_mbed.c ****     case 6:
+  53:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostReadRequest(pParameters);
+  54:mri/semihost/mbed/semihost_mbed.c ****     case 9:
+  55:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostIsTtyRequest(pParameters);
+  56:mri/semihost/mbed/semihost_mbed.c ****     case 10:
+  57:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostSeekRequest(pParameters);
+  58:mri/semihost/mbed/semihost_mbed.c ****     case 12:
+  59:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostFileLengthRequest(pParameters);
+  60:mri/semihost/mbed/semihost_mbed.c ****     case 14:
+  61:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostRemoveRequest(pParameters);
+  62:mri/semihost/mbed/semihost_mbed.c ****     case 15:
+  63:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostRenameRequest(pParameters);
+  64:mri/semihost/mbed/semihost_mbed.c ****     case 19:
+  65:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostErrorNoRequest(pParameters);
+  66:mri/semihost/mbed/semihost_mbed.c ****     case 257:
+  67:mri/semihost/mbed/semihost_mbed.c ****         return handleMbedSemihostUidRequest(pParameters);
+  68:mri/semihost/mbed/semihost_mbed.c ****     default:
+  69:mri/semihost/mbed/semihost_mbed.c ****         return 0;
+  70:mri/semihost/mbed/semihost_mbed.c ****     }
+  71:mri/semihost/mbed/semihost_mbed.c **** }
+  72:mri/semihost/mbed/semihost_mbed.c **** 
+  73:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostUidRequest(PlatformSemihostParameters* pParameters)
+  74:mri/semihost/mbed/semihost_mbed.c **** {
+  75:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+  76:mri/semihost/mbed/semihost_mbed.c ****     {
+  77:mri/semihost/mbed/semihost_mbed.c ****         uint8_t*   pBuffer;
+  78:mri/semihost/mbed/semihost_mbed.c ****         uint32_t   bufferSize;
+  79:mri/semihost/mbed/semihost_mbed.c ****     } SUidParameters;
+  80:mri/semihost/mbed/semihost_mbed.c ****     uint32_t              uidSize = Platform_GetUidSize();
+  81:mri/semihost/mbed/semihost_mbed.c ****     const SUidParameters* pUidParameters;
+  82:mri/semihost/mbed/semihost_mbed.c ****     uint32_t              copySize;
+  83:mri/semihost/mbed/semihost_mbed.c **** 
+  84:mri/semihost/mbed/semihost_mbed.c ****     pUidParameters = (const SUidParameters*)pParameters->parameter2;
+  85:mri/semihost/mbed/semihost_mbed.c ****     copySize = pUidParameters->bufferSize;
+  86:mri/semihost/mbed/semihost_mbed.c ****     if (copySize > uidSize)
+  87:mri/semihost/mbed/semihost_mbed.c ****         copySize = uidSize;
+ARM GAS  /tmp/ccPZkjYW.s 			page 3
+
+
+  88:mri/semihost/mbed/semihost_mbed.c ****     mri_memcpy(pUidParameters->pBuffer, Platform_GetUid(), copySize);
+  89:mri/semihost/mbed/semihost_mbed.c **** 
+  90:mri/semihost/mbed/semihost_mbed.c ****     Platform_AdvanceProgramCounterToNextInstruction();
+  91:mri/semihost/mbed/semihost_mbed.c ****     Platform_SetSemihostCallReturnAndErrnoValues(0, 0);
+  92:mri/semihost/mbed/semihost_mbed.c **** 
+  93:mri/semihost/mbed/semihost_mbed.c ****     return 1;
+  94:mri/semihost/mbed/semihost_mbed.c **** }
+  95:mri/semihost/mbed/semihost_mbed.c **** 
+  96:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostOpenRequest(PlatformSemihostParameters* pSemihostParameters)
+  97:mri/semihost/mbed/semihost_mbed.c **** {
+  98:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+  99:mri/semihost/mbed/semihost_mbed.c ****     {
+ 100:mri/semihost/mbed/semihost_mbed.c ****         uint32_t filenameAddress;
+ 101:mri/semihost/mbed/semihost_mbed.c ****         uint32_t openMode;
+ 102:mri/semihost/mbed/semihost_mbed.c ****         uint32_t filenameLength;
+ 103:mri/semihost/mbed/semihost_mbed.c ****     } MbedOpenParameters;
+ 104:mri/semihost/mbed/semihost_mbed.c ****     const MbedOpenParameters*  pParameters = (const MbedOpenParameters*)pSemihostParameters->parame
+ 105:mri/semihost/mbed/semihost_mbed.c ****     OpenParameters             parameters;
+ 106:mri/semihost/mbed/semihost_mbed.c **** 
+ 107:mri/semihost/mbed/semihost_mbed.c ****     parameters.filenameAddress = pParameters->filenameAddress;
+ 108:mri/semihost/mbed/semihost_mbed.c ****     parameters.flags = convertRealViewOpenModeToPosixOpenFlags(pParameters->openMode);
+ 109:mri/semihost/mbed/semihost_mbed.c ****     parameters.mode = GDB_S_IRUSR | GDB_S_IWUSR | GDB_S_IRGRP | GDB_S_IWGRP | GDB_S_IROTH | GDB_S_I
+ 110:mri/semihost/mbed/semihost_mbed.c ****     parameters.filenameLength = pParameters->filenameLength + 1;
+ 111:mri/semihost/mbed/semihost_mbed.c **** 
+ 112:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileOpenRequest(&parameters);
+ 113:mri/semihost/mbed/semihost_mbed.c **** }
+ 114:mri/semihost/mbed/semihost_mbed.c **** 
+ 115:mri/semihost/mbed/semihost_mbed.c **** static uint32_t convertRealViewOpenModeToPosixOpenFlags(uint32_t openMode)
+ 116:mri/semihost/mbed/semihost_mbed.c **** {
+  29              		.loc 1 116 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+ 117:mri/semihost/mbed/semihost_mbed.c ****     uint32_t posixOpenMode = 0;
+  34              		.loc 1 117 5 view .LVU1
+ 118:mri/semihost/mbed/semihost_mbed.c ****     uint32_t posixOpenDisposition = 0;
+  35              		.loc 1 118 5 view .LVU2
+ 119:mri/semihost/mbed/semihost_mbed.c **** 
+ 120:mri/semihost/mbed/semihost_mbed.c ****     if (openMode & OPENMODE_W)
+  36              		.loc 1 120 5 view .LVU3
+  37              		.loc 1 120 8 is_stmt 0 view .LVU4
+  38 0000 10F0040F 		tst	r0, #4
+  39 0004 06D1     		bne	.L4
+ 121:mri/semihost/mbed/semihost_mbed.c ****     {
+ 122:mri/semihost/mbed/semihost_mbed.c ****         posixOpenMode = GDB_O_WRONLY;
+ 123:mri/semihost/mbed/semihost_mbed.c ****         posixOpenDisposition = GDB_O_CREAT | GDB_O_TRUNC;
+ 124:mri/semihost/mbed/semihost_mbed.c ****     }
+ 125:mri/semihost/mbed/semihost_mbed.c ****     else if (openMode & OPENMODE_A)
+  40              		.loc 1 125 10 is_stmt 1 view .LVU5
+  41              		.loc 1 125 13 is_stmt 0 view .LVU6
+  42 0006 10F00803 		ands	r3, r0, #8
+  43 000a 0DD0     		beq	.L5
+ 126:mri/semihost/mbed/semihost_mbed.c ****     {
+ 127:mri/semihost/mbed/semihost_mbed.c ****         posixOpenMode = GDB_O_WRONLY ;
+ 128:mri/semihost/mbed/semihost_mbed.c ****         posixOpenDisposition = GDB_O_CREAT | GDB_O_APPEND;
+  44              		.loc 1 128 30 view .LVU7
+ARM GAS  /tmp/ccPZkjYW.s 			page 4
+
+
+  45 000c 4FF40272 		mov	r2, #520
+ 127:mri/semihost/mbed/semihost_mbed.c ****         posixOpenDisposition = GDB_O_CREAT | GDB_O_APPEND;
+  46              		.loc 1 127 23 view .LVU8
+  47 0010 0123     		movs	r3, #1
+  48 0012 02E0     		b	.L2
+  49              	.L4:
+ 123:mri/semihost/mbed/semihost_mbed.c ****     }
+  50              		.loc 1 123 30 view .LVU9
+  51 0014 4FF4C062 		mov	r2, #1536
+ 122:mri/semihost/mbed/semihost_mbed.c ****         posixOpenDisposition = GDB_O_CREAT | GDB_O_TRUNC;
+  52              		.loc 1 122 23 view .LVU10
+  53 0018 0123     		movs	r3, #1
+  54              	.L2:
+  55              	.LVL1:
+ 129:mri/semihost/mbed/semihost_mbed.c ****     }
+ 130:mri/semihost/mbed/semihost_mbed.c ****     else
+ 131:mri/semihost/mbed/semihost_mbed.c ****     {
+ 132:mri/semihost/mbed/semihost_mbed.c ****         posixOpenMode = GDB_O_RDONLY;
+ 133:mri/semihost/mbed/semihost_mbed.c ****         posixOpenDisposition = 0;
+ 134:mri/semihost/mbed/semihost_mbed.c ****     }
+ 135:mri/semihost/mbed/semihost_mbed.c ****     if (openMode & OPENMODE_PLUS)
+  56              		.loc 1 135 5 is_stmt 1 view .LVU11
+  57              		.loc 1 135 8 is_stmt 0 view .LVU12
+  58 001a 10F0020F 		tst	r0, #2
+  59 001e 00D0     		beq	.L3
+ 136:mri/semihost/mbed/semihost_mbed.c ****     {
+ 137:mri/semihost/mbed/semihost_mbed.c ****         posixOpenMode = GDB_O_RDWR;
+  60              		.loc 1 137 23 view .LVU13
+  61 0020 0223     		movs	r3, #2
+  62              	.LVL2:
+  63              	.L3:
+ 138:mri/semihost/mbed/semihost_mbed.c ****     }
+ 139:mri/semihost/mbed/semihost_mbed.c **** 
+ 140:mri/semihost/mbed/semihost_mbed.c ****     return posixOpenMode | posixOpenDisposition;
+  64              		.loc 1 140 5 is_stmt 1 view .LVU14
+ 141:mri/semihost/mbed/semihost_mbed.c **** }
+  65              		.loc 1 141 1 is_stmt 0 view .LVU15
+  66 0022 43EA0200 		orr	r0, r3, r2
+  67              	.LVL3:
+  68              		.loc 1 141 1 view .LVU16
+  69 0026 7047     		bx	lr
+  70              	.LVL4:
+  71              	.L5:
+ 133:mri/semihost/mbed/semihost_mbed.c ****     }
+  72              		.loc 1 133 30 view .LVU17
+  73 0028 1A46     		mov	r2, r3
+  74 002a F6E7     		b	.L2
+  75              		.cfi_endproc
+  76              	.LFE6:
+  78              		.section	.text.extractWordFromBigEndianByteArray,"ax",%progbits
+  79              		.align	1
+  80              		.syntax unified
+  81              		.thumb
+  82              		.thumb_func
+  84              	extractWordFromBigEndianByteArray:
+  85              	.LVL5:
+  86              	.LFB14:
+ARM GAS  /tmp/ccPZkjYW.s 			page 5
+
+
+ 142:mri/semihost/mbed/semihost_mbed.c **** 
+ 143:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostIsTtyRequest(PlatformSemihostParameters* pSemihostParameters)
+ 144:mri/semihost/mbed/semihost_mbed.c **** {
+ 145:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 146:mri/semihost/mbed/semihost_mbed.c ****     {
+ 147:mri/semihost/mbed/semihost_mbed.c ****         uint32_t        fileDescriptor;
+ 148:mri/semihost/mbed/semihost_mbed.c ****     } IsTtyParameters;
+ 149:mri/semihost/mbed/semihost_mbed.c ****     const IsTtyParameters* pParameters;
+ 150:mri/semihost/mbed/semihost_mbed.c **** 
+ 151:mri/semihost/mbed/semihost_mbed.c ****     pParameters = (const IsTtyParameters*)pSemihostParameters->parameter2;
+ 152:mri/semihost/mbed/semihost_mbed.c ****     (void)pParameters;
+ 153:mri/semihost/mbed/semihost_mbed.c **** 
+ 154:mri/semihost/mbed/semihost_mbed.c ****     Platform_AdvanceProgramCounterToNextInstruction();
+ 155:mri/semihost/mbed/semihost_mbed.c **** 
+ 156:mri/semihost/mbed/semihost_mbed.c ****     // Hardcode all such file handles to non-TTY so that they are buffered.
+ 157:mri/semihost/mbed/semihost_mbed.c ****     Platform_SetSemihostCallReturnAndErrnoValues(0, 0);
+ 158:mri/semihost/mbed/semihost_mbed.c **** 
+ 159:mri/semihost/mbed/semihost_mbed.c ****     return 1;
+ 160:mri/semihost/mbed/semihost_mbed.c **** }
+ 161:mri/semihost/mbed/semihost_mbed.c **** 
+ 162:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostWriteRequest(PlatformSemihostParameters* pSemihostParameters)
+ 163:mri/semihost/mbed/semihost_mbed.c **** {
+ 164:mri/semihost/mbed/semihost_mbed.c ****     const TransferParameters*  pParameters = (const TransferParameters*)pSemihostParameters->parame
+ 165:mri/semihost/mbed/semihost_mbed.c ****     int returnValue;
+ 166:mri/semihost/mbed/semihost_mbed.c **** 
+ 167:mri/semihost/mbed/semihost_mbed.c ****     returnValue = Semihost_WriteToFileOrConsole(pParameters);
+ 168:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 169:mri/semihost/mbed/semihost_mbed.c ****         convertBytesTransferredToBytesNotTransferred(pParameters->bufferSize);
+ 170:mri/semihost/mbed/semihost_mbed.c **** 
+ 171:mri/semihost/mbed/semihost_mbed.c ****     return returnValue;
+ 172:mri/semihost/mbed/semihost_mbed.c **** }
+ 173:mri/semihost/mbed/semihost_mbed.c **** 
+ 174:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostReadRequest(PlatformSemihostParameters* pSemihostParameters)
+ 175:mri/semihost/mbed/semihost_mbed.c **** {
+ 176:mri/semihost/mbed/semihost_mbed.c ****     const TransferParameters*  pParameters = (const TransferParameters*)pSemihostParameters->parame
+ 177:mri/semihost/mbed/semihost_mbed.c ****     int   returnValue;
+ 178:mri/semihost/mbed/semihost_mbed.c **** 
+ 179:mri/semihost/mbed/semihost_mbed.c ****     returnValue = IssueGdbFileReadRequest(pParameters);
+ 180:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 181:mri/semihost/mbed/semihost_mbed.c ****         convertBytesTransferredToBytesNotTransferred(pParameters->bufferSize);
+ 182:mri/semihost/mbed/semihost_mbed.c **** 
+ 183:mri/semihost/mbed/semihost_mbed.c ****     return returnValue;
+ 184:mri/semihost/mbed/semihost_mbed.c **** }
+ 185:mri/semihost/mbed/semihost_mbed.c **** 
+ 186:mri/semihost/mbed/semihost_mbed.c **** static void convertBytesTransferredToBytesNotTransferred(int bytesThatWereToBeTransferred)
+ 187:mri/semihost/mbed/semihost_mbed.c **** {
+ 188:mri/semihost/mbed/semihost_mbed.c ****     int bytesTransferred = GetSemihostReturnCode();
+ 189:mri/semihost/mbed/semihost_mbed.c **** 
+ 190:mri/semihost/mbed/semihost_mbed.c ****     /* The mbed version of the read/write function need bytes not transferred instead of bytes tran
+ 191:mri/semihost/mbed/semihost_mbed.c ****     if (bytesTransferred >= 0)
+ 192:mri/semihost/mbed/semihost_mbed.c ****         Platform_SetSemihostCallReturnAndErrnoValues(bytesThatWereToBeTransferred - bytesTransferre
+ 193:mri/semihost/mbed/semihost_mbed.c **** }
+ 194:mri/semihost/mbed/semihost_mbed.c **** 
+ 195:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostCloseRequest(PlatformSemihostParameters* pSemihostParameters)
+ 196:mri/semihost/mbed/semihost_mbed.c **** {
+ 197:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 198:mri/semihost/mbed/semihost_mbed.c ****     {
+ARM GAS  /tmp/ccPZkjYW.s 			page 6
+
+
+ 199:mri/semihost/mbed/semihost_mbed.c ****         uint32_t        fileDescriptor;
+ 200:mri/semihost/mbed/semihost_mbed.c ****     } CloseParameters;
+ 201:mri/semihost/mbed/semihost_mbed.c ****     const CloseParameters* pParameters = (const CloseParameters*)pSemihostParameters->parameter2;
+ 202:mri/semihost/mbed/semihost_mbed.c **** 
+ 203:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileCloseRequest(pParameters->fileDescriptor);
+ 204:mri/semihost/mbed/semihost_mbed.c **** }
+ 205:mri/semihost/mbed/semihost_mbed.c **** 
+ 206:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostSeekRequest(PlatformSemihostParameters* pSemihostParameters)
+ 207:mri/semihost/mbed/semihost_mbed.c **** {
+ 208:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 209:mri/semihost/mbed/semihost_mbed.c ****     {
+ 210:mri/semihost/mbed/semihost_mbed.c ****         uint32_t    fileDescriptor;
+ 211:mri/semihost/mbed/semihost_mbed.c ****         int32_t     offsetFromStart;
+ 212:mri/semihost/mbed/semihost_mbed.c ****     } MbedSeekParameters;
+ 213:mri/semihost/mbed/semihost_mbed.c ****     const MbedSeekParameters* pParameters = (const MbedSeekParameters*)pSemihostParameters->paramet
+ 214:mri/semihost/mbed/semihost_mbed.c ****     SeekParameters parameters;
+ 215:mri/semihost/mbed/semihost_mbed.c **** 
+ 216:mri/semihost/mbed/semihost_mbed.c ****     parameters.fileDescriptor = pParameters->fileDescriptor;
+ 217:mri/semihost/mbed/semihost_mbed.c ****     parameters.offset = pParameters->offsetFromStart;
+ 218:mri/semihost/mbed/semihost_mbed.c ****     parameters.whence = GDB_SEEK_SET;
+ 219:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileSeekRequest(&parameters);
+ 220:mri/semihost/mbed/semihost_mbed.c **** }
+ 221:mri/semihost/mbed/semihost_mbed.c **** 
+ 222:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostFileLengthRequest(PlatformSemihostParameters* pSemihostParameters)
+ 223:mri/semihost/mbed/semihost_mbed.c **** {
+ 224:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 225:mri/semihost/mbed/semihost_mbed.c ****     {
+ 226:mri/semihost/mbed/semihost_mbed.c ****         uint32_t        fileDescriptor;
+ 227:mri/semihost/mbed/semihost_mbed.c ****     } FileLengthParameters;
+ 228:mri/semihost/mbed/semihost_mbed.c ****     const FileLengthParameters*  pParameters = (const FileLengthParameters*)pSemihostParameters->pa
+ 229:mri/semihost/mbed/semihost_mbed.c ****     GdbStats                     gdbFileStats;
+ 230:mri/semihost/mbed/semihost_mbed.c ****     int                          returnValue;
+ 231:mri/semihost/mbed/semihost_mbed.c **** 
+ 232:mri/semihost/mbed/semihost_mbed.c ****     returnValue = IssueGdbFileFStatRequest(pParameters->fileDescriptor, (uint32_t)&gdbFileStats);
+ 233:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue && GetSemihostReturnCode() == 0)
+ 234:mri/semihost/mbed/semihost_mbed.c ****     {
+ 235:mri/semihost/mbed/semihost_mbed.c ****         /* The stat command was successfully executed to set R0 to the file length field. */
+ 236:mri/semihost/mbed/semihost_mbed.c ****         Platform_SetSemihostCallReturnAndErrnoValues(extractWordFromBigEndianByteArray(&gdbFileStat
+ 237:mri/semihost/mbed/semihost_mbed.c ****     }
+ 238:mri/semihost/mbed/semihost_mbed.c **** 
+ 239:mri/semihost/mbed/semihost_mbed.c ****     return returnValue;
+ 240:mri/semihost/mbed/semihost_mbed.c **** }
+ 241:mri/semihost/mbed/semihost_mbed.c **** 
+ 242:mri/semihost/mbed/semihost_mbed.c **** static uint32_t extractWordFromBigEndianByteArray(const void* pBigEndianValueToExtract)
+ 243:mri/semihost/mbed/semihost_mbed.c **** {
+  87              		.loc 1 243 1 is_stmt 1 view -0
+  88              		.cfi_startproc
+  89              		@ args = 0, pretend = 0, frame = 0
+  90              		@ frame_needed = 0, uses_anonymous_args = 0
+  91              		@ link register save eliminated.
+ 244:mri/semihost/mbed/semihost_mbed.c ****     const unsigned char* pBigEndianValue = (const unsigned char*)pBigEndianValueToExtract;
+  92              		.loc 1 244 5 view .LVU19
+ 245:mri/semihost/mbed/semihost_mbed.c ****     return pBigEndianValue[3]        | (pBigEndianValue[2] << 8) |
+  93              		.loc 1 245 5 view .LVU20
+  94              		.loc 1 245 27 is_stmt 0 view .LVU21
+  95 0000 C378     		ldrb	r3, [r0, #3]	@ zero_extendqisi2
+  96              		.loc 1 245 56 view .LVU22
+ARM GAS  /tmp/ccPZkjYW.s 			page 7
+
+
+  97 0002 8278     		ldrb	r2, [r0, #2]	@ zero_extendqisi2
+  98              		.loc 1 245 38 view .LVU23
+  99 0004 43EA0223 		orr	r3, r3, r2, lsl #8
+ 246:mri/semihost/mbed/semihost_mbed.c ****           (pBigEndianValue[1] << 16) | (pBigEndianValue[0] << 24);
+ 100              		.loc 1 246 27 view .LVU24
+ 101 0008 4278     		ldrb	r2, [r0, #1]	@ zero_extendqisi2
+ 245:mri/semihost/mbed/semihost_mbed.c ****     return pBigEndianValue[3]        | (pBigEndianValue[2] << 8) |
+ 102              		.loc 1 245 66 view .LVU25
+ 103 000a 43EA0243 		orr	r3, r3, r2, lsl #16
+ 104              		.loc 1 246 56 view .LVU26
+ 105 000e 0078     		ldrb	r0, [r0]	@ zero_extendqisi2
+ 106              	.LVL6:
+ 247:mri/semihost/mbed/semihost_mbed.c **** }
+ 107              		.loc 1 247 1 view .LVU27
+ 108 0010 43EA0060 		orr	r0, r3, r0, lsl #24
+ 109 0014 7047     		bx	lr
+ 110              		.cfi_endproc
+ 111              	.LFE14:
+ 113              		.section	.text.handleMbedSemihostOpenRequest,"ax",%progbits
+ 114              		.align	1
+ 115              		.syntax unified
+ 116              		.thumb
+ 117              		.thumb_func
+ 119              	handleMbedSemihostOpenRequest:
+ 120              	.LVL7:
+ 121              	.LFB5:
+  97:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 122              		.loc 1 97 1 is_stmt 1 view -0
+ 123              		.cfi_startproc
+ 124              		@ args = 0, pretend = 0, frame = 16
+ 125              		@ frame_needed = 0, uses_anonymous_args = 0
+  97:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 126              		.loc 1 97 1 is_stmt 0 view .LVU29
+ 127 0000 10B5     		push	{r4, lr}
+ 128              	.LCFI0:
+ 129              		.cfi_def_cfa_offset 8
+ 130              		.cfi_offset 4, -8
+ 131              		.cfi_offset 14, -4
+ 132 0002 84B0     		sub	sp, sp, #16
+ 133              	.LCFI1:
+ 134              		.cfi_def_cfa_offset 24
+  98:mri/semihost/mbed/semihost_mbed.c ****     {
+ 135              		.loc 1 98 5 is_stmt 1 view .LVU30
+ 104:mri/semihost/mbed/semihost_mbed.c ****     OpenParameters             parameters;
+ 136              		.loc 1 104 5 view .LVU31
+ 104:mri/semihost/mbed/semihost_mbed.c ****     OpenParameters             parameters;
+ 137              		.loc 1 104 92 is_stmt 0 view .LVU32
+ 138 0004 4468     		ldr	r4, [r0, #4]
+ 139              	.LVL8:
+ 105:mri/semihost/mbed/semihost_mbed.c **** 
+ 140              		.loc 1 105 5 is_stmt 1 view .LVU33
+ 107:mri/semihost/mbed/semihost_mbed.c ****     parameters.flags = convertRealViewOpenModeToPosixOpenFlags(pParameters->openMode);
+ 141              		.loc 1 107 5 view .LVU34
+ 107:mri/semihost/mbed/semihost_mbed.c ****     parameters.flags = convertRealViewOpenModeToPosixOpenFlags(pParameters->openMode);
+ 142              		.loc 1 107 45 is_stmt 0 view .LVU35
+ 143 0006 2368     		ldr	r3, [r4]
+ 107:mri/semihost/mbed/semihost_mbed.c ****     parameters.flags = convertRealViewOpenModeToPosixOpenFlags(pParameters->openMode);
+ARM GAS  /tmp/ccPZkjYW.s 			page 8
+
+
+ 144              		.loc 1 107 32 view .LVU36
+ 145 0008 0093     		str	r3, [sp]
+ 108:mri/semihost/mbed/semihost_mbed.c ****     parameters.mode = GDB_S_IRUSR | GDB_S_IWUSR | GDB_S_IRGRP | GDB_S_IWGRP | GDB_S_IROTH | GDB_S_I
+ 146              		.loc 1 108 5 is_stmt 1 view .LVU37
+ 108:mri/semihost/mbed/semihost_mbed.c ****     parameters.mode = GDB_S_IRUSR | GDB_S_IWUSR | GDB_S_IRGRP | GDB_S_IWGRP | GDB_S_IROTH | GDB_S_I
+ 147              		.loc 1 108 24 is_stmt 0 view .LVU38
+ 148 000a 6068     		ldr	r0, [r4, #4]
+ 149              	.LVL9:
+ 108:mri/semihost/mbed/semihost_mbed.c ****     parameters.mode = GDB_S_IRUSR | GDB_S_IWUSR | GDB_S_IRGRP | GDB_S_IWGRP | GDB_S_IROTH | GDB_S_I
+ 150              		.loc 1 108 24 view .LVU39
+ 151 000c FFF7FEFF 		bl	convertRealViewOpenModeToPosixOpenFlags
+ 152              	.LVL10:
+ 108:mri/semihost/mbed/semihost_mbed.c ****     parameters.mode = GDB_S_IRUSR | GDB_S_IWUSR | GDB_S_IRGRP | GDB_S_IWGRP | GDB_S_IROTH | GDB_S_I
+ 153              		.loc 1 108 22 view .LVU40
+ 154 0010 0290     		str	r0, [sp, #8]
+ 109:mri/semihost/mbed/semihost_mbed.c ****     parameters.filenameLength = pParameters->filenameLength + 1;
+ 155              		.loc 1 109 5 is_stmt 1 view .LVU41
+ 109:mri/semihost/mbed/semihost_mbed.c ****     parameters.filenameLength = pParameters->filenameLength + 1;
+ 156              		.loc 1 109 21 is_stmt 0 view .LVU42
+ 157 0012 4FF4DB73 		mov	r3, #438
+ 158 0016 0393     		str	r3, [sp, #12]
+ 110:mri/semihost/mbed/semihost_mbed.c **** 
+ 159              		.loc 1 110 5 is_stmt 1 view .LVU43
+ 110:mri/semihost/mbed/semihost_mbed.c **** 
+ 160              		.loc 1 110 44 is_stmt 0 view .LVU44
+ 161 0018 A368     		ldr	r3, [r4, #8]
+ 110:mri/semihost/mbed/semihost_mbed.c **** 
+ 162              		.loc 1 110 61 view .LVU45
+ 163 001a 0133     		adds	r3, r3, #1
+ 110:mri/semihost/mbed/semihost_mbed.c **** 
+ 164              		.loc 1 110 31 view .LVU46
+ 165 001c 0193     		str	r3, [sp, #4]
+ 112:mri/semihost/mbed/semihost_mbed.c **** }
+ 166              		.loc 1 112 5 is_stmt 1 view .LVU47
+ 112:mri/semihost/mbed/semihost_mbed.c **** }
+ 167              		.loc 1 112 12 is_stmt 0 view .LVU48
+ 168 001e 6846     		mov	r0, sp
+ 169 0020 FFF7FEFF 		bl	mriIssueGdbFileOpenRequest
+ 170              	.LVL11:
+ 113:mri/semihost/mbed/semihost_mbed.c **** 
+ 171              		.loc 1 113 1 view .LVU49
+ 172 0024 04B0     		add	sp, sp, #16
+ 173              	.LCFI2:
+ 174              		.cfi_def_cfa_offset 8
+ 175              		@ sp needed
+ 176 0026 10BD     		pop	{r4, pc}
+ 113:mri/semihost/mbed/semihost_mbed.c **** 
+ 177              		.loc 1 113 1 view .LVU50
+ 178              		.cfi_endproc
+ 179              	.LFE5:
+ 181              		.section	.text.handleMbedSemihostCloseRequest,"ax",%progbits
+ 182              		.align	1
+ 183              		.syntax unified
+ 184              		.thumb
+ 185              		.thumb_func
+ 187              	handleMbedSemihostCloseRequest:
+ 188              	.LVL12:
+ARM GAS  /tmp/ccPZkjYW.s 			page 9
+
+
+ 189              	.LFB11:
+ 196:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 190              		.loc 1 196 1 is_stmt 1 view -0
+ 191              		.cfi_startproc
+ 192              		@ args = 0, pretend = 0, frame = 0
+ 193              		@ frame_needed = 0, uses_anonymous_args = 0
+ 196:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 194              		.loc 1 196 1 is_stmt 0 view .LVU52
+ 195 0000 08B5     		push	{r3, lr}
+ 196              	.LCFI3:
+ 197              		.cfi_def_cfa_offset 8
+ 198              		.cfi_offset 3, -8
+ 199              		.cfi_offset 14, -4
+ 197:mri/semihost/mbed/semihost_mbed.c ****     {
+ 200              		.loc 1 197 5 is_stmt 1 view .LVU53
+ 201:mri/semihost/mbed/semihost_mbed.c **** 
+ 201              		.loc 1 201 5 view .LVU54
+ 201:mri/semihost/mbed/semihost_mbed.c **** 
+ 202              		.loc 1 201 85 is_stmt 0 view .LVU55
+ 203 0002 4368     		ldr	r3, [r0, #4]
+ 204              	.LVL13:
+ 203:mri/semihost/mbed/semihost_mbed.c **** }
+ 205              		.loc 1 203 5 is_stmt 1 view .LVU56
+ 203:mri/semihost/mbed/semihost_mbed.c **** }
+ 206              		.loc 1 203 12 is_stmt 0 view .LVU57
+ 207 0004 1868     		ldr	r0, [r3]
+ 208              	.LVL14:
+ 203:mri/semihost/mbed/semihost_mbed.c **** }
+ 209              		.loc 1 203 12 view .LVU58
+ 210 0006 FFF7FEFF 		bl	mriIssueGdbFileCloseRequest
+ 211              	.LVL15:
+ 204:mri/semihost/mbed/semihost_mbed.c **** 
+ 212              		.loc 1 204 1 view .LVU59
+ 213 000a 08BD     		pop	{r3, pc}
+ 214              		.cfi_endproc
+ 215              	.LFE11:
+ 217              		.section	.text.convertBytesTransferredToBytesNotTransferred,"ax",%progbits
+ 218              		.align	1
+ 219              		.syntax unified
+ 220              		.thumb
+ 221              		.thumb_func
+ 223              	convertBytesTransferredToBytesNotTransferred:
+ 224              	.LVL16:
+ 225              	.LFB10:
+ 187:mri/semihost/mbed/semihost_mbed.c ****     int bytesTransferred = GetSemihostReturnCode();
+ 226              		.loc 1 187 1 is_stmt 1 view -0
+ 227              		.cfi_startproc
+ 228              		@ args = 0, pretend = 0, frame = 0
+ 229              		@ frame_needed = 0, uses_anonymous_args = 0
+ 187:mri/semihost/mbed/semihost_mbed.c ****     int bytesTransferred = GetSemihostReturnCode();
+ 230              		.loc 1 187 1 is_stmt 0 view .LVU61
+ 231 0000 10B5     		push	{r4, lr}
+ 232              	.LCFI4:
+ 233              		.cfi_def_cfa_offset 8
+ 234              		.cfi_offset 4, -8
+ 235              		.cfi_offset 14, -4
+ 236 0002 0446     		mov	r4, r0
+ARM GAS  /tmp/ccPZkjYW.s 			page 10
+
+
+ 188:mri/semihost/mbed/semihost_mbed.c **** 
+ 237              		.loc 1 188 5 is_stmt 1 view .LVU62
+ 188:mri/semihost/mbed/semihost_mbed.c **** 
+ 238              		.loc 1 188 28 is_stmt 0 view .LVU63
+ 239 0004 FFF7FEFF 		bl	mriCore_GetSemihostReturnCode
+ 240              	.LVL17:
+ 191:mri/semihost/mbed/semihost_mbed.c ****         Platform_SetSemihostCallReturnAndErrnoValues(bytesThatWereToBeTransferred - bytesTransferre
+ 241              		.loc 1 191 5 is_stmt 1 view .LVU64
+ 191:mri/semihost/mbed/semihost_mbed.c ****         Platform_SetSemihostCallReturnAndErrnoValues(bytesThatWereToBeTransferred - bytesTransferre
+ 242              		.loc 1 191 8 is_stmt 0 view .LVU65
+ 243 0008 0028     		cmp	r0, #0
+ 191:mri/semihost/mbed/semihost_mbed.c ****         Platform_SetSemihostCallReturnAndErrnoValues(bytesThatWereToBeTransferred - bytesTransferre
+ 244              		.loc 1 191 8 view .LVU66
+ 245 000a 00DA     		bge	.L15
+ 246              	.LVL18:
+ 247              	.L12:
+ 193:mri/semihost/mbed/semihost_mbed.c **** 
+ 248              		.loc 1 193 1 view .LVU67
+ 249 000c 10BD     		pop	{r4, pc}
+ 250              	.LVL19:
+ 251              	.L15:
+ 192:mri/semihost/mbed/semihost_mbed.c **** }
+ 252              		.loc 1 192 9 is_stmt 1 view .LVU68
+ 253 000e 0021     		movs	r1, #0
+ 254 0010 201A     		subs	r0, r4, r0
+ 255              	.LVL20:
+ 192:mri/semihost/mbed/semihost_mbed.c **** }
+ 256              		.loc 1 192 9 is_stmt 0 view .LVU69
+ 257 0012 FFF7FEFF 		bl	mriPlatform_SetSemihostCallReturnAndErrnoValues
+ 258              	.LVL21:
+ 193:mri/semihost/mbed/semihost_mbed.c **** 
+ 259              		.loc 1 193 1 view .LVU70
+ 260 0016 F9E7     		b	.L12
+ 261              		.cfi_endproc
+ 262              	.LFE10:
+ 264              		.section	.text.handleMbedSemihostWriteRequest,"ax",%progbits
+ 265              		.align	1
+ 266              		.syntax unified
+ 267              		.thumb
+ 268              		.thumb_func
+ 270              	handleMbedSemihostWriteRequest:
+ 271              	.LVL22:
+ 272              	.LFB8:
+ 163:mri/semihost/mbed/semihost_mbed.c ****     const TransferParameters*  pParameters = (const TransferParameters*)pSemihostParameters->parame
+ 273              		.loc 1 163 1 is_stmt 1 view -0
+ 274              		.cfi_startproc
+ 275              		@ args = 0, pretend = 0, frame = 0
+ 276              		@ frame_needed = 0, uses_anonymous_args = 0
+ 163:mri/semihost/mbed/semihost_mbed.c ****     const TransferParameters*  pParameters = (const TransferParameters*)pSemihostParameters->parame
+ 277              		.loc 1 163 1 is_stmt 0 view .LVU72
+ 278 0000 38B5     		push	{r3, r4, r5, lr}
+ 279              	.LCFI5:
+ 280              		.cfi_def_cfa_offset 16
+ 281              		.cfi_offset 3, -16
+ 282              		.cfi_offset 4, -12
+ 283              		.cfi_offset 5, -8
+ 284              		.cfi_offset 14, -4
+ARM GAS  /tmp/ccPZkjYW.s 			page 11
+
+
+ 164:mri/semihost/mbed/semihost_mbed.c ****     int returnValue;
+ 285              		.loc 1 164 5 is_stmt 1 view .LVU73
+ 164:mri/semihost/mbed/semihost_mbed.c ****     int returnValue;
+ 286              		.loc 1 164 92 is_stmt 0 view .LVU74
+ 287 0002 4468     		ldr	r4, [r0, #4]
+ 288              	.LVL23:
+ 165:mri/semihost/mbed/semihost_mbed.c **** 
+ 289              		.loc 1 165 5 is_stmt 1 view .LVU75
+ 167:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 290              		.loc 1 167 5 view .LVU76
+ 167:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 291              		.loc 1 167 19 is_stmt 0 view .LVU77
+ 292 0004 2046     		mov	r0, r4
+ 293              	.LVL24:
+ 167:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 294              		.loc 1 167 19 view .LVU78
+ 295 0006 FFF7FEFF 		bl	mriSemihost_WriteToFileOrConsole
+ 296              	.LVL25:
+ 168:mri/semihost/mbed/semihost_mbed.c ****         convertBytesTransferredToBytesNotTransferred(pParameters->bufferSize);
+ 297              		.loc 1 168 5 is_stmt 1 view .LVU79
+ 168:mri/semihost/mbed/semihost_mbed.c ****         convertBytesTransferredToBytesNotTransferred(pParameters->bufferSize);
+ 298              		.loc 1 168 8 is_stmt 0 view .LVU80
+ 299 000a 0546     		mov	r5, r0
+ 300 000c 08B9     		cbnz	r0, .L19
+ 301              	.LVL26:
+ 302              	.L16:
+ 172:mri/semihost/mbed/semihost_mbed.c **** 
+ 303              		.loc 1 172 1 view .LVU81
+ 304 000e 2846     		mov	r0, r5
+ 305 0010 38BD     		pop	{r3, r4, r5, pc}
+ 306              	.LVL27:
+ 307              	.L19:
+ 169:mri/semihost/mbed/semihost_mbed.c **** 
+ 308              		.loc 1 169 9 is_stmt 1 view .LVU82
+ 309 0012 A068     		ldr	r0, [r4, #8]
+ 310              	.LVL28:
+ 169:mri/semihost/mbed/semihost_mbed.c **** 
+ 311              		.loc 1 169 9 is_stmt 0 view .LVU83
+ 312 0014 FFF7FEFF 		bl	convertBytesTransferredToBytesNotTransferred
+ 313              	.LVL29:
+ 171:mri/semihost/mbed/semihost_mbed.c **** }
+ 314              		.loc 1 171 5 is_stmt 1 view .LVU84
+ 171:mri/semihost/mbed/semihost_mbed.c **** }
+ 315              		.loc 1 171 12 is_stmt 0 view .LVU85
+ 316 0018 F9E7     		b	.L16
+ 317              		.cfi_endproc
+ 318              	.LFE8:
+ 320              		.section	.text.handleMbedSemihostReadRequest,"ax",%progbits
+ 321              		.align	1
+ 322              		.syntax unified
+ 323              		.thumb
+ 324              		.thumb_func
+ 326              	handleMbedSemihostReadRequest:
+ 327              	.LVL30:
+ 328              	.LFB9:
+ 175:mri/semihost/mbed/semihost_mbed.c ****     const TransferParameters*  pParameters = (const TransferParameters*)pSemihostParameters->parame
+ 329              		.loc 1 175 1 is_stmt 1 view -0
+ARM GAS  /tmp/ccPZkjYW.s 			page 12
+
+
+ 330              		.cfi_startproc
+ 331              		@ args = 0, pretend = 0, frame = 0
+ 332              		@ frame_needed = 0, uses_anonymous_args = 0
+ 175:mri/semihost/mbed/semihost_mbed.c ****     const TransferParameters*  pParameters = (const TransferParameters*)pSemihostParameters->parame
+ 333              		.loc 1 175 1 is_stmt 0 view .LVU87
+ 334 0000 38B5     		push	{r3, r4, r5, lr}
+ 335              	.LCFI6:
+ 336              		.cfi_def_cfa_offset 16
+ 337              		.cfi_offset 3, -16
+ 338              		.cfi_offset 4, -12
+ 339              		.cfi_offset 5, -8
+ 340              		.cfi_offset 14, -4
+ 176:mri/semihost/mbed/semihost_mbed.c ****     int   returnValue;
+ 341              		.loc 1 176 5 is_stmt 1 view .LVU88
+ 176:mri/semihost/mbed/semihost_mbed.c ****     int   returnValue;
+ 342              		.loc 1 176 92 is_stmt 0 view .LVU89
+ 343 0002 4468     		ldr	r4, [r0, #4]
+ 344              	.LVL31:
+ 177:mri/semihost/mbed/semihost_mbed.c **** 
+ 345              		.loc 1 177 5 is_stmt 1 view .LVU90
+ 179:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 346              		.loc 1 179 5 view .LVU91
+ 179:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 347              		.loc 1 179 19 is_stmt 0 view .LVU92
+ 348 0004 2046     		mov	r0, r4
+ 349              	.LVL32:
+ 179:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue)
+ 350              		.loc 1 179 19 view .LVU93
+ 351 0006 FFF7FEFF 		bl	mriIssueGdbFileReadRequest
+ 352              	.LVL33:
+ 180:mri/semihost/mbed/semihost_mbed.c ****         convertBytesTransferredToBytesNotTransferred(pParameters->bufferSize);
+ 353              		.loc 1 180 5 is_stmt 1 view .LVU94
+ 180:mri/semihost/mbed/semihost_mbed.c ****         convertBytesTransferredToBytesNotTransferred(pParameters->bufferSize);
+ 354              		.loc 1 180 8 is_stmt 0 view .LVU95
+ 355 000a 0546     		mov	r5, r0
+ 356 000c 08B9     		cbnz	r0, .L23
+ 357              	.LVL34:
+ 358              	.L20:
+ 184:mri/semihost/mbed/semihost_mbed.c **** 
+ 359              		.loc 1 184 1 view .LVU96
+ 360 000e 2846     		mov	r0, r5
+ 361 0010 38BD     		pop	{r3, r4, r5, pc}
+ 362              	.LVL35:
+ 363              	.L23:
+ 181:mri/semihost/mbed/semihost_mbed.c **** 
+ 364              		.loc 1 181 9 is_stmt 1 view .LVU97
+ 365 0012 A068     		ldr	r0, [r4, #8]
+ 366              	.LVL36:
+ 181:mri/semihost/mbed/semihost_mbed.c **** 
+ 367              		.loc 1 181 9 is_stmt 0 view .LVU98
+ 368 0014 FFF7FEFF 		bl	convertBytesTransferredToBytesNotTransferred
+ 369              	.LVL37:
+ 183:mri/semihost/mbed/semihost_mbed.c **** }
+ 370              		.loc 1 183 5 is_stmt 1 view .LVU99
+ 183:mri/semihost/mbed/semihost_mbed.c **** }
+ 371              		.loc 1 183 12 is_stmt 0 view .LVU100
+ 372 0018 F9E7     		b	.L20
+ARM GAS  /tmp/ccPZkjYW.s 			page 13
+
+
+ 373              		.cfi_endproc
+ 374              	.LFE9:
+ 376              		.section	.text.handleMbedSemihostIsTtyRequest,"ax",%progbits
+ 377              		.align	1
+ 378              		.syntax unified
+ 379              		.thumb
+ 380              		.thumb_func
+ 382              	handleMbedSemihostIsTtyRequest:
+ 383              	.LVL38:
+ 384              	.LFB7:
+ 144:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 385              		.loc 1 144 1 is_stmt 1 view -0
+ 386              		.cfi_startproc
+ 387              		@ args = 0, pretend = 0, frame = 0
+ 388              		@ frame_needed = 0, uses_anonymous_args = 0
+ 144:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 389              		.loc 1 144 1 is_stmt 0 view .LVU102
+ 390 0000 08B5     		push	{r3, lr}
+ 391              	.LCFI7:
+ 392              		.cfi_def_cfa_offset 8
+ 393              		.cfi_offset 3, -8
+ 394              		.cfi_offset 14, -4
+ 145:mri/semihost/mbed/semihost_mbed.c ****     {
+ 395              		.loc 1 145 5 is_stmt 1 view .LVU103
+ 149:mri/semihost/mbed/semihost_mbed.c **** 
+ 396              		.loc 1 149 5 view .LVU104
+ 151:mri/semihost/mbed/semihost_mbed.c ****     (void)pParameters;
+ 397              		.loc 1 151 5 view .LVU105
+ 398              	.LVL39:
+ 152:mri/semihost/mbed/semihost_mbed.c **** 
+ 399              		.loc 1 152 5 view .LVU106
+ 154:mri/semihost/mbed/semihost_mbed.c **** 
+ 400              		.loc 1 154 5 view .LVU107
+ 401 0002 FFF7FEFF 		bl	mriPlatform_AdvanceProgramCounterToNextInstruction
+ 402              	.LVL40:
+ 157:mri/semihost/mbed/semihost_mbed.c **** 
+ 403              		.loc 1 157 5 view .LVU108
+ 404 0006 0021     		movs	r1, #0
+ 405 0008 0846     		mov	r0, r1
+ 406 000a FFF7FEFF 		bl	mriPlatform_SetSemihostCallReturnAndErrnoValues
+ 407              	.LVL41:
+ 159:mri/semihost/mbed/semihost_mbed.c **** }
+ 408              		.loc 1 159 5 view .LVU109
+ 160:mri/semihost/mbed/semihost_mbed.c **** 
+ 409              		.loc 1 160 1 is_stmt 0 view .LVU110
+ 410 000e 0120     		movs	r0, #1
+ 411 0010 08BD     		pop	{r3, pc}
+ 412              		.cfi_endproc
+ 413              	.LFE7:
+ 415              		.section	.text.handleMbedSemihostSeekRequest,"ax",%progbits
+ 416              		.align	1
+ 417              		.syntax unified
+ 418              		.thumb
+ 419              		.thumb_func
+ 421              	handleMbedSemihostSeekRequest:
+ 422              	.LVL42:
+ 423              	.LFB12:
+ARM GAS  /tmp/ccPZkjYW.s 			page 14
+
+
+ 207:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 424              		.loc 1 207 1 is_stmt 1 view -0
+ 425              		.cfi_startproc
+ 426              		@ args = 0, pretend = 0, frame = 16
+ 427              		@ frame_needed = 0, uses_anonymous_args = 0
+ 207:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 428              		.loc 1 207 1 is_stmt 0 view .LVU112
+ 429 0000 00B5     		push	{lr}
+ 430              	.LCFI8:
+ 431              		.cfi_def_cfa_offset 4
+ 432              		.cfi_offset 14, -4
+ 433 0002 85B0     		sub	sp, sp, #20
+ 434              	.LCFI9:
+ 435              		.cfi_def_cfa_offset 24
+ 208:mri/semihost/mbed/semihost_mbed.c ****     {
+ 436              		.loc 1 208 5 is_stmt 1 view .LVU113
+ 213:mri/semihost/mbed/semihost_mbed.c ****     SeekParameters parameters;
+ 437              		.loc 1 213 5 view .LVU114
+ 213:mri/semihost/mbed/semihost_mbed.c ****     SeekParameters parameters;
+ 438              		.loc 1 213 91 is_stmt 0 view .LVU115
+ 439 0004 4368     		ldr	r3, [r0, #4]
+ 440              	.LVL43:
+ 214:mri/semihost/mbed/semihost_mbed.c **** 
+ 441              		.loc 1 214 5 is_stmt 1 view .LVU116
+ 216:mri/semihost/mbed/semihost_mbed.c ****     parameters.offset = pParameters->offsetFromStart;
+ 442              		.loc 1 216 5 view .LVU117
+ 216:mri/semihost/mbed/semihost_mbed.c ****     parameters.offset = pParameters->offsetFromStart;
+ 443              		.loc 1 216 44 is_stmt 0 view .LVU118
+ 444 0006 1A68     		ldr	r2, [r3]
+ 216:mri/semihost/mbed/semihost_mbed.c ****     parameters.offset = pParameters->offsetFromStart;
+ 445              		.loc 1 216 31 view .LVU119
+ 446 0008 0192     		str	r2, [sp, #4]
+ 217:mri/semihost/mbed/semihost_mbed.c ****     parameters.whence = GDB_SEEK_SET;
+ 447              		.loc 1 217 5 is_stmt 1 view .LVU120
+ 217:mri/semihost/mbed/semihost_mbed.c ****     parameters.whence = GDB_SEEK_SET;
+ 448              		.loc 1 217 36 is_stmt 0 view .LVU121
+ 449 000a 5B68     		ldr	r3, [r3, #4]
+ 450              	.LVL44:
+ 217:mri/semihost/mbed/semihost_mbed.c ****     parameters.whence = GDB_SEEK_SET;
+ 451              		.loc 1 217 23 view .LVU122
+ 452 000c 0293     		str	r3, [sp, #8]
+ 453              	.LVL45:
+ 218:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileSeekRequest(&parameters);
+ 454              		.loc 1 218 5 is_stmt 1 view .LVU123
+ 218:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileSeekRequest(&parameters);
+ 455              		.loc 1 218 23 is_stmt 0 view .LVU124
+ 456 000e 0023     		movs	r3, #0
+ 457 0010 0393     		str	r3, [sp, #12]
+ 219:mri/semihost/mbed/semihost_mbed.c **** }
+ 458              		.loc 1 219 5 is_stmt 1 view .LVU125
+ 219:mri/semihost/mbed/semihost_mbed.c **** }
+ 459              		.loc 1 219 12 is_stmt 0 view .LVU126
+ 460 0012 01A8     		add	r0, sp, #4
+ 461              	.LVL46:
+ 219:mri/semihost/mbed/semihost_mbed.c **** }
+ 462              		.loc 1 219 12 view .LVU127
+ 463 0014 FFF7FEFF 		bl	mriIssueGdbFileSeekRequest
+ARM GAS  /tmp/ccPZkjYW.s 			page 15
+
+
+ 464              	.LVL47:
+ 220:mri/semihost/mbed/semihost_mbed.c **** 
+ 465              		.loc 1 220 1 view .LVU128
+ 466 0018 05B0     		add	sp, sp, #20
+ 467              	.LCFI10:
+ 468              		.cfi_def_cfa_offset 4
+ 469              		@ sp needed
+ 470 001a 5DF804FB 		ldr	pc, [sp], #4
+ 471              		.cfi_endproc
+ 472              	.LFE12:
+ 474              		.section	.text.handleMbedSemihostFileLengthRequest,"ax",%progbits
+ 475              		.align	1
+ 476              		.syntax unified
+ 477              		.thumb
+ 478              		.thumb_func
+ 480              	handleMbedSemihostFileLengthRequest:
+ 481              	.LVL48:
+ 482              	.LFB13:
+ 223:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 483              		.loc 1 223 1 is_stmt 1 view -0
+ 484              		.cfi_startproc
+ 485              		@ args = 0, pretend = 0, frame = 64
+ 486              		@ frame_needed = 0, uses_anonymous_args = 0
+ 223:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 487              		.loc 1 223 1 is_stmt 0 view .LVU130
+ 488 0000 10B5     		push	{r4, lr}
+ 489              	.LCFI11:
+ 490              		.cfi_def_cfa_offset 8
+ 491              		.cfi_offset 4, -8
+ 492              		.cfi_offset 14, -4
+ 493 0002 90B0     		sub	sp, sp, #64
+ 494              	.LCFI12:
+ 495              		.cfi_def_cfa_offset 72
+ 224:mri/semihost/mbed/semihost_mbed.c ****     {
+ 496              		.loc 1 224 5 is_stmt 1 view .LVU131
+ 228:mri/semihost/mbed/semihost_mbed.c ****     GdbStats                     gdbFileStats;
+ 497              		.loc 1 228 5 view .LVU132
+ 228:mri/semihost/mbed/semihost_mbed.c ****     GdbStats                     gdbFileStats;
+ 498              		.loc 1 228 96 is_stmt 0 view .LVU133
+ 499 0004 4368     		ldr	r3, [r0, #4]
+ 500              	.LVL49:
+ 229:mri/semihost/mbed/semihost_mbed.c ****     int                          returnValue;
+ 501              		.loc 1 229 5 is_stmt 1 view .LVU134
+ 230:mri/semihost/mbed/semihost_mbed.c **** 
+ 502              		.loc 1 230 5 view .LVU135
+ 232:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue && GetSemihostReturnCode() == 0)
+ 503              		.loc 1 232 5 view .LVU136
+ 232:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue && GetSemihostReturnCode() == 0)
+ 504              		.loc 1 232 19 is_stmt 0 view .LVU137
+ 505 0006 6946     		mov	r1, sp
+ 506 0008 1868     		ldr	r0, [r3]
+ 507              	.LVL50:
+ 232:mri/semihost/mbed/semihost_mbed.c ****     if (returnValue && GetSemihostReturnCode() == 0)
+ 508              		.loc 1 232 19 view .LVU138
+ 509 000a FFF7FEFF 		bl	mriIssueGdbFileFStatRequest
+ 510              	.LVL51:
+ 233:mri/semihost/mbed/semihost_mbed.c ****     {
+ARM GAS  /tmp/ccPZkjYW.s 			page 16
+
+
+ 511              		.loc 1 233 5 is_stmt 1 view .LVU139
+ 233:mri/semihost/mbed/semihost_mbed.c ****     {
+ 512              		.loc 1 233 8 is_stmt 0 view .LVU140
+ 513 000e 0446     		mov	r4, r0
+ 514 0010 10B9     		cbnz	r0, .L31
+ 515              	.LVL52:
+ 516              	.L28:
+ 240:mri/semihost/mbed/semihost_mbed.c **** 
+ 517              		.loc 1 240 1 view .LVU141
+ 518 0012 2046     		mov	r0, r4
+ 519 0014 10B0     		add	sp, sp, #64
+ 520              	.LCFI13:
+ 521              		.cfi_remember_state
+ 522              		.cfi_def_cfa_offset 8
+ 523              		@ sp needed
+ 524 0016 10BD     		pop	{r4, pc}
+ 525              	.LVL53:
+ 526              	.L31:
+ 527              	.LCFI14:
+ 528              		.cfi_restore_state
+ 233:mri/semihost/mbed/semihost_mbed.c ****     {
+ 529              		.loc 1 233 24 discriminator 1 view .LVU142
+ 530 0018 FFF7FEFF 		bl	mriCore_GetSemihostReturnCode
+ 531              	.LVL54:
+ 233:mri/semihost/mbed/semihost_mbed.c ****     {
+ 532              		.loc 1 233 21 discriminator 1 view .LVU143
+ 533 001c 0028     		cmp	r0, #0
+ 534 001e F8D1     		bne	.L28
+ 236:mri/semihost/mbed/semihost_mbed.c ****     }
+ 535              		.loc 1 236 9 is_stmt 1 view .LVU144
+ 236:mri/semihost/mbed/semihost_mbed.c ****     }
+ 536              		.loc 1 236 54 is_stmt 0 view .LVU145
+ 537 0020 08A8     		add	r0, sp, #32
+ 538 0022 FFF7FEFF 		bl	extractWordFromBigEndianByteArray
+ 539              	.LVL55:
+ 236:mri/semihost/mbed/semihost_mbed.c ****     }
+ 540              		.loc 1 236 9 view .LVU146
+ 541 0026 0021     		movs	r1, #0
+ 542 0028 FFF7FEFF 		bl	mriPlatform_SetSemihostCallReturnAndErrnoValues
+ 543              	.LVL56:
+ 239:mri/semihost/mbed/semihost_mbed.c **** }
+ 544              		.loc 1 239 5 is_stmt 1 view .LVU147
+ 239:mri/semihost/mbed/semihost_mbed.c **** }
+ 545              		.loc 1 239 12 is_stmt 0 view .LVU148
+ 546 002c F1E7     		b	.L28
+ 547              		.cfi_endproc
+ 548              	.LFE13:
+ 550              		.section	.text.handleMbedSemihostRemoveRequest,"ax",%progbits
+ 551              		.align	1
+ 552              		.syntax unified
+ 553              		.thumb
+ 554              		.thumb_func
+ 556              	handleMbedSemihostRemoveRequest:
+ 557              	.LVL57:
+ 558              	.LFB15:
+ 248:mri/semihost/mbed/semihost_mbed.c **** 
+ 249:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostRemoveRequest(PlatformSemihostParameters* pSemihostParameters)
+ARM GAS  /tmp/ccPZkjYW.s 			page 17
+
+
+ 250:mri/semihost/mbed/semihost_mbed.c **** {
+ 559              		.loc 1 250 1 is_stmt 1 view -0
+ 560              		.cfi_startproc
+ 561              		@ args = 0, pretend = 0, frame = 0
+ 562              		@ frame_needed = 0, uses_anonymous_args = 0
+ 563              		.loc 1 250 1 is_stmt 0 view .LVU150
+ 564 0000 08B5     		push	{r3, lr}
+ 565              	.LCFI15:
+ 566              		.cfi_def_cfa_offset 8
+ 567              		.cfi_offset 3, -8
+ 568              		.cfi_offset 14, -4
+ 251:mri/semihost/mbed/semihost_mbed.c ****     RemoveParameters*  pParameters = (RemoveParameters*)pSemihostParameters->parameter2;
+ 569              		.loc 1 251 5 is_stmt 1 view .LVU151
+ 570              		.loc 1 251 76 is_stmt 0 view .LVU152
+ 571 0002 4068     		ldr	r0, [r0, #4]
+ 572              	.LVL58:
+ 252:mri/semihost/mbed/semihost_mbed.c ****     pParameters->filenameLength++;
+ 573              		.loc 1 252 5 is_stmt 1 view .LVU153
+ 574              		.loc 1 252 16 is_stmt 0 view .LVU154
+ 575 0004 4368     		ldr	r3, [r0, #4]
+ 576              		.loc 1 252 32 view .LVU155
+ 577 0006 0133     		adds	r3, r3, #1
+ 578 0008 4360     		str	r3, [r0, #4]
+ 253:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileUnlinkRequest(pParameters);
+ 579              		.loc 1 253 5 is_stmt 1 view .LVU156
+ 580              		.loc 1 253 12 is_stmt 0 view .LVU157
+ 581 000a FFF7FEFF 		bl	mriIssueGdbFileUnlinkRequest
+ 582              	.LVL59:
+ 254:mri/semihost/mbed/semihost_mbed.c **** }
+ 583              		.loc 1 254 1 view .LVU158
+ 584 000e 08BD     		pop	{r3, pc}
+ 585              		.cfi_endproc
+ 586              	.LFE15:
+ 588              		.section	.text.handleMbedSemihostRenameRequest,"ax",%progbits
+ 589              		.align	1
+ 590              		.syntax unified
+ 591              		.thumb
+ 592              		.thumb_func
+ 594              	handleMbedSemihostRenameRequest:
+ 595              	.LVL60:
+ 596              	.LFB16:
+ 255:mri/semihost/mbed/semihost_mbed.c **** 
+ 256:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostRenameRequest(PlatformSemihostParameters* pSemihostParameters)
+ 257:mri/semihost/mbed/semihost_mbed.c **** {
+ 597              		.loc 1 257 1 is_stmt 1 view -0
+ 598              		.cfi_startproc
+ 599              		@ args = 0, pretend = 0, frame = 0
+ 600              		@ frame_needed = 0, uses_anonymous_args = 0
+ 601              		.loc 1 257 1 is_stmt 0 view .LVU160
+ 602 0000 08B5     		push	{r3, lr}
+ 603              	.LCFI16:
+ 604              		.cfi_def_cfa_offset 8
+ 605              		.cfi_offset 3, -8
+ 606              		.cfi_offset 14, -4
+ 258:mri/semihost/mbed/semihost_mbed.c ****     RenameParameters* pParameters = (RenameParameters*)pSemihostParameters->parameter2;
+ 607              		.loc 1 258 5 is_stmt 1 view .LVU161
+ 608              		.loc 1 258 75 is_stmt 0 view .LVU162
+ARM GAS  /tmp/ccPZkjYW.s 			page 18
+
+
+ 609 0002 4068     		ldr	r0, [r0, #4]
+ 610              	.LVL61:
+ 259:mri/semihost/mbed/semihost_mbed.c ****     pParameters->origFilenameLength++;
+ 611              		.loc 1 259 5 is_stmt 1 view .LVU163
+ 612              		.loc 1 259 16 is_stmt 0 view .LVU164
+ 613 0004 4368     		ldr	r3, [r0, #4]
+ 614              		.loc 1 259 36 view .LVU165
+ 615 0006 0133     		adds	r3, r3, #1
+ 616 0008 4360     		str	r3, [r0, #4]
+ 260:mri/semihost/mbed/semihost_mbed.c ****     pParameters->newFilenameLength++;
+ 617              		.loc 1 260 5 is_stmt 1 view .LVU166
+ 618              		.loc 1 260 16 is_stmt 0 view .LVU167
+ 619 000a C368     		ldr	r3, [r0, #12]
+ 620              		.loc 1 260 35 view .LVU168
+ 621 000c 0133     		adds	r3, r3, #1
+ 622 000e C360     		str	r3, [r0, #12]
+ 261:mri/semihost/mbed/semihost_mbed.c ****     return IssueGdbFileRenameRequest(pParameters);
+ 623              		.loc 1 261 5 is_stmt 1 view .LVU169
+ 624              		.loc 1 261 12 is_stmt 0 view .LVU170
+ 625 0010 FFF7FEFF 		bl	mriIssueGdbFileRenameRequest
+ 626              	.LVL62:
+ 262:mri/semihost/mbed/semihost_mbed.c **** }
+ 627              		.loc 1 262 1 view .LVU171
+ 628 0014 08BD     		pop	{r3, pc}
+ 629              		.cfi_endproc
+ 630              	.LFE16:
+ 632              		.section	.text.handleMbedSemihostErrorNoRequest,"ax",%progbits
+ 633              		.align	1
+ 634              		.syntax unified
+ 635              		.thumb
+ 636              		.thumb_func
+ 638              	handleMbedSemihostErrorNoRequest:
+ 639              	.LVL63:
+ 640              	.LFB17:
+ 263:mri/semihost/mbed/semihost_mbed.c **** 
+ 264:mri/semihost/mbed/semihost_mbed.c **** static int handleMbedSemihostErrorNoRequest(PlatformSemihostParameters* pSemihostParameters)
+ 265:mri/semihost/mbed/semihost_mbed.c **** {
+ 641              		.loc 1 265 1 is_stmt 1 view -0
+ 642              		.cfi_startproc
+ 643              		@ args = 0, pretend = 0, frame = 0
+ 644              		@ frame_needed = 0, uses_anonymous_args = 0
+ 645              		.loc 1 265 1 is_stmt 0 view .LVU173
+ 646 0000 08B5     		push	{r3, lr}
+ 647              	.LCFI17:
+ 648              		.cfi_def_cfa_offset 8
+ 649              		.cfi_offset 3, -8
+ 650              		.cfi_offset 14, -4
+ 266:mri/semihost/mbed/semihost_mbed.c ****     Platform_AdvanceProgramCounterToNextInstruction();
+ 651              		.loc 1 266 5 is_stmt 1 view .LVU174
+ 652 0002 FFF7FEFF 		bl	mriPlatform_AdvanceProgramCounterToNextInstruction
+ 653              	.LVL64:
+ 267:mri/semihost/mbed/semihost_mbed.c ****     Platform_SetSemihostCallReturnAndErrnoValues(GetSemihostErrno(), 0);
+ 654              		.loc 1 267 5 view .LVU175
+ 655 0006 FFF7FEFF 		bl	mriCore_GetSemihostErrno
+ 656              	.LVL65:
+ 657 000a 0021     		movs	r1, #0
+ 658 000c FFF7FEFF 		bl	mriPlatform_SetSemihostCallReturnAndErrnoValues
+ARM GAS  /tmp/ccPZkjYW.s 			page 19
+
+
+ 659              	.LVL66:
+ 268:mri/semihost/mbed/semihost_mbed.c **** 
+ 269:mri/semihost/mbed/semihost_mbed.c ****     return 1;
+ 660              		.loc 1 269 5 view .LVU176
+ 270:mri/semihost/mbed/semihost_mbed.c **** }
+ 661              		.loc 1 270 1 is_stmt 0 view .LVU177
+ 662 0010 0120     		movs	r0, #1
+ 663 0012 08BD     		pop	{r3, pc}
+ 664              		.cfi_endproc
+ 665              	.LFE17:
+ 667              		.section	.text.handleMbedSemihostUidRequest,"ax",%progbits
+ 668              		.align	1
+ 669              		.syntax unified
+ 670              		.thumb
+ 671              		.thumb_func
+ 673              	handleMbedSemihostUidRequest:
+ 674              	.LVL67:
+ 675              	.LFB4:
+  74:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 676              		.loc 1 74 1 is_stmt 1 view -0
+ 677              		.cfi_startproc
+ 678              		@ args = 0, pretend = 0, frame = 0
+ 679              		@ frame_needed = 0, uses_anonymous_args = 0
+  74:mri/semihost/mbed/semihost_mbed.c ****     typedef struct
+ 680              		.loc 1 74 1 is_stmt 0 view .LVU179
+ 681 0000 38B5     		push	{r3, r4, r5, lr}
+ 682              	.LCFI18:
+ 683              		.cfi_def_cfa_offset 16
+ 684              		.cfi_offset 3, -16
+ 685              		.cfi_offset 4, -12
+ 686              		.cfi_offset 5, -8
+ 687              		.cfi_offset 14, -4
+ 688 0002 0546     		mov	r5, r0
+  75:mri/semihost/mbed/semihost_mbed.c ****     {
+ 689              		.loc 1 75 5 is_stmt 1 view .LVU180
+  80:mri/semihost/mbed/semihost_mbed.c ****     const SUidParameters* pUidParameters;
+ 690              		.loc 1 80 5 view .LVU181
+  80:mri/semihost/mbed/semihost_mbed.c ****     const SUidParameters* pUidParameters;
+ 691              		.loc 1 80 37 is_stmt 0 view .LVU182
+ 692 0004 FFF7FEFF 		bl	mriPlatform_GetUidSize
+ 693              	.LVL68:
+  80:mri/semihost/mbed/semihost_mbed.c ****     const SUidParameters* pUidParameters;
+ 694              		.loc 1 80 37 view .LVU183
+ 695 0008 0446     		mov	r4, r0
+ 696              	.LVL69:
+  81:mri/semihost/mbed/semihost_mbed.c ****     uint32_t              copySize;
+ 697              		.loc 1 81 5 is_stmt 1 view .LVU184
+  82:mri/semihost/mbed/semihost_mbed.c **** 
+ 698              		.loc 1 82 5 view .LVU185
+  84:mri/semihost/mbed/semihost_mbed.c ****     copySize = pUidParameters->bufferSize;
+ 699              		.loc 1 84 5 view .LVU186
+  84:mri/semihost/mbed/semihost_mbed.c ****     copySize = pUidParameters->bufferSize;
+ 700              		.loc 1 84 56 is_stmt 0 view .LVU187
+ 701 000a 6B68     		ldr	r3, [r5, #4]
+ 702              	.LVL70:
+  85:mri/semihost/mbed/semihost_mbed.c ****     if (copySize > uidSize)
+ 703              		.loc 1 85 5 is_stmt 1 view .LVU188
+ARM GAS  /tmp/ccPZkjYW.s 			page 20
+
+
+  85:mri/semihost/mbed/semihost_mbed.c ****     if (copySize > uidSize)
+ 704              		.loc 1 85 14 is_stmt 0 view .LVU189
+ 705 000c 5A68     		ldr	r2, [r3, #4]
+ 706              	.LVL71:
+  86:mri/semihost/mbed/semihost_mbed.c ****         copySize = uidSize;
+ 707              		.loc 1 86 5 is_stmt 1 view .LVU190
+  86:mri/semihost/mbed/semihost_mbed.c ****         copySize = uidSize;
+ 708              		.loc 1 86 8 is_stmt 0 view .LVU191
+ 709 000e 9042     		cmp	r0, r2
+ 710 0010 00D3     		bcc	.L39
+  85:mri/semihost/mbed/semihost_mbed.c ****     if (copySize > uidSize)
+ 711              		.loc 1 85 14 view .LVU192
+ 712 0012 1446     		mov	r4, r2
+ 713              	.L39:
+ 714              	.LVL72:
+  88:mri/semihost/mbed/semihost_mbed.c **** 
+ 715              		.loc 1 88 5 is_stmt 1 view .LVU193
+  88:mri/semihost/mbed/semihost_mbed.c **** 
+ 716              		.loc 1 88 30 is_stmt 0 view .LVU194
+ 717 0014 1D68     		ldr	r5, [r3]
+ 718              	.LVL73:
+  88:mri/semihost/mbed/semihost_mbed.c **** 
+ 719              		.loc 1 88 41 view .LVU195
+ 720 0016 FFF7FEFF 		bl	mriPlatform_GetUid
+ 721              	.LVL74:
+  88:mri/semihost/mbed/semihost_mbed.c **** 
+ 722              		.loc 1 88 41 view .LVU196
+ 723 001a 0146     		mov	r1, r0
+  88:mri/semihost/mbed/semihost_mbed.c **** 
+ 724              		.loc 1 88 5 view .LVU197
+ 725 001c 2246     		mov	r2, r4
+ 726 001e 2846     		mov	r0, r5
+ 727 0020 FFF7FEFF 		bl	mri_memcpy
+ 728              	.LVL75:
+  90:mri/semihost/mbed/semihost_mbed.c ****     Platform_SetSemihostCallReturnAndErrnoValues(0, 0);
+ 729              		.loc 1 90 5 is_stmt 1 view .LVU198
+ 730 0024 FFF7FEFF 		bl	mriPlatform_AdvanceProgramCounterToNextInstruction
+ 731              	.LVL76:
+  91:mri/semihost/mbed/semihost_mbed.c **** 
+ 732              		.loc 1 91 5 view .LVU199
+ 733 0028 0021     		movs	r1, #0
+ 734 002a 0846     		mov	r0, r1
+ 735 002c FFF7FEFF 		bl	mriPlatform_SetSemihostCallReturnAndErrnoValues
+ 736              	.LVL77:
+  93:mri/semihost/mbed/semihost_mbed.c **** }
+ 737              		.loc 1 93 5 view .LVU200
+  94:mri/semihost/mbed/semihost_mbed.c **** 
+ 738              		.loc 1 94 1 is_stmt 0 view .LVU201
+ 739 0030 0120     		movs	r0, #1
+ 740 0032 38BD     		pop	{r3, r4, r5, pc}
+  94:mri/semihost/mbed/semihost_mbed.c **** 
+ 741              		.loc 1 94 1 view .LVU202
+ 742              		.cfi_endproc
+ 743              	.LFE4:
+ 745              		.section	.text.mriSemihost_HandleMbedSemihostRequest,"ax",%progbits
+ 746              		.align	1
+ 747              		.global	mriSemihost_HandleMbedSemihostRequest
+ARM GAS  /tmp/ccPZkjYW.s 			page 21
+
+
+ 748              		.syntax unified
+ 749              		.thumb
+ 750              		.thumb_func
+ 752              	mriSemihost_HandleMbedSemihostRequest:
+ 753              	.LVL78:
+ 754              	.LFB3:
+  40:mri/semihost/mbed/semihost_mbed.c ****     uint32_t opCode;
+ 755              		.loc 1 40 1 is_stmt 1 view -0
+ 756              		.cfi_startproc
+ 757              		@ args = 0, pretend = 0, frame = 0
+ 758              		@ frame_needed = 0, uses_anonymous_args = 0
+  40:mri/semihost/mbed/semihost_mbed.c ****     uint32_t opCode;
+ 759              		.loc 1 40 1 is_stmt 0 view .LVU204
+ 760 0000 08B5     		push	{r3, lr}
+ 761              	.LCFI19:
+ 762              		.cfi_def_cfa_offset 8
+ 763              		.cfi_offset 3, -8
+ 764              		.cfi_offset 14, -4
+  41:mri/semihost/mbed/semihost_mbed.c **** 
+ 765              		.loc 1 41 5 is_stmt 1 view .LVU205
+  43:mri/semihost/mbed/semihost_mbed.c ****     switch (opCode)
+ 766              		.loc 1 43 5 view .LVU206
+  43:mri/semihost/mbed/semihost_mbed.c ****     switch (opCode)
+ 767              		.loc 1 43 12 is_stmt 0 view .LVU207
+ 768 0002 0368     		ldr	r3, [r0]
+ 769              	.LVL79:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 770              		.loc 1 44 5 is_stmt 1 view .LVU208
+ 771 0004 132B     		cmp	r3, #19
+ 772 0006 0FD8     		bhi	.L42
+ 773 0008 ABB3     		cbz	r3, .L56
+ 774 000a 013B     		subs	r3, r3, #1
+ 775              	.LVL80:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 776              		.loc 1 44 5 is_stmt 0 view .LVU209
+ 777 000c 122B     		cmp	r3, #18
+ 778 000e 34D8     		bhi	.L57
+ 779 0010 DFE803F0 		tbb	[pc, r3]
+ 780              	.L45:
+ 781 0014 13       		.byte	(.L54-.L45)/2
+ 782 0015 16       		.byte	(.L53-.L45)/2
+ 783 0016 33       		.byte	(.L57-.L45)/2
+ 784 0017 33       		.byte	(.L57-.L45)/2
+ 785 0018 19       		.byte	(.L52-.L45)/2
+ 786 0019 1C       		.byte	(.L51-.L45)/2
+ 787 001a 33       		.byte	(.L57-.L45)/2
+ 788 001b 33       		.byte	(.L57-.L45)/2
+ 789 001c 1F       		.byte	(.L50-.L45)/2
+ 790 001d 22       		.byte	(.L49-.L45)/2
+ 791 001e 33       		.byte	(.L57-.L45)/2
+ 792 001f 25       		.byte	(.L48-.L45)/2
+ 793 0020 33       		.byte	(.L57-.L45)/2
+ 794 0021 28       		.byte	(.L47-.L45)/2
+ 795 0022 2B       		.byte	(.L46-.L45)/2
+ 796 0023 33       		.byte	(.L57-.L45)/2
+ 797 0024 33       		.byte	(.L57-.L45)/2
+ 798 0025 33       		.byte	(.L57-.L45)/2
+ARM GAS  /tmp/ccPZkjYW.s 			page 22
+
+
+ 799 0026 2E       		.byte	(.L44-.L45)/2
+ 800              	.LVL81:
+ 801 0027 00       		.p2align 1
+ 802              	.L42:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 803              		.loc 1 44 5 view .LVU210
+ 804 0028 40F20112 		movw	r2, #257
+ 805 002c 9342     		cmp	r3, r2
+ 806 002e 02D1     		bne	.L59
+  67:mri/semihost/mbed/semihost_mbed.c ****     default:
+ 807              		.loc 1 67 9 is_stmt 1 view .LVU211
+  67:mri/semihost/mbed/semihost_mbed.c ****     default:
+ 808              		.loc 1 67 16 is_stmt 0 view .LVU212
+ 809 0030 FFF7FEFF 		bl	handleMbedSemihostUidRequest
+ 810              	.LVL82:
+  67:mri/semihost/mbed/semihost_mbed.c ****     default:
+ 811              		.loc 1 67 16 view .LVU213
+ 812 0034 00E0     		b	.L41
+ 813              	.LVL83:
+ 814              	.L59:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 815              		.loc 1 44 5 view .LVU214
+ 816 0036 0020     		movs	r0, #0
+ 817              	.LVL84:
+ 818              	.L41:
+  71:mri/semihost/mbed/semihost_mbed.c **** 
+ 819              		.loc 1 71 1 view .LVU215
+ 820 0038 08BD     		pop	{r3, pc}
+ 821              	.LVL85:
+ 822              	.L54:
+  47:mri/semihost/mbed/semihost_mbed.c ****     case 2:
+ 823              		.loc 1 47 9 is_stmt 1 view .LVU216
+  47:mri/semihost/mbed/semihost_mbed.c ****     case 2:
+ 824              		.loc 1 47 16 is_stmt 0 view .LVU217
+ 825 003a FFF7FEFF 		bl	handleMbedSemihostOpenRequest
+ 826              	.LVL86:
+  47:mri/semihost/mbed/semihost_mbed.c ****     case 2:
+ 827              		.loc 1 47 16 view .LVU218
+ 828 003e FBE7     		b	.L41
+ 829              	.LVL87:
+ 830              	.L53:
+  49:mri/semihost/mbed/semihost_mbed.c ****     case 5:
+ 831              		.loc 1 49 9 is_stmt 1 view .LVU219
+  49:mri/semihost/mbed/semihost_mbed.c ****     case 5:
+ 832              		.loc 1 49 16 is_stmt 0 view .LVU220
+ 833 0040 FFF7FEFF 		bl	handleMbedSemihostCloseRequest
+ 834              	.LVL88:
+  49:mri/semihost/mbed/semihost_mbed.c ****     case 5:
+ 835              		.loc 1 49 16 view .LVU221
+ 836 0044 F8E7     		b	.L41
+ 837              	.LVL89:
+ 838              	.L52:
+  51:mri/semihost/mbed/semihost_mbed.c ****     case 6:
+ 839              		.loc 1 51 9 is_stmt 1 view .LVU222
+  51:mri/semihost/mbed/semihost_mbed.c ****     case 6:
+ 840              		.loc 1 51 16 is_stmt 0 view .LVU223
+ 841 0046 FFF7FEFF 		bl	handleMbedSemihostWriteRequest
+ARM GAS  /tmp/ccPZkjYW.s 			page 23
+
+
+ 842              	.LVL90:
+  51:mri/semihost/mbed/semihost_mbed.c ****     case 6:
+ 843              		.loc 1 51 16 view .LVU224
+ 844 004a F5E7     		b	.L41
+ 845              	.LVL91:
+ 846              	.L51:
+  53:mri/semihost/mbed/semihost_mbed.c ****     case 9:
+ 847              		.loc 1 53 9 is_stmt 1 view .LVU225
+  53:mri/semihost/mbed/semihost_mbed.c ****     case 9:
+ 848              		.loc 1 53 16 is_stmt 0 view .LVU226
+ 849 004c FFF7FEFF 		bl	handleMbedSemihostReadRequest
+ 850              	.LVL92:
+  53:mri/semihost/mbed/semihost_mbed.c ****     case 9:
+ 851              		.loc 1 53 16 view .LVU227
+ 852 0050 F2E7     		b	.L41
+ 853              	.LVL93:
+ 854              	.L50:
+  55:mri/semihost/mbed/semihost_mbed.c ****     case 10:
+ 855              		.loc 1 55 9 is_stmt 1 view .LVU228
+  55:mri/semihost/mbed/semihost_mbed.c ****     case 10:
+ 856              		.loc 1 55 16 is_stmt 0 view .LVU229
+ 857 0052 FFF7FEFF 		bl	handleMbedSemihostIsTtyRequest
+ 858              	.LVL94:
+  55:mri/semihost/mbed/semihost_mbed.c ****     case 10:
+ 859              		.loc 1 55 16 view .LVU230
+ 860 0056 EFE7     		b	.L41
+ 861              	.LVL95:
+ 862              	.L49:
+  57:mri/semihost/mbed/semihost_mbed.c ****     case 12:
+ 863              		.loc 1 57 9 is_stmt 1 view .LVU231
+  57:mri/semihost/mbed/semihost_mbed.c ****     case 12:
+ 864              		.loc 1 57 16 is_stmt 0 view .LVU232
+ 865 0058 FFF7FEFF 		bl	handleMbedSemihostSeekRequest
+ 866              	.LVL96:
+  57:mri/semihost/mbed/semihost_mbed.c ****     case 12:
+ 867              		.loc 1 57 16 view .LVU233
+ 868 005c ECE7     		b	.L41
+ 869              	.LVL97:
+ 870              	.L48:
+  59:mri/semihost/mbed/semihost_mbed.c ****     case 14:
+ 871              		.loc 1 59 9 is_stmt 1 view .LVU234
+  59:mri/semihost/mbed/semihost_mbed.c ****     case 14:
+ 872              		.loc 1 59 16 is_stmt 0 view .LVU235
+ 873 005e FFF7FEFF 		bl	handleMbedSemihostFileLengthRequest
+ 874              	.LVL98:
+  59:mri/semihost/mbed/semihost_mbed.c ****     case 14:
+ 875              		.loc 1 59 16 view .LVU236
+ 876 0062 E9E7     		b	.L41
+ 877              	.LVL99:
+ 878              	.L47:
+  61:mri/semihost/mbed/semihost_mbed.c ****     case 15:
+ 879              		.loc 1 61 9 is_stmt 1 view .LVU237
+  61:mri/semihost/mbed/semihost_mbed.c ****     case 15:
+ 880              		.loc 1 61 16 is_stmt 0 view .LVU238
+ 881 0064 FFF7FEFF 		bl	handleMbedSemihostRemoveRequest
+ 882              	.LVL100:
+  61:mri/semihost/mbed/semihost_mbed.c ****     case 15:
+ARM GAS  /tmp/ccPZkjYW.s 			page 24
+
+
+ 883              		.loc 1 61 16 view .LVU239
+ 884 0068 E6E7     		b	.L41
+ 885              	.LVL101:
+ 886              	.L46:
+  63:mri/semihost/mbed/semihost_mbed.c ****     case 19:
+ 887              		.loc 1 63 9 is_stmt 1 view .LVU240
+  63:mri/semihost/mbed/semihost_mbed.c ****     case 19:
+ 888              		.loc 1 63 16 is_stmt 0 view .LVU241
+ 889 006a FFF7FEFF 		bl	handleMbedSemihostRenameRequest
+ 890              	.LVL102:
+  63:mri/semihost/mbed/semihost_mbed.c ****     case 19:
+ 891              		.loc 1 63 16 view .LVU242
+ 892 006e E3E7     		b	.L41
+ 893              	.LVL103:
+ 894              	.L44:
+  65:mri/semihost/mbed/semihost_mbed.c ****     case 257:
+ 895              		.loc 1 65 9 is_stmt 1 view .LVU243
+  65:mri/semihost/mbed/semihost_mbed.c ****     case 257:
+ 896              		.loc 1 65 16 is_stmt 0 view .LVU244
+ 897 0070 FFF7FEFF 		bl	handleMbedSemihostErrorNoRequest
+ 898              	.LVL104:
+  65:mri/semihost/mbed/semihost_mbed.c ****     case 257:
+ 899              		.loc 1 65 16 view .LVU245
+ 900 0074 E0E7     		b	.L41
+ 901              	.LVL105:
+ 902              	.L56:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 903              		.loc 1 44 5 view .LVU246
+ 904 0076 0020     		movs	r0, #0
+ 905              	.LVL106:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 906              		.loc 1 44 5 view .LVU247
+ 907 0078 DEE7     		b	.L41
+ 908              	.LVL107:
+ 909              	.L57:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 910              		.loc 1 44 5 view .LVU248
+ 911 007a 0020     		movs	r0, #0
+ 912              	.LVL108:
+  44:mri/semihost/mbed/semihost_mbed.c ****     {
+ 913              		.loc 1 44 5 view .LVU249
+ 914 007c DCE7     		b	.L41
+ 915              		.cfi_endproc
+ 916              	.LFE3:
+ 918              		.text
+ 919              	.Letext0:
+ 920              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 921              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 922              		.file 4 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 923              		.file 5 "mri/core/platforms.h"
+ 924              		.file 6 "mri/core/cmd_file.h"
+ 925              		.file 7 "mri/core/fileio.h"
+ 926              		.file 8 "mri/core/core.h"
+ 927              		.file 9 "mri/core/libc.h"
+ 928              		.file 10 "mri/core/semihost.h"
+ARM GAS  /tmp/ccPZkjYW.s 			page 25
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 semihost_mbed.c
+     /tmp/ccPZkjYW.s:21     .text.convertRealViewOpenModeToPosixOpenFlags:0000000000000000 $t
+     /tmp/ccPZkjYW.s:26     .text.convertRealViewOpenModeToPosixOpenFlags:0000000000000000 convertRealViewOpenModeToPosixOpenFlags
+     /tmp/ccPZkjYW.s:79     .text.extractWordFromBigEndianByteArray:0000000000000000 $t
+     /tmp/ccPZkjYW.s:84     .text.extractWordFromBigEndianByteArray:0000000000000000 extractWordFromBigEndianByteArray
+     /tmp/ccPZkjYW.s:114    .text.handleMbedSemihostOpenRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:119    .text.handleMbedSemihostOpenRequest:0000000000000000 handleMbedSemihostOpenRequest
+     /tmp/ccPZkjYW.s:182    .text.handleMbedSemihostCloseRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:187    .text.handleMbedSemihostCloseRequest:0000000000000000 handleMbedSemihostCloseRequest
+     /tmp/ccPZkjYW.s:218    .text.convertBytesTransferredToBytesNotTransferred:0000000000000000 $t
+     /tmp/ccPZkjYW.s:223    .text.convertBytesTransferredToBytesNotTransferred:0000000000000000 convertBytesTransferredToBytesNotTransferred
+     /tmp/ccPZkjYW.s:265    .text.handleMbedSemihostWriteRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:270    .text.handleMbedSemihostWriteRequest:0000000000000000 handleMbedSemihostWriteRequest
+     /tmp/ccPZkjYW.s:321    .text.handleMbedSemihostReadRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:326    .text.handleMbedSemihostReadRequest:0000000000000000 handleMbedSemihostReadRequest
+     /tmp/ccPZkjYW.s:377    .text.handleMbedSemihostIsTtyRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:382    .text.handleMbedSemihostIsTtyRequest:0000000000000000 handleMbedSemihostIsTtyRequest
+     /tmp/ccPZkjYW.s:416    .text.handleMbedSemihostSeekRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:421    .text.handleMbedSemihostSeekRequest:0000000000000000 handleMbedSemihostSeekRequest
+     /tmp/ccPZkjYW.s:475    .text.handleMbedSemihostFileLengthRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:480    .text.handleMbedSemihostFileLengthRequest:0000000000000000 handleMbedSemihostFileLengthRequest
+     /tmp/ccPZkjYW.s:551    .text.handleMbedSemihostRemoveRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:556    .text.handleMbedSemihostRemoveRequest:0000000000000000 handleMbedSemihostRemoveRequest
+     /tmp/ccPZkjYW.s:589    .text.handleMbedSemihostRenameRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:594    .text.handleMbedSemihostRenameRequest:0000000000000000 handleMbedSemihostRenameRequest
+     /tmp/ccPZkjYW.s:633    .text.handleMbedSemihostErrorNoRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:638    .text.handleMbedSemihostErrorNoRequest:0000000000000000 handleMbedSemihostErrorNoRequest
+     /tmp/ccPZkjYW.s:668    .text.handleMbedSemihostUidRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:673    .text.handleMbedSemihostUidRequest:0000000000000000 handleMbedSemihostUidRequest
+     /tmp/ccPZkjYW.s:746    .text.mriSemihost_HandleMbedSemihostRequest:0000000000000000 $t
+     /tmp/ccPZkjYW.s:752    .text.mriSemihost_HandleMbedSemihostRequest:0000000000000000 mriSemihost_HandleMbedSemihostRequest
+     /tmp/ccPZkjYW.s:781    .text.mriSemihost_HandleMbedSemihostRequest:0000000000000014 $d
+     /tmp/ccPZkjYW.s:801    .text.mriSemihost_HandleMbedSemihostRequest:0000000000000027 $d
+     /tmp/ccPZkjYW.s:801    .text.mriSemihost_HandleMbedSemihostRequest:0000000000000028 $t
+
+UNDEFINED SYMBOLS
+mriIssueGdbFileOpenRequest
+mriIssueGdbFileCloseRequest
+mriCore_GetSemihostReturnCode
+mriPlatform_SetSemihostCallReturnAndErrnoValues
+mriSemihost_WriteToFileOrConsole
+mriIssueGdbFileReadRequest
+mriPlatform_AdvanceProgramCounterToNextInstruction
+mriIssueGdbFileSeekRequest
+mriIssueGdbFileFStatRequest
+mriIssueGdbFileUnlinkRequest
+mriIssueGdbFileRenameRequest
+mriCore_GetSemihostErrno
+mriPlatform_GetUidSize
+mriPlatform_GetUid
+mri_memcpy

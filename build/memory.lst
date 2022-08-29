@@ -1,0 +1,1938 @@
+ARM GAS  /tmp/ccZm76ny.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"memory.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/memory.c"
+  20              		.section	.text.isNotHalfWordAligned,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	isNotHalfWordAligned:
+  27              	.LVL0:
+  28              	.LFB6:
+   1:mri/core/memory.c **** /* Copyright 2017 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/memory.c **** 
+   3:mri/core/memory.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/memory.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/memory.c ****    You may obtain a copy of the License at
+   6:mri/core/memory.c **** 
+   7:mri/core/memory.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/memory.c **** 
+   9:mri/core/memory.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/memory.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/memory.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/memory.c ****    See the License for the specific language governing permissions and
+  13:mri/core/memory.c ****    limitations under the License.
+  14:mri/core/memory.c **** */
+  15:mri/core/memory.c **** /* Routines to read/write memory and detect any faults that might occur while attempting to do so. 
+  16:mri/core/memory.c **** #include <core/platforms.h>
+  17:mri/core/memory.c **** #include <core/memory.h>
+  18:mri/core/memory.c **** 
+  19:mri/core/memory.c **** 
+  20:mri/core/memory.c **** static uint32_t readMemoryBytesIntoHexBuffer(Buffer* pBuffer, const void*  pvMemory, uint32_t readB
+  21:mri/core/memory.c **** static uint32_t readMemoryHalfWordIntoHexBuffer(Buffer* pBuffer, const void*  pvMemory);
+  22:mri/core/memory.c **** static int isNotHalfWordAligned(const void* pvMemory);
+  23:mri/core/memory.c **** static void writeBytesToBufferAsHex(Buffer* pBuffer, const void* pv, size_t length);
+  24:mri/core/memory.c **** static uint32_t readMemoryWordIntoHexBuffer(Buffer* pBuffer, const void* pvMemory);
+  25:mri/core/memory.c **** static int isNotWordAligned(const void* pvMemory);
+  26:mri/core/memory.c **** uint32_t ReadMemoryIntoHexBuffer(Buffer* pBuffer, const void* pvMemory, uint32_t readByteCount)
+  27:mri/core/memory.c **** {
+  28:mri/core/memory.c ****     switch (readByteCount)
+  29:mri/core/memory.c ****     {
+  30:mri/core/memory.c ****     case 2:
+ARM GAS  /tmp/ccZm76ny.s 			page 2
+
+
+  31:mri/core/memory.c ****         return readMemoryHalfWordIntoHexBuffer(pBuffer, pvMemory);
+  32:mri/core/memory.c ****     case 4:
+  33:mri/core/memory.c ****         return readMemoryWordIntoHexBuffer(pBuffer, pvMemory);
+  34:mri/core/memory.c ****     default:
+  35:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, readByteCount);
+  36:mri/core/memory.c ****     }
+  37:mri/core/memory.c **** }
+  38:mri/core/memory.c **** 
+  39:mri/core/memory.c **** static uint32_t readMemoryBytesIntoHexBuffer(Buffer* pBuffer, const void*  pvMemory, uint32_t readB
+  40:mri/core/memory.c **** {
+  41:mri/core/memory.c ****     uint32_t byteCount = 0;
+  42:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+  43:mri/core/memory.c **** 
+  44:mri/core/memory.c ****     while (readByteCount-- > 0)
+  45:mri/core/memory.c ****     {
+  46:mri/core/memory.c ****         uint8_t byte;
+  47:mri/core/memory.c **** 
+  48:mri/core/memory.c ****         byte = Platform_MemRead8(p++);
+  49:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+  50:mri/core/memory.c ****             break;
+  51:mri/core/memory.c **** 
+  52:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, byte);
+  53:mri/core/memory.c ****         byteCount++;
+  54:mri/core/memory.c ****     }
+  55:mri/core/memory.c **** 
+  56:mri/core/memory.c ****     return byteCount;
+  57:mri/core/memory.c **** }
+  58:mri/core/memory.c **** 
+  59:mri/core/memory.c **** static uint32_t readMemoryHalfWordIntoHexBuffer(Buffer* pBuffer, const void* pvMemory)
+  60:mri/core/memory.c **** {
+  61:mri/core/memory.c ****     uint16_t value;
+  62:mri/core/memory.c **** 
+  63:mri/core/memory.c ****     if (isNotHalfWordAligned(pvMemory))
+  64:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 2);
+  65:mri/core/memory.c **** 
+  66:mri/core/memory.c ****     value = Platform_MemRead16(pvMemory);
+  67:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+  68:mri/core/memory.c ****         return 0;
+  69:mri/core/memory.c ****     writeBytesToBufferAsHex(pBuffer, &value, sizeof(value));
+  70:mri/core/memory.c **** 
+  71:mri/core/memory.c ****     return sizeof(value);
+  72:mri/core/memory.c **** }
+  73:mri/core/memory.c **** 
+  74:mri/core/memory.c **** static int isNotHalfWordAligned(const void* pvMemory)
+  75:mri/core/memory.c **** {
+  29              		.loc 1 75 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  76:mri/core/memory.c ****     return (size_t)pvMemory & 1;
+  34              		.loc 1 76 5 view .LVU1
+  77:mri/core/memory.c **** }
+  35              		.loc 1 77 1 is_stmt 0 view .LVU2
+  36 0000 00F00100 		and	r0, r0, #1
+  37              	.LVL1:
+  38              		.loc 1 77 1 view .LVU3
+ARM GAS  /tmp/ccZm76ny.s 			page 3
+
+
+  39 0004 7047     		bx	lr
+  40              		.cfi_endproc
+  41              	.LFE6:
+  43              		.section	.text.isNotWordAligned,"ax",%progbits
+  44              		.align	1
+  45              		.syntax unified
+  46              		.thumb
+  47              		.thumb_func
+  49              	isNotWordAligned:
+  50              	.LVL2:
+  51              	.LFB9:
+  78:mri/core/memory.c **** 
+  79:mri/core/memory.c **** static void writeBytesToBufferAsHex(Buffer* pBuffer, const void* pv, size_t length)
+  80:mri/core/memory.c **** {
+  81:mri/core/memory.c ****     uint8_t* pBytes = (uint8_t*)pv;
+  82:mri/core/memory.c ****     while (length--)
+  83:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+  84:mri/core/memory.c **** }
+  85:mri/core/memory.c **** 
+  86:mri/core/memory.c **** static uint32_t readMemoryWordIntoHexBuffer(Buffer* pBuffer, const void* pvMemory)
+  87:mri/core/memory.c **** {
+  88:mri/core/memory.c ****     uint32_t value;
+  89:mri/core/memory.c **** 
+  90:mri/core/memory.c ****     if (isNotWordAligned(pvMemory))
+  91:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 4);
+  92:mri/core/memory.c **** 
+  93:mri/core/memory.c ****     value = Platform_MemRead32(pvMemory);
+  94:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+  95:mri/core/memory.c ****         return 0;
+  96:mri/core/memory.c ****     writeBytesToBufferAsHex(pBuffer, &value, sizeof(value));
+  97:mri/core/memory.c **** 
+  98:mri/core/memory.c ****     return sizeof(value);
+  99:mri/core/memory.c **** }
+ 100:mri/core/memory.c **** 
+ 101:mri/core/memory.c **** static int isNotWordAligned(const void* pvMemory)
+ 102:mri/core/memory.c **** {
+  52              		.loc 1 102 1 is_stmt 1 view -0
+  53              		.cfi_startproc
+  54              		@ args = 0, pretend = 0, frame = 0
+  55              		@ frame_needed = 0, uses_anonymous_args = 0
+  56              		@ link register save eliminated.
+ 103:mri/core/memory.c ****     return (size_t)pvMemory & 3;
+  57              		.loc 1 103 5 view .LVU5
+ 104:mri/core/memory.c **** }
+  58              		.loc 1 104 1 is_stmt 0 view .LVU6
+  59 0000 00F00300 		and	r0, r0, #3
+  60              	.LVL3:
+  61              		.loc 1 104 1 view .LVU7
+  62 0004 7047     		bx	lr
+  63              		.cfi_endproc
+  64              	.LFE9:
+  66              		.section	.text.writeBytesToBufferAsHex,"ax",%progbits
+  67              		.align	1
+  68              		.syntax unified
+  69              		.thumb
+  70              		.thumb_func
+  72              	writeBytesToBufferAsHex:
+ARM GAS  /tmp/ccZm76ny.s 			page 4
+
+
+  73              	.LVL4:
+  74              	.LFB7:
+  80:mri/core/memory.c ****     uint8_t* pBytes = (uint8_t*)pv;
+  75              		.loc 1 80 1 is_stmt 1 view -0
+  76              		.cfi_startproc
+  77              		@ args = 0, pretend = 0, frame = 0
+  78              		@ frame_needed = 0, uses_anonymous_args = 0
+  80:mri/core/memory.c ****     uint8_t* pBytes = (uint8_t*)pv;
+  79              		.loc 1 80 1 is_stmt 0 view .LVU9
+  80 0000 70B5     		push	{r4, r5, r6, lr}
+  81              	.LCFI0:
+  82              		.cfi_def_cfa_offset 16
+  83              		.cfi_offset 4, -16
+  84              		.cfi_offset 5, -12
+  85              		.cfi_offset 6, -8
+  86              		.cfi_offset 14, -4
+  87 0002 0646     		mov	r6, r0
+  88 0004 0C46     		mov	r4, r1
+  81:mri/core/memory.c ****     while (length--)
+  89              		.loc 1 81 5 is_stmt 1 view .LVU10
+  90              	.LVL5:
+  82:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+  91              		.loc 1 82 5 view .LVU11
+  82:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+  92              		.loc 1 82 11 is_stmt 0 view .LVU12
+  93 0006 05E0     		b	.L4
+  94              	.LVL6:
+  95              	.L5:
+  83:mri/core/memory.c **** }
+  96              		.loc 1 83 9 is_stmt 1 view .LVU13
+  83:mri/core/memory.c **** }
+  97              		.loc 1 83 9 is_stmt 0 view .LVU14
+  98 0008 14F8011B 		ldrb	r1, [r4], #1	@ zero_extendqisi2
+  99              	.LVL7:
+  83:mri/core/memory.c **** }
+ 100              		.loc 1 83 9 view .LVU15
+ 101 000c 3046     		mov	r0, r6
+ 102 000e FFF7FEFF 		bl	mriBuffer_WriteByteAsHex
+ 103              	.LVL8:
+  82:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+ 104              		.loc 1 82 18 view .LVU16
+ 105 0012 2A46     		mov	r2, r5
+ 106              	.LVL9:
+ 107              	.L4:
+  82:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+ 108              		.loc 1 82 12 is_stmt 1 view .LVU17
+  82:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+ 109              		.loc 1 82 18 is_stmt 0 view .LVU18
+ 110 0014 551E     		subs	r5, r2, #1
+ 111              	.LVL10:
+  82:mri/core/memory.c ****         Buffer_WriteByteAsHex(pBuffer, *pBytes++);
+ 112              		.loc 1 82 12 view .LVU19
+ 113 0016 002A     		cmp	r2, #0
+ 114 0018 F6D1     		bne	.L5
+  84:mri/core/memory.c **** 
+ 115              		.loc 1 84 1 view .LVU20
+ 116 001a 70BD     		pop	{r4, r5, r6, pc}
+ARM GAS  /tmp/ccZm76ny.s 			page 5
+
+
+  84:mri/core/memory.c **** 
+ 117              		.loc 1 84 1 view .LVU21
+ 118              		.cfi_endproc
+ 119              	.LFE7:
+ 121              		.section	.text.readMemoryBytesIntoHexBuffer,"ax",%progbits
+ 122              		.align	1
+ 123              		.syntax unified
+ 124              		.thumb
+ 125              		.thumb_func
+ 127              	readMemoryBytesIntoHexBuffer:
+ 128              	.LVL11:
+ 129              	.LFB4:
+  40:mri/core/memory.c ****     uint32_t byteCount = 0;
+ 130              		.loc 1 40 1 is_stmt 1 view -0
+ 131              		.cfi_startproc
+ 132              		@ args = 0, pretend = 0, frame = 0
+ 133              		@ frame_needed = 0, uses_anonymous_args = 0
+  40:mri/core/memory.c ****     uint32_t byteCount = 0;
+ 134              		.loc 1 40 1 is_stmt 0 view .LVU23
+ 135 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 136              	.LCFI1:
+ 137              		.cfi_def_cfa_offset 24
+ 138              		.cfi_offset 4, -24
+ 139              		.cfi_offset 5, -20
+ 140              		.cfi_offset 6, -16
+ 141              		.cfi_offset 7, -12
+ 142              		.cfi_offset 8, -8
+ 143              		.cfi_offset 14, -4
+ 144 0004 0646     		mov	r6, r0
+ 145 0006 0846     		mov	r0, r1
+ 146              	.LVL12:
+  41:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 147              		.loc 1 41 5 is_stmt 1 view .LVU24
+  42:mri/core/memory.c **** 
+ 148              		.loc 1 42 5 view .LVU25
+  44:mri/core/memory.c ****     {
+ 149              		.loc 1 44 5 view .LVU26
+  41:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 150              		.loc 1 41 14 is_stmt 0 view .LVU27
+ 151 0008 0025     		movs	r5, #0
+  44:mri/core/memory.c ****     {
+ 152              		.loc 1 44 11 view .LVU28
+ 153 000a 06E0     		b	.L8
+ 154              	.LVL13:
+ 155              	.L12:
+ 156              	.LBB12:
+  52:mri/core/memory.c ****         byteCount++;
+ 157              		.loc 1 52 9 is_stmt 1 view .LVU29
+ 158 000c 2146     		mov	r1, r4
+ 159 000e 3046     		mov	r0, r6
+ 160 0010 FFF7FEFF 		bl	mriBuffer_WriteByteAsHex
+ 161              	.LVL14:
+  53:mri/core/memory.c ****     }
+ 162              		.loc 1 53 9 view .LVU30
+  53:mri/core/memory.c ****     }
+ 163              		.loc 1 53 18 is_stmt 0 view .LVU31
+ 164 0014 0135     		adds	r5, r5, #1
+ARM GAS  /tmp/ccZm76ny.s 			page 6
+
+
+ 165              	.LVL15:
+  48:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 166              		.loc 1 48 16 view .LVU32
+ 167 0016 4046     		mov	r0, r8
+ 168              	.LBE12:
+  44:mri/core/memory.c ****     {
+ 169              		.loc 1 44 25 view .LVU33
+ 170 0018 3A46     		mov	r2, r7
+ 171              	.LVL16:
+ 172              	.L8:
+  44:mri/core/memory.c ****     {
+ 173              		.loc 1 44 28 is_stmt 1 view .LVU34
+  44:mri/core/memory.c ****     {
+ 174              		.loc 1 44 25 is_stmt 0 view .LVU35
+ 175 001a 571E     		subs	r7, r2, #1
+ 176              	.LVL17:
+  44:mri/core/memory.c ****     {
+ 177              		.loc 1 44 28 view .LVU36
+ 178 001c 42B1     		cbz	r2, .L7
+ 179              	.LBB13:
+  46:mri/core/memory.c **** 
+ 180              		.loc 1 46 9 is_stmt 1 view .LVU37
+  48:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 181              		.loc 1 48 9 view .LVU38
+  48:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 182              		.loc 1 48 16 is_stmt 0 view .LVU39
+ 183 001e 00F10108 		add	r8, r0, #1
+ 184              	.LVL18:
+  48:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 185              		.loc 1 48 16 view .LVU40
+ 186 0022 FFF7FEFF 		bl	mriPlatform_MemRead8
+ 187              	.LVL19:
+ 188 0026 0446     		mov	r4, r0
+ 189              	.LVL20:
+  49:mri/core/memory.c ****             break;
+ 190              		.loc 1 49 9 is_stmt 1 view .LVU41
+  49:mri/core/memory.c ****             break;
+ 191              		.loc 1 49 13 is_stmt 0 view .LVU42
+ 192 0028 FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 193              	.LVL21:
+  49:mri/core/memory.c ****             break;
+ 194              		.loc 1 49 12 view .LVU43
+ 195 002c 0028     		cmp	r0, #0
+ 196 002e EDD0     		beq	.L12
+ 197              	.LVL22:
+ 198              	.L7:
+  49:mri/core/memory.c ****             break;
+ 199              		.loc 1 49 12 view .LVU44
+ 200              	.LBE13:
+  57:mri/core/memory.c **** 
+ 201              		.loc 1 57 1 view .LVU45
+ 202 0030 2846     		mov	r0, r5
+ 203 0032 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+  57:mri/core/memory.c **** 
+ 204              		.loc 1 57 1 view .LVU46
+ 205              		.cfi_endproc
+ 206              	.LFE4:
+ARM GAS  /tmp/ccZm76ny.s 			page 7
+
+
+ 208              		.section	.text.readMemoryHalfWordIntoHexBuffer,"ax",%progbits
+ 209              		.align	1
+ 210              		.syntax unified
+ 211              		.thumb
+ 212              		.thumb_func
+ 214              	readMemoryHalfWordIntoHexBuffer:
+ 215              	.LVL23:
+ 216              	.LFB5:
+  60:mri/core/memory.c ****     uint16_t value;
+ 217              		.loc 1 60 1 is_stmt 1 view -0
+ 218              		.cfi_startproc
+ 219              		@ args = 0, pretend = 0, frame = 8
+ 220              		@ frame_needed = 0, uses_anonymous_args = 0
+  60:mri/core/memory.c ****     uint16_t value;
+ 221              		.loc 1 60 1 is_stmt 0 view .LVU48
+ 222 0000 30B5     		push	{r4, r5, lr}
+ 223              	.LCFI2:
+ 224              		.cfi_def_cfa_offset 12
+ 225              		.cfi_offset 4, -12
+ 226              		.cfi_offset 5, -8
+ 227              		.cfi_offset 14, -4
+ 228 0002 83B0     		sub	sp, sp, #12
+ 229              	.LCFI3:
+ 230              		.cfi_def_cfa_offset 24
+ 231 0004 0546     		mov	r5, r0
+ 232 0006 0C46     		mov	r4, r1
+  61:mri/core/memory.c **** 
+ 233              		.loc 1 61 5 is_stmt 1 view .LVU49
+  63:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 2);
+ 234              		.loc 1 63 5 view .LVU50
+  63:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 2);
+ 235              		.loc 1 63 9 is_stmt 0 view .LVU51
+ 236 0008 0846     		mov	r0, r1
+ 237              	.LVL24:
+  63:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 2);
+ 238              		.loc 1 63 9 view .LVU52
+ 239 000a FFF7FEFF 		bl	isNotHalfWordAligned
+ 240              	.LVL25:
+  63:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 2);
+ 241              		.loc 1 63 8 view .LVU53
+ 242 000e 50B9     		cbnz	r0, .L18
+  66:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 243              		.loc 1 66 5 is_stmt 1 view .LVU54
+  66:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 244              		.loc 1 66 13 is_stmt 0 view .LVU55
+ 245 0010 2046     		mov	r0, r4
+ 246 0012 FFF7FEFF 		bl	mriPlatform_MemRead16
+ 247              	.LVL26:
+  66:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 248              		.loc 1 66 11 view .LVU56
+ 249 0016 ADF80600 		strh	r0, [sp, #6]	@ movhi
+  67:mri/core/memory.c ****         return 0;
+ 250              		.loc 1 67 5 is_stmt 1 view .LVU57
+  67:mri/core/memory.c ****         return 0;
+ 251              		.loc 1 67 9 is_stmt 0 view .LVU58
+ 252 001a FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 253              	.LVL27:
+ARM GAS  /tmp/ccZm76ny.s 			page 8
+
+
+  67:mri/core/memory.c ****         return 0;
+ 254              		.loc 1 67 8 view .LVU59
+ 255 001e 40B1     		cbz	r0, .L19
+  68:mri/core/memory.c ****     writeBytesToBufferAsHex(pBuffer, &value, sizeof(value));
+ 256              		.loc 1 68 16 view .LVU60
+ 257 0020 0020     		movs	r0, #0
+ 258              	.L13:
+  72:mri/core/memory.c **** 
+ 259              		.loc 1 72 1 view .LVU61
+ 260 0022 03B0     		add	sp, sp, #12
+ 261              	.LCFI4:
+ 262              		.cfi_remember_state
+ 263              		.cfi_def_cfa_offset 12
+ 264              		@ sp needed
+ 265 0024 30BD     		pop	{r4, r5, pc}
+ 266              	.LVL28:
+ 267              	.L18:
+ 268              	.LCFI5:
+ 269              		.cfi_restore_state
+  64:mri/core/memory.c **** 
+ 270              		.loc 1 64 9 is_stmt 1 view .LVU62
+  64:mri/core/memory.c **** 
+ 271              		.loc 1 64 16 is_stmt 0 view .LVU63
+ 272 0026 0222     		movs	r2, #2
+ 273 0028 2146     		mov	r1, r4
+ 274 002a 2846     		mov	r0, r5
+ 275 002c FFF7FEFF 		bl	readMemoryBytesIntoHexBuffer
+ 276              	.LVL29:
+ 277 0030 F7E7     		b	.L13
+ 278              	.L19:
+  69:mri/core/memory.c **** 
+ 279              		.loc 1 69 5 is_stmt 1 view .LVU64
+ 280 0032 0222     		movs	r2, #2
+ 281 0034 0DF10601 		add	r1, sp, #6
+ 282 0038 2846     		mov	r0, r5
+ 283 003a FFF7FEFF 		bl	writeBytesToBufferAsHex
+ 284              	.LVL30:
+  71:mri/core/memory.c **** }
+ 285              		.loc 1 71 5 view .LVU65
+  71:mri/core/memory.c **** }
+ 286              		.loc 1 71 12 is_stmt 0 view .LVU66
+ 287 003e 0220     		movs	r0, #2
+ 288 0040 EFE7     		b	.L13
+ 289              		.cfi_endproc
+ 290              	.LFE5:
+ 292              		.section	.text.readMemoryWordIntoHexBuffer,"ax",%progbits
+ 293              		.align	1
+ 294              		.syntax unified
+ 295              		.thumb
+ 296              		.thumb_func
+ 298              	readMemoryWordIntoHexBuffer:
+ 299              	.LVL31:
+ 300              	.LFB8:
+  87:mri/core/memory.c ****     uint32_t value;
+ 301              		.loc 1 87 1 is_stmt 1 view -0
+ 302              		.cfi_startproc
+ 303              		@ args = 0, pretend = 0, frame = 8
+ARM GAS  /tmp/ccZm76ny.s 			page 9
+
+
+ 304              		@ frame_needed = 0, uses_anonymous_args = 0
+  87:mri/core/memory.c ****     uint32_t value;
+ 305              		.loc 1 87 1 is_stmt 0 view .LVU68
+ 306 0000 30B5     		push	{r4, r5, lr}
+ 307              	.LCFI6:
+ 308              		.cfi_def_cfa_offset 12
+ 309              		.cfi_offset 4, -12
+ 310              		.cfi_offset 5, -8
+ 311              		.cfi_offset 14, -4
+ 312 0002 83B0     		sub	sp, sp, #12
+ 313              	.LCFI7:
+ 314              		.cfi_def_cfa_offset 24
+ 315 0004 0546     		mov	r5, r0
+ 316 0006 0C46     		mov	r4, r1
+  88:mri/core/memory.c **** 
+ 317              		.loc 1 88 5 is_stmt 1 view .LVU69
+  90:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 4);
+ 318              		.loc 1 90 5 view .LVU70
+  90:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 4);
+ 319              		.loc 1 90 9 is_stmt 0 view .LVU71
+ 320 0008 0846     		mov	r0, r1
+ 321              	.LVL32:
+  90:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 4);
+ 322              		.loc 1 90 9 view .LVU72
+ 323 000a FFF7FEFF 		bl	isNotWordAligned
+ 324              	.LVL33:
+  90:mri/core/memory.c ****         return readMemoryBytesIntoHexBuffer(pBuffer, pvMemory, 4);
+ 325              		.loc 1 90 8 view .LVU73
+ 326 000e 48B9     		cbnz	r0, .L25
+  93:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 327              		.loc 1 93 5 is_stmt 1 view .LVU74
+  93:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 328              		.loc 1 93 13 is_stmt 0 view .LVU75
+ 329 0010 2046     		mov	r0, r4
+ 330 0012 FFF7FEFF 		bl	mriPlatform_MemRead32
+ 331              	.LVL34:
+  93:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 332              		.loc 1 93 11 view .LVU76
+ 333 0016 0190     		str	r0, [sp, #4]
+  94:mri/core/memory.c ****         return 0;
+ 334              		.loc 1 94 5 is_stmt 1 view .LVU77
+  94:mri/core/memory.c ****         return 0;
+ 335              		.loc 1 94 9 is_stmt 0 view .LVU78
+ 336 0018 FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 337              	.LVL35:
+  94:mri/core/memory.c ****         return 0;
+ 338              		.loc 1 94 8 view .LVU79
+ 339 001c 40B1     		cbz	r0, .L26
+  95:mri/core/memory.c ****     writeBytesToBufferAsHex(pBuffer, &value, sizeof(value));
+ 340              		.loc 1 95 16 view .LVU80
+ 341 001e 0020     		movs	r0, #0
+ 342              	.L20:
+  99:mri/core/memory.c **** 
+ 343              		.loc 1 99 1 view .LVU81
+ 344 0020 03B0     		add	sp, sp, #12
+ 345              	.LCFI8:
+ 346              		.cfi_remember_state
+ARM GAS  /tmp/ccZm76ny.s 			page 10
+
+
+ 347              		.cfi_def_cfa_offset 12
+ 348              		@ sp needed
+ 349 0022 30BD     		pop	{r4, r5, pc}
+ 350              	.LVL36:
+ 351              	.L25:
+ 352              	.LCFI9:
+ 353              		.cfi_restore_state
+  91:mri/core/memory.c **** 
+ 354              		.loc 1 91 9 is_stmt 1 view .LVU82
+  91:mri/core/memory.c **** 
+ 355              		.loc 1 91 16 is_stmt 0 view .LVU83
+ 356 0024 0422     		movs	r2, #4
+ 357 0026 2146     		mov	r1, r4
+ 358 0028 2846     		mov	r0, r5
+ 359 002a FFF7FEFF 		bl	readMemoryBytesIntoHexBuffer
+ 360              	.LVL37:
+ 361 002e F7E7     		b	.L20
+ 362              	.L26:
+  96:mri/core/memory.c **** 
+ 363              		.loc 1 96 5 is_stmt 1 view .LVU84
+ 364 0030 0422     		movs	r2, #4
+ 365 0032 0DEB0201 		add	r1, sp, r2
+ 366 0036 2846     		mov	r0, r5
+ 367 0038 FFF7FEFF 		bl	writeBytesToBufferAsHex
+ 368              	.LVL38:
+  98:mri/core/memory.c **** }
+ 369              		.loc 1 98 5 view .LVU85
+  98:mri/core/memory.c **** }
+ 370              		.loc 1 98 12 is_stmt 0 view .LVU86
+ 371 003c 0420     		movs	r0, #4
+ 372 003e EFE7     		b	.L20
+ 373              		.cfi_endproc
+ 374              	.LFE8:
+ 376              		.section	.text.readBytesFromHexBuffer,"ax",%progbits
+ 377              		.align	1
+ 378              		.syntax unified
+ 379              		.thumb
+ 380              		.thumb_func
+ 382              	readBytesFromHexBuffer:
+ 383              	.LVL39:
+ 384              	.LFB13:
+ 105:mri/core/memory.c **** 
+ 106:mri/core/memory.c **** 
+ 107:mri/core/memory.c **** static int writeHexBufferToByteMemory(Buffer* pBuffer, void* pvMemory, uint32_t writeByteCount);
+ 108:mri/core/memory.c **** static int writeHexBufferToHalfWordMemory(Buffer* pBuffer, void* pvMemory);
+ 109:mri/core/memory.c **** static int readBytesFromHexBuffer(Buffer* pBuffer, void* pv, size_t length);
+ 110:mri/core/memory.c **** static int writeHexBufferToWordMemory(Buffer* pBuffer, void* pvMemory);
+ 111:mri/core/memory.c **** int WriteHexBufferToMemory(Buffer* pBuffer, void* pvMemory, uint32_t writeByteCount)
+ 112:mri/core/memory.c **** {
+ 113:mri/core/memory.c ****     switch (writeByteCount)
+ 114:mri/core/memory.c ****     {
+ 115:mri/core/memory.c ****     case 2:
+ 116:mri/core/memory.c ****         return writeHexBufferToHalfWordMemory(pBuffer, pvMemory);
+ 117:mri/core/memory.c ****     case 4:
+ 118:mri/core/memory.c ****         return writeHexBufferToWordMemory(pBuffer, pvMemory);
+ 119:mri/core/memory.c ****     default:
+ 120:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, writeByteCount);
+ARM GAS  /tmp/ccZm76ny.s 			page 11
+
+
+ 121:mri/core/memory.c ****     }
+ 122:mri/core/memory.c **** }
+ 123:mri/core/memory.c **** 
+ 124:mri/core/memory.c **** static int writeHexBufferToByteMemory(Buffer* pBuffer, void* pvMemory, uint32_t writeByteCount)
+ 125:mri/core/memory.c **** {
+ 126:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 127:mri/core/memory.c **** 
+ 128:mri/core/memory.c ****     while (writeByteCount-- > 0)
+ 129:mri/core/memory.c ****     {
+ 130:mri/core/memory.c ****         uint8_t byte;
+ 131:mri/core/memory.c **** 
+ 132:mri/core/memory.c ****         __try
+ 133:mri/core/memory.c ****             byte = Buffer_ReadByteAsHex(pBuffer);
+ 134:mri/core/memory.c ****         __catch
+ 135:mri/core/memory.c ****             __rethrow_and_return(0);
+ 136:mri/core/memory.c **** 
+ 137:mri/core/memory.c ****         Platform_MemWrite8(p++, byte);
+ 138:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 139:mri/core/memory.c ****             return 0;
+ 140:mri/core/memory.c ****     }
+ 141:mri/core/memory.c **** 
+ 142:mri/core/memory.c ****     return 1;
+ 143:mri/core/memory.c **** }
+ 144:mri/core/memory.c **** 
+ 145:mri/core/memory.c **** static int writeHexBufferToHalfWordMemory(Buffer* pBuffer, void* pvMemory)
+ 146:mri/core/memory.c **** {
+ 147:mri/core/memory.c ****     uint16_t value;
+ 148:mri/core/memory.c **** 
+ 149:mri/core/memory.c ****     if (isNotHalfWordAligned(pvMemory))
+ 150:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, 2);
+ 151:mri/core/memory.c **** 
+ 152:mri/core/memory.c ****     if (!readBytesFromHexBuffer(pBuffer, &value, sizeof(value)))
+ 153:mri/core/memory.c ****         return 0;
+ 154:mri/core/memory.c **** 
+ 155:mri/core/memory.c ****     Platform_MemWrite16(pvMemory, value);
+ 156:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 157:mri/core/memory.c ****         return 0;
+ 158:mri/core/memory.c **** 
+ 159:mri/core/memory.c ****     return 1;
+ 160:mri/core/memory.c **** }
+ 161:mri/core/memory.c **** 
+ 162:mri/core/memory.c **** static int readBytesFromHexBuffer(Buffer* pBuffer, void* pv, size_t length)
+ 163:mri/core/memory.c **** {
+ 385              		.loc 1 163 1 is_stmt 1 view -0
+ 386              		.cfi_startproc
+ 387              		@ args = 0, pretend = 0, frame = 0
+ 388              		@ frame_needed = 0, uses_anonymous_args = 0
+ 389              		.loc 1 163 1 is_stmt 0 view .LVU88
+ 390 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 391              	.LCFI10:
+ 392              		.cfi_def_cfa_offset 24
+ 393              		.cfi_offset 3, -24
+ 394              		.cfi_offset 4, -20
+ 395              		.cfi_offset 5, -16
+ 396              		.cfi_offset 6, -12
+ 397              		.cfi_offset 7, -8
+ 398              		.cfi_offset 14, -4
+ARM GAS  /tmp/ccZm76ny.s 			page 12
+
+
+ 399 0002 0746     		mov	r7, r0
+ 400 0004 0C46     		mov	r4, r1
+ 401 0006 1546     		mov	r5, r2
+ 164:mri/core/memory.c ****     uint8_t* pBytes = (uint8_t*)pv;
+ 402              		.loc 1 164 5 is_stmt 1 view .LVU89
+ 403              	.LVL40:
+ 165:mri/core/memory.c ****     while (length--)
+ 404              		.loc 1 165 5 view .LVU90
+ 405              	.L28:
+ 406              		.loc 1 165 12 view .LVU91
+ 407 0008 2B46     		mov	r3, r5
+ 408              		.loc 1 165 18 is_stmt 0 view .LVU92
+ 409 000a 013D     		subs	r5, r5, #1
+ 410              	.LVL41:
+ 411              		.loc 1 165 12 view .LVU93
+ 412 000c 63B1     		cbz	r3, .L33
+ 166:mri/core/memory.c ****     {
+ 167:mri/core/memory.c ****         __try
+ 413              		.loc 1 167 9 is_stmt 1 view .LVU94
+ 414              		.loc 1 167 9 view .LVU95
+ 415              	.LBB14:
+ 416              	.LBI14:
+ 417              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+ARM GAS  /tmp/ccZm76ny.s 			page 13
+
+
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+ 418              		.loc 2 76 20 view .LVU96
+ 419              	.LBB15:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+ 420              		.loc 2 78 5 view .LVU97
+ 421              		.loc 2 78 22 is_stmt 0 view .LVU98
+ 422 000e 074E     		ldr	r6, .L34
+ 423 0010 0023     		movs	r3, #0
+ 424 0012 3360     		str	r3, [r6]
+ 425              	.LBE15:
+ 426              	.LBE14:
+ 168:mri/core/memory.c ****             *pBytes++ = Buffer_ReadByteAsHex(pBuffer);
+ 427              		.loc 1 168 13 is_stmt 1 view .LVU99
+ 428              	.LVL42:
+ 429              		.loc 1 168 25 is_stmt 0 view .LVU100
+ARM GAS  /tmp/ccZm76ny.s 			page 14
+
+
+ 430 0014 3846     		mov	r0, r7
+ 431 0016 FFF7FEFF 		bl	mriBuffer_ReadByteAsHex
+ 432              	.LVL43:
+ 433              		.loc 1 168 23 view .LVU101
+ 434 001a 04F8010B 		strb	r0, [r4], #1
+ 435              	.LVL44:
+ 167:mri/core/memory.c ****             *pBytes++ = Buffer_ReadByteAsHex(pBuffer);
+ 436              		.loc 1 167 9 is_stmt 1 view .LVU102
+ 169:mri/core/memory.c ****         __catch
+ 437              		.loc 1 169 9 view .LVU103
+ 438 001e 3368     		ldr	r3, [r6]
+ 439 0020 002B     		cmp	r3, #0
+ 440 0022 F1D0     		beq	.L28
+ 170:mri/core/memory.c ****             __rethrow_and_return(0);
+ 441              		.loc 1 170 13 is_stmt 0 view .LVU104
+ 442 0024 0020     		movs	r0, #0
+ 443 0026 00E0     		b	.L27
+ 444              	.L33:
+ 171:mri/core/memory.c ****     }
+ 172:mri/core/memory.c ****     return 1;
+ 445              		.loc 1 172 12 view .LVU105
+ 446 0028 0120     		movs	r0, #1
+ 447              	.L27:
+ 173:mri/core/memory.c **** }
+ 448              		.loc 1 173 1 view .LVU106
+ 449 002a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 450              	.LVL45:
+ 451              	.L35:
+ 452              		.loc 1 173 1 view .LVU107
+ 453              		.align	2
+ 454              	.L34:
+ 455 002c 00000000 		.word	mriExceptionCode
+ 456              		.cfi_endproc
+ 457              	.LFE13:
+ 459              		.section	.text.writeHexBufferToByteMemory,"ax",%progbits
+ 460              		.align	1
+ 461              		.syntax unified
+ 462              		.thumb
+ 463              		.thumb_func
+ 465              	writeHexBufferToByteMemory:
+ 466              	.LVL46:
+ 467              	.LFB11:
+ 125:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 468              		.loc 1 125 1 is_stmt 1 view -0
+ 469              		.cfi_startproc
+ 470              		@ args = 0, pretend = 0, frame = 0
+ 471              		@ frame_needed = 0, uses_anonymous_args = 0
+ 125:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 472              		.loc 1 125 1 is_stmt 0 view .LVU109
+ 473 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 474              	.LCFI11:
+ 475              		.cfi_def_cfa_offset 24
+ 476              		.cfi_offset 4, -24
+ 477              		.cfi_offset 5, -20
+ 478              		.cfi_offset 6, -16
+ 479              		.cfi_offset 7, -12
+ 480              		.cfi_offset 8, -8
+ARM GAS  /tmp/ccZm76ny.s 			page 15
+
+
+ 481              		.cfi_offset 14, -4
+ 482 0004 0746     		mov	r7, r0
+ 483 0006 0D46     		mov	r5, r1
+ 484 0008 1446     		mov	r4, r2
+ 126:mri/core/memory.c **** 
+ 485              		.loc 1 126 5 is_stmt 1 view .LVU110
+ 486              	.LVL47:
+ 128:mri/core/memory.c ****     {
+ 487              		.loc 1 128 5 view .LVU111
+ 488              	.L37:
+ 128:mri/core/memory.c ****     {
+ 489              		.loc 1 128 29 view .LVU112
+ 490 000a 2346     		mov	r3, r4
+ 128:mri/core/memory.c ****     {
+ 491              		.loc 1 128 26 is_stmt 0 view .LVU113
+ 492 000c 013C     		subs	r4, r4, #1
+ 493              	.LVL48:
+ 128:mri/core/memory.c ****     {
+ 494              		.loc 1 128 29 view .LVU114
+ 495 000e 93B1     		cbz	r3, .L42
+ 496              	.LBB16:
+ 130:mri/core/memory.c **** 
+ 497              		.loc 1 130 9 is_stmt 1 view .LVU115
+ 132:mri/core/memory.c ****             byte = Buffer_ReadByteAsHex(pBuffer);
+ 498              		.loc 1 132 9 view .LVU116
+ 132:mri/core/memory.c ****             byte = Buffer_ReadByteAsHex(pBuffer);
+ 499              		.loc 1 132 9 view .LVU117
+ 500              	.LBB17:
+ 501              	.LBI17:
+  76:mri/core/try_catch.h **** {
+ 502              		.loc 2 76 20 view .LVU118
+ 503              	.LBB18:
+ 504              		.loc 2 78 5 view .LVU119
+ 505              		.loc 2 78 22 is_stmt 0 view .LVU120
+ 506 0010 0C4E     		ldr	r6, .L43
+ 507 0012 0023     		movs	r3, #0
+ 508 0014 3360     		str	r3, [r6]
+ 509              	.LBE18:
+ 510              	.LBE17:
+ 133:mri/core/memory.c ****         __catch
+ 511              		.loc 1 133 13 is_stmt 1 view .LVU121
+ 133:mri/core/memory.c ****         __catch
+ 512              		.loc 1 133 20 is_stmt 0 view .LVU122
+ 513 0016 3846     		mov	r0, r7
+ 514 0018 FFF7FEFF 		bl	mriBuffer_ReadByteAsHex
+ 515              	.LVL49:
+ 516 001c 0146     		mov	r1, r0
+ 517              	.LVL50:
+ 132:mri/core/memory.c ****             byte = Buffer_ReadByteAsHex(pBuffer);
+ 518              		.loc 1 132 9 is_stmt 1 view .LVU123
+ 134:mri/core/memory.c ****             __rethrow_and_return(0);
+ 519              		.loc 1 134 9 view .LVU124
+ 520 001e 3668     		ldr	r6, [r6]
+ 521 0020 6EB9     		cbnz	r6, .L40
+ 137:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 522              		.loc 1 137 9 view .LVU125
+ 523 0022 05F10108 		add	r8, r5, #1
+ARM GAS  /tmp/ccZm76ny.s 			page 16
+
+
+ 524              	.LVL51:
+ 137:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 525              		.loc 1 137 9 is_stmt 0 view .LVU126
+ 526 0026 2846     		mov	r0, r5
+ 527 0028 FFF7FEFF 		bl	mriPlatform_MemWrite8
+ 528              	.LVL52:
+ 138:mri/core/memory.c ****             return 0;
+ 529              		.loc 1 138 9 is_stmt 1 view .LVU127
+ 138:mri/core/memory.c ****             return 0;
+ 530              		.loc 1 138 13 is_stmt 0 view .LVU128
+ 531 002c FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 532              	.LVL53:
+ 138:mri/core/memory.c ****             return 0;
+ 533              		.loc 1 138 12 view .LVU129
+ 534 0030 10B9     		cbnz	r0, .L36
+ 137:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 535              		.loc 1 137 9 view .LVU130
+ 536 0032 4546     		mov	r5, r8
+ 537 0034 E9E7     		b	.L37
+ 538              	.LVL54:
+ 539              	.L42:
+ 137:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 540              		.loc 1 137 9 view .LVU131
+ 541              	.LBE16:
+ 142:mri/core/memory.c **** }
+ 542              		.loc 1 142 12 view .LVU132
+ 543 0036 0126     		movs	r6, #1
+ 544              	.LVL55:
+ 545              	.L36:
+ 143:mri/core/memory.c **** 
+ 546              		.loc 1 143 1 view .LVU133
+ 547 0038 3046     		mov	r0, r6
+ 548 003a BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 549              	.LVL56:
+ 550              	.L40:
+ 551              	.LBB19:
+ 135:mri/core/memory.c **** 
+ 552              		.loc 1 135 13 view .LVU134
+ 553 003e 0026     		movs	r6, #0
+ 554 0040 FAE7     		b	.L36
+ 555              	.L44:
+ 556 0042 00BF     		.align	2
+ 557              	.L43:
+ 558 0044 00000000 		.word	mriExceptionCode
+ 559              	.LBE19:
+ 560              		.cfi_endproc
+ 561              	.LFE11:
+ 563              		.section	.text.writeHexBufferToHalfWordMemory,"ax",%progbits
+ 564              		.align	1
+ 565              		.syntax unified
+ 566              		.thumb
+ 567              		.thumb_func
+ 569              	writeHexBufferToHalfWordMemory:
+ 570              	.LVL57:
+ 571              	.LFB12:
+ 146:mri/core/memory.c ****     uint16_t value;
+ 572              		.loc 1 146 1 is_stmt 1 view -0
+ARM GAS  /tmp/ccZm76ny.s 			page 17
+
+
+ 573              		.cfi_startproc
+ 574              		@ args = 0, pretend = 0, frame = 8
+ 575              		@ frame_needed = 0, uses_anonymous_args = 0
+ 146:mri/core/memory.c ****     uint16_t value;
+ 576              		.loc 1 146 1 is_stmt 0 view .LVU136
+ 577 0000 70B5     		push	{r4, r5, r6, lr}
+ 578              	.LCFI12:
+ 579              		.cfi_def_cfa_offset 16
+ 580              		.cfi_offset 4, -16
+ 581              		.cfi_offset 5, -12
+ 582              		.cfi_offset 6, -8
+ 583              		.cfi_offset 14, -4
+ 584 0002 82B0     		sub	sp, sp, #8
+ 585              	.LCFI13:
+ 586              		.cfi_def_cfa_offset 24
+ 587 0004 0546     		mov	r5, r0
+ 588 0006 0C46     		mov	r4, r1
+ 147:mri/core/memory.c **** 
+ 589              		.loc 1 147 5 is_stmt 1 view .LVU137
+ 149:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, 2);
+ 590              		.loc 1 149 5 view .LVU138
+ 149:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, 2);
+ 591              		.loc 1 149 9 is_stmt 0 view .LVU139
+ 592 0008 0846     		mov	r0, r1
+ 593              	.LVL58:
+ 149:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, 2);
+ 594              		.loc 1 149 9 view .LVU140
+ 595 000a FFF7FEFF 		bl	isNotHalfWordAligned
+ 596              	.LVL59:
+ 149:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, 2);
+ 597              		.loc 1 149 8 view .LVU141
+ 598 000e 88B9     		cbnz	r0, .L50
+ 599 0010 0646     		mov	r6, r0
+ 152:mri/core/memory.c ****         return 0;
+ 600              		.loc 1 152 5 is_stmt 1 view .LVU142
+ 152:mri/core/memory.c ****         return 0;
+ 601              		.loc 1 152 10 is_stmt 0 view .LVU143
+ 602 0012 0222     		movs	r2, #2
+ 603 0014 0DF10601 		add	r1, sp, #6
+ 604 0018 2846     		mov	r0, r5
+ 605 001a FFF7FEFF 		bl	readBytesFromHexBuffer
+ 606              	.LVL60:
+ 152:mri/core/memory.c ****         return 0;
+ 607              		.loc 1 152 8 view .LVU144
+ 608 001e 70B1     		cbz	r0, .L45
+ 155:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 609              		.loc 1 155 5 is_stmt 1 view .LVU145
+ 610 0020 BDF80610 		ldrh	r1, [sp, #6]
+ 611 0024 2046     		mov	r0, r4
+ 612 0026 FFF7FEFF 		bl	mriPlatform_MemWrite16
+ 613              	.LVL61:
+ 156:mri/core/memory.c ****         return 0;
+ 614              		.loc 1 156 5 view .LVU146
+ 156:mri/core/memory.c ****         return 0;
+ 615              		.loc 1 156 9 is_stmt 0 view .LVU147
+ 616 002a FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 617              	.LVL62:
+ARM GAS  /tmp/ccZm76ny.s 			page 18
+
+
+ 156:mri/core/memory.c ****         return 0;
+ 618              		.loc 1 156 8 view .LVU148
+ 619 002e 40B9     		cbnz	r0, .L48
+ 159:mri/core/memory.c **** }
+ 620              		.loc 1 159 12 view .LVU149
+ 621 0030 0120     		movs	r0, #1
+ 622 0032 04E0     		b	.L45
+ 623              	.L50:
+ 150:mri/core/memory.c **** 
+ 624              		.loc 1 150 9 is_stmt 1 view .LVU150
+ 150:mri/core/memory.c **** 
+ 625              		.loc 1 150 16 is_stmt 0 view .LVU151
+ 626 0034 0222     		movs	r2, #2
+ 627 0036 2146     		mov	r1, r4
+ 628 0038 2846     		mov	r0, r5
+ 629 003a FFF7FEFF 		bl	writeHexBufferToByteMemory
+ 630              	.LVL63:
+ 631              	.L45:
+ 160:mri/core/memory.c **** 
+ 632              		.loc 1 160 1 view .LVU152
+ 633 003e 02B0     		add	sp, sp, #8
+ 634              	.LCFI14:
+ 635              		.cfi_remember_state
+ 636              		.cfi_def_cfa_offset 16
+ 637              		@ sp needed
+ 638 0040 70BD     		pop	{r4, r5, r6, pc}
+ 639              	.LVL64:
+ 640              	.L48:
+ 641              	.LCFI15:
+ 642              		.cfi_restore_state
+ 157:mri/core/memory.c **** 
+ 643              		.loc 1 157 16 view .LVU153
+ 644 0042 3046     		mov	r0, r6
+ 645 0044 FBE7     		b	.L45
+ 646              		.cfi_endproc
+ 647              	.LFE12:
+ 649              		.section	.text.writeHexBufferToWordMemory,"ax",%progbits
+ 650              		.align	1
+ 651              		.syntax unified
+ 652              		.thumb
+ 653              		.thumb_func
+ 655              	writeHexBufferToWordMemory:
+ 656              	.LVL65:
+ 657              	.LFB14:
+ 174:mri/core/memory.c **** 
+ 175:mri/core/memory.c **** static int writeHexBufferToWordMemory(Buffer* pBuffer, void* pvMemory)
+ 176:mri/core/memory.c **** {
+ 658              		.loc 1 176 1 is_stmt 1 view -0
+ 659              		.cfi_startproc
+ 660              		@ args = 0, pretend = 0, frame = 8
+ 661              		@ frame_needed = 0, uses_anonymous_args = 0
+ 662              		.loc 1 176 1 is_stmt 0 view .LVU155
+ 663 0000 70B5     		push	{r4, r5, r6, lr}
+ 664              	.LCFI16:
+ 665              		.cfi_def_cfa_offset 16
+ 666              		.cfi_offset 4, -16
+ 667              		.cfi_offset 5, -12
+ARM GAS  /tmp/ccZm76ny.s 			page 19
+
+
+ 668              		.cfi_offset 6, -8
+ 669              		.cfi_offset 14, -4
+ 670 0002 82B0     		sub	sp, sp, #8
+ 671              	.LCFI17:
+ 672              		.cfi_def_cfa_offset 24
+ 673 0004 0546     		mov	r5, r0
+ 674 0006 0C46     		mov	r4, r1
+ 177:mri/core/memory.c ****     uint32_t value;
+ 675              		.loc 1 177 5 is_stmt 1 view .LVU156
+ 178:mri/core/memory.c **** 
+ 179:mri/core/memory.c ****     if (isNotWordAligned(pvMemory))
+ 676              		.loc 1 179 5 view .LVU157
+ 677              		.loc 1 179 9 is_stmt 0 view .LVU158
+ 678 0008 0846     		mov	r0, r1
+ 679              	.LVL66:
+ 680              		.loc 1 179 9 view .LVU159
+ 681 000a FFF7FEFF 		bl	isNotWordAligned
+ 682              	.LVL67:
+ 683              		.loc 1 179 8 view .LVU160
+ 684 000e 80B9     		cbnz	r0, .L56
+ 685 0010 0646     		mov	r6, r0
+ 180:mri/core/memory.c ****         return writeHexBufferToByteMemory(pBuffer, pvMemory, 4);
+ 181:mri/core/memory.c **** 
+ 182:mri/core/memory.c ****     if (!readBytesFromHexBuffer(pBuffer, &value, sizeof(value)))
+ 686              		.loc 1 182 5 is_stmt 1 view .LVU161
+ 687              		.loc 1 182 10 is_stmt 0 view .LVU162
+ 688 0012 0422     		movs	r2, #4
+ 689 0014 0DEB0201 		add	r1, sp, r2
+ 690 0018 2846     		mov	r0, r5
+ 691 001a FFF7FEFF 		bl	readBytesFromHexBuffer
+ 692              	.LVL68:
+ 693              		.loc 1 182 8 view .LVU163
+ 694 001e 68B1     		cbz	r0, .L51
+ 183:mri/core/memory.c ****         return 0;
+ 184:mri/core/memory.c **** 
+ 185:mri/core/memory.c ****     Platform_MemWrite32(pvMemory, value);
+ 695              		.loc 1 185 5 is_stmt 1 view .LVU164
+ 696 0020 0199     		ldr	r1, [sp, #4]
+ 697 0022 2046     		mov	r0, r4
+ 698 0024 FFF7FEFF 		bl	mriPlatform_MemWrite32
+ 699              	.LVL69:
+ 186:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 700              		.loc 1 186 5 view .LVU165
+ 701              		.loc 1 186 9 is_stmt 0 view .LVU166
+ 702 0028 FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 703              	.LVL70:
+ 704              		.loc 1 186 8 view .LVU167
+ 705 002c 40B9     		cbnz	r0, .L54
+ 187:mri/core/memory.c ****         return 0;
+ 188:mri/core/memory.c **** 
+ 189:mri/core/memory.c ****     return 1;
+ 706              		.loc 1 189 12 view .LVU168
+ 707 002e 0120     		movs	r0, #1
+ 708 0030 04E0     		b	.L51
+ 709              	.L56:
+ 180:mri/core/memory.c **** 
+ 710              		.loc 1 180 9 is_stmt 1 view .LVU169
+ARM GAS  /tmp/ccZm76ny.s 			page 20
+
+
+ 180:mri/core/memory.c **** 
+ 711              		.loc 1 180 16 is_stmt 0 view .LVU170
+ 712 0032 0422     		movs	r2, #4
+ 713 0034 2146     		mov	r1, r4
+ 714 0036 2846     		mov	r0, r5
+ 715 0038 FFF7FEFF 		bl	writeHexBufferToByteMemory
+ 716              	.LVL71:
+ 717              	.L51:
+ 190:mri/core/memory.c **** }
+ 718              		.loc 1 190 1 view .LVU171
+ 719 003c 02B0     		add	sp, sp, #8
+ 720              	.LCFI18:
+ 721              		.cfi_remember_state
+ 722              		.cfi_def_cfa_offset 16
+ 723              		@ sp needed
+ 724 003e 70BD     		pop	{r4, r5, r6, pc}
+ 725              	.LVL72:
+ 726              	.L54:
+ 727              	.LCFI19:
+ 728              		.cfi_restore_state
+ 187:mri/core/memory.c ****         return 0;
+ 729              		.loc 1 187 16 view .LVU172
+ 730 0040 3046     		mov	r0, r6
+ 731 0042 FBE7     		b	.L51
+ 732              		.cfi_endproc
+ 733              	.LFE14:
+ 735              		.section	.text.readBytesFromBinaryBuffer,"ax",%progbits
+ 736              		.align	1
+ 737              		.syntax unified
+ 738              		.thumb
+ 739              		.thumb_func
+ 741              	readBytesFromBinaryBuffer:
+ 742              	.LVL73:
+ 743              	.LFB18:
+ 191:mri/core/memory.c **** 
+ 192:mri/core/memory.c **** 
+ 193:mri/core/memory.c **** static int  writeBinaryBufferToByteMemory(Buffer*  pBuffer, void* pvMemory, uint32_t writeByteCount
+ 194:mri/core/memory.c **** static int  writeBinaryBufferToHalfWordMemory(Buffer* pBuffer, void* pvMemory);
+ 195:mri/core/memory.c **** static int readBytesFromBinaryBuffer(Buffer*  pBuffer, void* pvMemory, uint32_t writeByteCount);
+ 196:mri/core/memory.c **** static int  writeBinaryBufferToWordMemory(Buffer* pBuffer, void* pvMemory);
+ 197:mri/core/memory.c **** int WriteBinaryBufferToMemory(Buffer* pBuffer, void* pvMemory, uint32_t writeByteCount)
+ 198:mri/core/memory.c **** {
+ 199:mri/core/memory.c ****     switch (writeByteCount)
+ 200:mri/core/memory.c ****     {
+ 201:mri/core/memory.c ****     case 2:
+ 202:mri/core/memory.c ****         return writeBinaryBufferToHalfWordMemory(pBuffer, pvMemory);
+ 203:mri/core/memory.c ****     case 4:
+ 204:mri/core/memory.c ****         return writeBinaryBufferToWordMemory(pBuffer, pvMemory);
+ 205:mri/core/memory.c ****     default:
+ 206:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, writeByteCount);
+ 207:mri/core/memory.c ****     }
+ 208:mri/core/memory.c **** }
+ 209:mri/core/memory.c **** 
+ 210:mri/core/memory.c **** static int writeBinaryBufferToByteMemory(Buffer*  pBuffer, void* pvMemory, uint32_t writeByteCount)
+ 211:mri/core/memory.c **** {
+ 212:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 213:mri/core/memory.c **** 
+ARM GAS  /tmp/ccZm76ny.s 			page 21
+
+
+ 214:mri/core/memory.c ****     while (writeByteCount-- > 0)
+ 215:mri/core/memory.c ****     {
+ 216:mri/core/memory.c ****         char currChar;
+ 217:mri/core/memory.c **** 
+ 218:mri/core/memory.c ****         __try
+ 219:mri/core/memory.c ****             currChar = Buffer_ReadChar(pBuffer);
+ 220:mri/core/memory.c ****         __catch
+ 221:mri/core/memory.c ****             __rethrow_and_return(0);
+ 222:mri/core/memory.c **** 
+ 223:mri/core/memory.c ****         Platform_MemWrite8(p++, (uint8_t)currChar);
+ 224:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 225:mri/core/memory.c ****             return 0;
+ 226:mri/core/memory.c ****     }
+ 227:mri/core/memory.c **** 
+ 228:mri/core/memory.c ****     return 1;
+ 229:mri/core/memory.c **** }
+ 230:mri/core/memory.c **** 
+ 231:mri/core/memory.c **** static int writeBinaryBufferToHalfWordMemory(Buffer* pBuffer, void* pvMemory)
+ 232:mri/core/memory.c **** {
+ 233:mri/core/memory.c ****     uint16_t value;
+ 234:mri/core/memory.c **** 
+ 235:mri/core/memory.c ****     if (isNotHalfWordAligned(pvMemory))
+ 236:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, 2);
+ 237:mri/core/memory.c **** 
+ 238:mri/core/memory.c ****     if (!readBytesFromBinaryBuffer(pBuffer, &value, sizeof(value)))
+ 239:mri/core/memory.c ****         return 0;
+ 240:mri/core/memory.c **** 
+ 241:mri/core/memory.c ****     Platform_MemWrite16(pvMemory, value);
+ 242:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 243:mri/core/memory.c ****         return 0;
+ 244:mri/core/memory.c **** 
+ 245:mri/core/memory.c ****     return 1;
+ 246:mri/core/memory.c **** }
+ 247:mri/core/memory.c **** 
+ 248:mri/core/memory.c **** static int readBytesFromBinaryBuffer(Buffer*  pBuffer, void* pvMemory, uint32_t writeByteCount)
+ 249:mri/core/memory.c **** {
+ 744              		.loc 1 249 1 is_stmt 1 view -0
+ 745              		.cfi_startproc
+ 746              		@ args = 0, pretend = 0, frame = 0
+ 747              		@ frame_needed = 0, uses_anonymous_args = 0
+ 748              		.loc 1 249 1 is_stmt 0 view .LVU174
+ 749 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 750              	.LCFI20:
+ 751              		.cfi_def_cfa_offset 24
+ 752              		.cfi_offset 3, -24
+ 753              		.cfi_offset 4, -20
+ 754              		.cfi_offset 5, -16
+ 755              		.cfi_offset 6, -12
+ 756              		.cfi_offset 7, -8
+ 757              		.cfi_offset 14, -4
+ 758 0002 0746     		mov	r7, r0
+ 759 0004 0C46     		mov	r4, r1
+ 760 0006 1546     		mov	r5, r2
+ 250:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 761              		.loc 1 250 5 is_stmt 1 view .LVU175
+ 762              	.LVL74:
+ 251:mri/core/memory.c **** 
+ARM GAS  /tmp/ccZm76ny.s 			page 22
+
+
+ 252:mri/core/memory.c ****     while (writeByteCount-- > 0)
+ 763              		.loc 1 252 5 view .LVU176
+ 764              	.L58:
+ 765              		.loc 1 252 29 view .LVU177
+ 766 0008 2B46     		mov	r3, r5
+ 767              		.loc 1 252 26 is_stmt 0 view .LVU178
+ 768 000a 013D     		subs	r5, r5, #1
+ 769              	.LVL75:
+ 770              		.loc 1 252 29 view .LVU179
+ 771 000c 63B1     		cbz	r3, .L63
+ 253:mri/core/memory.c ****     {
+ 254:mri/core/memory.c ****         __try
+ 772              		.loc 1 254 9 is_stmt 1 view .LVU180
+ 773              		.loc 1 254 9 view .LVU181
+ 774              	.LBB20:
+ 775              	.LBI20:
+  76:mri/core/try_catch.h **** {
+ 776              		.loc 2 76 20 view .LVU182
+ 777              	.LBB21:
+ 778              		.loc 2 78 5 view .LVU183
+ 779              		.loc 2 78 22 is_stmt 0 view .LVU184
+ 780 000e 074E     		ldr	r6, .L64
+ 781 0010 0023     		movs	r3, #0
+ 782 0012 3360     		str	r3, [r6]
+ 783              	.LBE21:
+ 784              	.LBE20:
+ 255:mri/core/memory.c ****             *p++ = Buffer_ReadChar(pBuffer);
+ 785              		.loc 1 255 13 is_stmt 1 view .LVU185
+ 786              	.LVL76:
+ 787              		.loc 1 255 20 is_stmt 0 view .LVU186
+ 788 0014 3846     		mov	r0, r7
+ 789 0016 FFF7FEFF 		bl	mriBuffer_ReadChar
+ 790              	.LVL77:
+ 791              		.loc 1 255 18 view .LVU187
+ 792 001a 04F8010B 		strb	r0, [r4], #1
+ 793              	.LVL78:
+ 254:mri/core/memory.c ****             *p++ = Buffer_ReadChar(pBuffer);
+ 794              		.loc 1 254 9 is_stmt 1 view .LVU188
+ 256:mri/core/memory.c ****         __catch
+ 795              		.loc 1 256 9 view .LVU189
+ 796 001e 3368     		ldr	r3, [r6]
+ 797 0020 002B     		cmp	r3, #0
+ 798 0022 F1D0     		beq	.L58
+ 257:mri/core/memory.c ****             __rethrow_and_return(0);
+ 799              		.loc 1 257 13 is_stmt 0 view .LVU190
+ 800 0024 0020     		movs	r0, #0
+ 801 0026 00E0     		b	.L57
+ 802              	.L63:
+ 258:mri/core/memory.c ****     }
+ 259:mri/core/memory.c **** 
+ 260:mri/core/memory.c ****     return 1;
+ 803              		.loc 1 260 12 view .LVU191
+ 804 0028 0120     		movs	r0, #1
+ 805              	.L57:
+ 261:mri/core/memory.c **** }
+ 806              		.loc 1 261 1 view .LVU192
+ 807 002a F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ARM GAS  /tmp/ccZm76ny.s 			page 23
+
+
+ 808              	.LVL79:
+ 809              	.L65:
+ 810              		.loc 1 261 1 view .LVU193
+ 811              		.align	2
+ 812              	.L64:
+ 813 002c 00000000 		.word	mriExceptionCode
+ 814              		.cfi_endproc
+ 815              	.LFE18:
+ 817              		.section	.text.writeBinaryBufferToByteMemory,"ax",%progbits
+ 818              		.align	1
+ 819              		.syntax unified
+ 820              		.thumb
+ 821              		.thumb_func
+ 823              	writeBinaryBufferToByteMemory:
+ 824              	.LVL80:
+ 825              	.LFB16:
+ 211:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 826              		.loc 1 211 1 is_stmt 1 view -0
+ 827              		.cfi_startproc
+ 828              		@ args = 0, pretend = 0, frame = 0
+ 829              		@ frame_needed = 0, uses_anonymous_args = 0
+ 211:mri/core/memory.c ****     uint8_t* p = (uint8_t*) pvMemory;
+ 830              		.loc 1 211 1 is_stmt 0 view .LVU195
+ 831 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 832              	.LCFI21:
+ 833              		.cfi_def_cfa_offset 24
+ 834              		.cfi_offset 4, -24
+ 835              		.cfi_offset 5, -20
+ 836              		.cfi_offset 6, -16
+ 837              		.cfi_offset 7, -12
+ 838              		.cfi_offset 8, -8
+ 839              		.cfi_offset 14, -4
+ 840 0004 0746     		mov	r7, r0
+ 841 0006 0D46     		mov	r5, r1
+ 842 0008 1446     		mov	r4, r2
+ 212:mri/core/memory.c **** 
+ 843              		.loc 1 212 5 is_stmt 1 view .LVU196
+ 844              	.LVL81:
+ 214:mri/core/memory.c ****     {
+ 845              		.loc 1 214 5 view .LVU197
+ 846              	.L67:
+ 214:mri/core/memory.c ****     {
+ 847              		.loc 1 214 29 view .LVU198
+ 848 000a 2346     		mov	r3, r4
+ 214:mri/core/memory.c ****     {
+ 849              		.loc 1 214 26 is_stmt 0 view .LVU199
+ 850 000c 013C     		subs	r4, r4, #1
+ 851              	.LVL82:
+ 214:mri/core/memory.c ****     {
+ 852              		.loc 1 214 29 view .LVU200
+ 853 000e 93B1     		cbz	r3, .L72
+ 854              	.LBB22:
+ 216:mri/core/memory.c **** 
+ 855              		.loc 1 216 9 is_stmt 1 view .LVU201
+ 218:mri/core/memory.c ****             currChar = Buffer_ReadChar(pBuffer);
+ 856              		.loc 1 218 9 view .LVU202
+ 218:mri/core/memory.c ****             currChar = Buffer_ReadChar(pBuffer);
+ARM GAS  /tmp/ccZm76ny.s 			page 24
+
+
+ 857              		.loc 1 218 9 view .LVU203
+ 858              	.LBB23:
+ 859              	.LBI23:
+  76:mri/core/try_catch.h **** {
+ 860              		.loc 2 76 20 view .LVU204
+ 861              	.LBB24:
+ 862              		.loc 2 78 5 view .LVU205
+ 863              		.loc 2 78 22 is_stmt 0 view .LVU206
+ 864 0010 0C4E     		ldr	r6, .L73
+ 865 0012 0023     		movs	r3, #0
+ 866 0014 3360     		str	r3, [r6]
+ 867              	.LBE24:
+ 868              	.LBE23:
+ 219:mri/core/memory.c ****         __catch
+ 869              		.loc 1 219 13 is_stmt 1 view .LVU207
+ 219:mri/core/memory.c ****         __catch
+ 870              		.loc 1 219 24 is_stmt 0 view .LVU208
+ 871 0016 3846     		mov	r0, r7
+ 872 0018 FFF7FEFF 		bl	mriBuffer_ReadChar
+ 873              	.LVL83:
+ 874 001c 0146     		mov	r1, r0
+ 875              	.LVL84:
+ 218:mri/core/memory.c ****             currChar = Buffer_ReadChar(pBuffer);
+ 876              		.loc 1 218 9 is_stmt 1 view .LVU209
+ 220:mri/core/memory.c ****             __rethrow_and_return(0);
+ 877              		.loc 1 220 9 view .LVU210
+ 878 001e 3668     		ldr	r6, [r6]
+ 879 0020 6EB9     		cbnz	r6, .L70
+ 223:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 880              		.loc 1 223 9 view .LVU211
+ 881 0022 05F10108 		add	r8, r5, #1
+ 882              	.LVL85:
+ 223:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 883              		.loc 1 223 9 is_stmt 0 view .LVU212
+ 884 0026 2846     		mov	r0, r5
+ 885 0028 FFF7FEFF 		bl	mriPlatform_MemWrite8
+ 886              	.LVL86:
+ 224:mri/core/memory.c ****             return 0;
+ 887              		.loc 1 224 9 is_stmt 1 view .LVU213
+ 224:mri/core/memory.c ****             return 0;
+ 888              		.loc 1 224 13 is_stmt 0 view .LVU214
+ 889 002c FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 890              	.LVL87:
+ 224:mri/core/memory.c ****             return 0;
+ 891              		.loc 1 224 12 view .LVU215
+ 892 0030 10B9     		cbnz	r0, .L66
+ 223:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 893              		.loc 1 223 9 view .LVU216
+ 894 0032 4546     		mov	r5, r8
+ 895 0034 E9E7     		b	.L67
+ 896              	.LVL88:
+ 897              	.L72:
+ 223:mri/core/memory.c ****         if (Platform_WasMemoryFaultEncountered())
+ 898              		.loc 1 223 9 view .LVU217
+ 899              	.LBE22:
+ 228:mri/core/memory.c **** }
+ 900              		.loc 1 228 12 view .LVU218
+ARM GAS  /tmp/ccZm76ny.s 			page 25
+
+
+ 901 0036 0126     		movs	r6, #1
+ 902              	.LVL89:
+ 903              	.L66:
+ 229:mri/core/memory.c **** 
+ 904              		.loc 1 229 1 view .LVU219
+ 905 0038 3046     		mov	r0, r6
+ 906 003a BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 907              	.LVL90:
+ 908              	.L70:
+ 909              	.LBB25:
+ 221:mri/core/memory.c **** 
+ 910              		.loc 1 221 13 view .LVU220
+ 911 003e 0026     		movs	r6, #0
+ 912 0040 FAE7     		b	.L66
+ 913              	.L74:
+ 914 0042 00BF     		.align	2
+ 915              	.L73:
+ 916 0044 00000000 		.word	mriExceptionCode
+ 917              	.LBE25:
+ 918              		.cfi_endproc
+ 919              	.LFE16:
+ 921              		.section	.text.writeBinaryBufferToHalfWordMemory,"ax",%progbits
+ 922              		.align	1
+ 923              		.syntax unified
+ 924              		.thumb
+ 925              		.thumb_func
+ 927              	writeBinaryBufferToHalfWordMemory:
+ 928              	.LVL91:
+ 929              	.LFB17:
+ 232:mri/core/memory.c ****     uint16_t value;
+ 930              		.loc 1 232 1 is_stmt 1 view -0
+ 931              		.cfi_startproc
+ 932              		@ args = 0, pretend = 0, frame = 8
+ 933              		@ frame_needed = 0, uses_anonymous_args = 0
+ 232:mri/core/memory.c ****     uint16_t value;
+ 934              		.loc 1 232 1 is_stmt 0 view .LVU222
+ 935 0000 70B5     		push	{r4, r5, r6, lr}
+ 936              	.LCFI22:
+ 937              		.cfi_def_cfa_offset 16
+ 938              		.cfi_offset 4, -16
+ 939              		.cfi_offset 5, -12
+ 940              		.cfi_offset 6, -8
+ 941              		.cfi_offset 14, -4
+ 942 0002 82B0     		sub	sp, sp, #8
+ 943              	.LCFI23:
+ 944              		.cfi_def_cfa_offset 24
+ 945 0004 0546     		mov	r5, r0
+ 946 0006 0C46     		mov	r4, r1
+ 233:mri/core/memory.c **** 
+ 947              		.loc 1 233 5 is_stmt 1 view .LVU223
+ 235:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, 2);
+ 948              		.loc 1 235 5 view .LVU224
+ 235:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, 2);
+ 949              		.loc 1 235 9 is_stmt 0 view .LVU225
+ 950 0008 0846     		mov	r0, r1
+ 951              	.LVL92:
+ 235:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, 2);
+ARM GAS  /tmp/ccZm76ny.s 			page 26
+
+
+ 952              		.loc 1 235 9 view .LVU226
+ 953 000a FFF7FEFF 		bl	isNotHalfWordAligned
+ 954              	.LVL93:
+ 235:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, 2);
+ 955              		.loc 1 235 8 view .LVU227
+ 956 000e 88B9     		cbnz	r0, .L80
+ 957 0010 0646     		mov	r6, r0
+ 238:mri/core/memory.c ****         return 0;
+ 958              		.loc 1 238 5 is_stmt 1 view .LVU228
+ 238:mri/core/memory.c ****         return 0;
+ 959              		.loc 1 238 10 is_stmt 0 view .LVU229
+ 960 0012 0222     		movs	r2, #2
+ 961 0014 0DF10601 		add	r1, sp, #6
+ 962 0018 2846     		mov	r0, r5
+ 963 001a FFF7FEFF 		bl	readBytesFromBinaryBuffer
+ 964              	.LVL94:
+ 238:mri/core/memory.c ****         return 0;
+ 965              		.loc 1 238 8 view .LVU230
+ 966 001e 70B1     		cbz	r0, .L75
+ 241:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 967              		.loc 1 241 5 is_stmt 1 view .LVU231
+ 968 0020 BDF80610 		ldrh	r1, [sp, #6]
+ 969 0024 2046     		mov	r0, r4
+ 970 0026 FFF7FEFF 		bl	mriPlatform_MemWrite16
+ 971              	.LVL95:
+ 242:mri/core/memory.c ****         return 0;
+ 972              		.loc 1 242 5 view .LVU232
+ 242:mri/core/memory.c ****         return 0;
+ 973              		.loc 1 242 9 is_stmt 0 view .LVU233
+ 974 002a FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 975              	.LVL96:
+ 242:mri/core/memory.c ****         return 0;
+ 976              		.loc 1 242 8 view .LVU234
+ 977 002e 40B9     		cbnz	r0, .L78
+ 245:mri/core/memory.c **** }
+ 978              		.loc 1 245 12 view .LVU235
+ 979 0030 0120     		movs	r0, #1
+ 980 0032 04E0     		b	.L75
+ 981              	.L80:
+ 236:mri/core/memory.c **** 
+ 982              		.loc 1 236 9 is_stmt 1 view .LVU236
+ 236:mri/core/memory.c **** 
+ 983              		.loc 1 236 16 is_stmt 0 view .LVU237
+ 984 0034 0222     		movs	r2, #2
+ 985 0036 2146     		mov	r1, r4
+ 986 0038 2846     		mov	r0, r5
+ 987 003a FFF7FEFF 		bl	writeBinaryBufferToByteMemory
+ 988              	.LVL97:
+ 989              	.L75:
+ 246:mri/core/memory.c **** 
+ 990              		.loc 1 246 1 view .LVU238
+ 991 003e 02B0     		add	sp, sp, #8
+ 992              	.LCFI24:
+ 993              		.cfi_remember_state
+ 994              		.cfi_def_cfa_offset 16
+ 995              		@ sp needed
+ 996 0040 70BD     		pop	{r4, r5, r6, pc}
+ARM GAS  /tmp/ccZm76ny.s 			page 27
+
+
+ 997              	.LVL98:
+ 998              	.L78:
+ 999              	.LCFI25:
+ 1000              		.cfi_restore_state
+ 243:mri/core/memory.c **** 
+ 1001              		.loc 1 243 16 view .LVU239
+ 1002 0042 3046     		mov	r0, r6
+ 1003 0044 FBE7     		b	.L75
+ 1004              		.cfi_endproc
+ 1005              	.LFE17:
+ 1007              		.section	.text.writeBinaryBufferToWordMemory,"ax",%progbits
+ 1008              		.align	1
+ 1009              		.syntax unified
+ 1010              		.thumb
+ 1011              		.thumb_func
+ 1013              	writeBinaryBufferToWordMemory:
+ 1014              	.LVL99:
+ 1015              	.LFB19:
+ 262:mri/core/memory.c **** 
+ 263:mri/core/memory.c **** static int writeBinaryBufferToWordMemory(Buffer* pBuffer, void* pvMemory)
+ 264:mri/core/memory.c **** {
+ 1016              		.loc 1 264 1 is_stmt 1 view -0
+ 1017              		.cfi_startproc
+ 1018              		@ args = 0, pretend = 0, frame = 8
+ 1019              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1020              		.loc 1 264 1 is_stmt 0 view .LVU241
+ 1021 0000 70B5     		push	{r4, r5, r6, lr}
+ 1022              	.LCFI26:
+ 1023              		.cfi_def_cfa_offset 16
+ 1024              		.cfi_offset 4, -16
+ 1025              		.cfi_offset 5, -12
+ 1026              		.cfi_offset 6, -8
+ 1027              		.cfi_offset 14, -4
+ 1028 0002 82B0     		sub	sp, sp, #8
+ 1029              	.LCFI27:
+ 1030              		.cfi_def_cfa_offset 24
+ 1031 0004 0546     		mov	r5, r0
+ 1032 0006 0C46     		mov	r4, r1
+ 265:mri/core/memory.c ****     uint32_t value;
+ 1033              		.loc 1 265 5 is_stmt 1 view .LVU242
+ 266:mri/core/memory.c **** 
+ 267:mri/core/memory.c ****     if (isNotWordAligned(pvMemory))
+ 1034              		.loc 1 267 5 view .LVU243
+ 1035              		.loc 1 267 9 is_stmt 0 view .LVU244
+ 1036 0008 0846     		mov	r0, r1
+ 1037              	.LVL100:
+ 1038              		.loc 1 267 9 view .LVU245
+ 1039 000a FFF7FEFF 		bl	isNotWordAligned
+ 1040              	.LVL101:
+ 1041              		.loc 1 267 8 view .LVU246
+ 1042 000e 80B9     		cbnz	r0, .L86
+ 1043 0010 0646     		mov	r6, r0
+ 268:mri/core/memory.c ****         return writeBinaryBufferToByteMemory(pBuffer, pvMemory, 4);
+ 269:mri/core/memory.c **** 
+ 270:mri/core/memory.c ****     if (!readBytesFromBinaryBuffer(pBuffer, &value, sizeof(value)))
+ 1044              		.loc 1 270 5 is_stmt 1 view .LVU247
+ 1045              		.loc 1 270 10 is_stmt 0 view .LVU248
+ARM GAS  /tmp/ccZm76ny.s 			page 28
+
+
+ 1046 0012 0422     		movs	r2, #4
+ 1047 0014 0DEB0201 		add	r1, sp, r2
+ 1048 0018 2846     		mov	r0, r5
+ 1049 001a FFF7FEFF 		bl	readBytesFromBinaryBuffer
+ 1050              	.LVL102:
+ 1051              		.loc 1 270 8 view .LVU249
+ 1052 001e 68B1     		cbz	r0, .L81
+ 271:mri/core/memory.c ****         return 0;
+ 272:mri/core/memory.c **** 
+ 273:mri/core/memory.c ****     Platform_MemWrite32(pvMemory, value);
+ 1053              		.loc 1 273 5 is_stmt 1 view .LVU250
+ 1054 0020 0199     		ldr	r1, [sp, #4]
+ 1055 0022 2046     		mov	r0, r4
+ 1056 0024 FFF7FEFF 		bl	mriPlatform_MemWrite32
+ 1057              	.LVL103:
+ 274:mri/core/memory.c ****     if (Platform_WasMemoryFaultEncountered())
+ 1058              		.loc 1 274 5 view .LVU251
+ 1059              		.loc 1 274 9 is_stmt 0 view .LVU252
+ 1060 0028 FFF7FEFF 		bl	mriPlatform_WasMemoryFaultEncountered
+ 1061              	.LVL104:
+ 1062              		.loc 1 274 8 view .LVU253
+ 1063 002c 40B9     		cbnz	r0, .L84
+ 275:mri/core/memory.c ****         return 0;
+ 276:mri/core/memory.c **** 
+ 277:mri/core/memory.c ****     return 1;
+ 1064              		.loc 1 277 12 view .LVU254
+ 1065 002e 0120     		movs	r0, #1
+ 1066 0030 04E0     		b	.L81
+ 1067              	.L86:
+ 268:mri/core/memory.c **** 
+ 1068              		.loc 1 268 9 is_stmt 1 view .LVU255
+ 268:mri/core/memory.c **** 
+ 1069              		.loc 1 268 16 is_stmt 0 view .LVU256
+ 1070 0032 0422     		movs	r2, #4
+ 1071 0034 2146     		mov	r1, r4
+ 1072 0036 2846     		mov	r0, r5
+ 1073 0038 FFF7FEFF 		bl	writeBinaryBufferToByteMemory
+ 1074              	.LVL105:
+ 1075              	.L81:
+ 278:mri/core/memory.c **** }
+ 1076              		.loc 1 278 1 view .LVU257
+ 1077 003c 02B0     		add	sp, sp, #8
+ 1078              	.LCFI28:
+ 1079              		.cfi_remember_state
+ 1080              		.cfi_def_cfa_offset 16
+ 1081              		@ sp needed
+ 1082 003e 70BD     		pop	{r4, r5, r6, pc}
+ 1083              	.LVL106:
+ 1084              	.L84:
+ 1085              	.LCFI29:
+ 1086              		.cfi_restore_state
+ 275:mri/core/memory.c ****         return 0;
+ 1087              		.loc 1 275 16 view .LVU258
+ 1088 0040 3046     		mov	r0, r6
+ 1089 0042 FBE7     		b	.L81
+ 1090              		.cfi_endproc
+ 1091              	.LFE19:
+ARM GAS  /tmp/ccZm76ny.s 			page 29
+
+
+ 1093              		.section	.text.mriMem_ReadMemoryIntoHexBuffer,"ax",%progbits
+ 1094              		.align	1
+ 1095              		.global	mriMem_ReadMemoryIntoHexBuffer
+ 1096              		.syntax unified
+ 1097              		.thumb
+ 1098              		.thumb_func
+ 1100              	mriMem_ReadMemoryIntoHexBuffer:
+ 1101              	.LVL107:
+ 1102              	.LFB3:
+  27:mri/core/memory.c ****     switch (readByteCount)
+ 1103              		.loc 1 27 1 is_stmt 1 view -0
+ 1104              		.cfi_startproc
+ 1105              		@ args = 0, pretend = 0, frame = 0
+ 1106              		@ frame_needed = 0, uses_anonymous_args = 0
+  27:mri/core/memory.c ****     switch (readByteCount)
+ 1107              		.loc 1 27 1 is_stmt 0 view .LVU260
+ 1108 0000 08B5     		push	{r3, lr}
+ 1109              	.LCFI30:
+ 1110              		.cfi_def_cfa_offset 8
+ 1111              		.cfi_offset 3, -8
+ 1112              		.cfi_offset 14, -4
+  28:mri/core/memory.c ****     {
+ 1113              		.loc 1 28 5 is_stmt 1 view .LVU261
+ 1114 0002 022A     		cmp	r2, #2
+ 1115 0004 04D0     		beq	.L88
+ 1116 0006 042A     		cmp	r2, #4
+ 1117 0008 05D0     		beq	.L89
+  35:mri/core/memory.c ****     }
+ 1118              		.loc 1 35 9 view .LVU262
+  35:mri/core/memory.c ****     }
+ 1119              		.loc 1 35 16 is_stmt 0 view .LVU263
+ 1120 000a FFF7FEFF 		bl	readMemoryBytesIntoHexBuffer
+ 1121              	.LVL108:
+  35:mri/core/memory.c ****     }
+ 1122              		.loc 1 35 16 view .LVU264
+ 1123 000e 01E0     		b	.L87
+ 1124              	.LVL109:
+ 1125              	.L88:
+  31:mri/core/memory.c ****     case 4:
+ 1126              		.loc 1 31 9 is_stmt 1 view .LVU265
+  31:mri/core/memory.c ****     case 4:
+ 1127              		.loc 1 31 16 is_stmt 0 view .LVU266
+ 1128 0010 FFF7FEFF 		bl	readMemoryHalfWordIntoHexBuffer
+ 1129              	.LVL110:
+ 1130              	.L87:
+  37:mri/core/memory.c **** 
+ 1131              		.loc 1 37 1 view .LVU267
+ 1132 0014 08BD     		pop	{r3, pc}
+ 1133              	.LVL111:
+ 1134              	.L89:
+  33:mri/core/memory.c ****     default:
+ 1135              		.loc 1 33 9 is_stmt 1 view .LVU268
+  33:mri/core/memory.c ****     default:
+ 1136              		.loc 1 33 16 is_stmt 0 view .LVU269
+ 1137 0016 FFF7FEFF 		bl	readMemoryWordIntoHexBuffer
+ 1138              	.LVL112:
+  33:mri/core/memory.c ****     default:
+ARM GAS  /tmp/ccZm76ny.s 			page 30
+
+
+ 1139              		.loc 1 33 16 view .LVU270
+ 1140 001a FBE7     		b	.L87
+ 1141              		.cfi_endproc
+ 1142              	.LFE3:
+ 1144              		.section	.text.mriMem_WriteHexBufferToMemory,"ax",%progbits
+ 1145              		.align	1
+ 1146              		.global	mriMem_WriteHexBufferToMemory
+ 1147              		.syntax unified
+ 1148              		.thumb
+ 1149              		.thumb_func
+ 1151              	mriMem_WriteHexBufferToMemory:
+ 1152              	.LVL113:
+ 1153              	.LFB10:
+ 112:mri/core/memory.c ****     switch (writeByteCount)
+ 1154              		.loc 1 112 1 is_stmt 1 view -0
+ 1155              		.cfi_startproc
+ 1156              		@ args = 0, pretend = 0, frame = 0
+ 1157              		@ frame_needed = 0, uses_anonymous_args = 0
+ 112:mri/core/memory.c ****     switch (writeByteCount)
+ 1158              		.loc 1 112 1 is_stmt 0 view .LVU272
+ 1159 0000 08B5     		push	{r3, lr}
+ 1160              	.LCFI31:
+ 1161              		.cfi_def_cfa_offset 8
+ 1162              		.cfi_offset 3, -8
+ 1163              		.cfi_offset 14, -4
+ 113:mri/core/memory.c ****     {
+ 1164              		.loc 1 113 5 is_stmt 1 view .LVU273
+ 1165 0002 022A     		cmp	r2, #2
+ 1166 0004 04D0     		beq	.L95
+ 1167 0006 042A     		cmp	r2, #4
+ 1168 0008 05D0     		beq	.L96
+ 120:mri/core/memory.c ****     }
+ 1169              		.loc 1 120 9 view .LVU274
+ 120:mri/core/memory.c ****     }
+ 1170              		.loc 1 120 16 is_stmt 0 view .LVU275
+ 1171 000a FFF7FEFF 		bl	writeHexBufferToByteMemory
+ 1172              	.LVL114:
+ 120:mri/core/memory.c ****     }
+ 1173              		.loc 1 120 16 view .LVU276
+ 1174 000e 01E0     		b	.L94
+ 1175              	.LVL115:
+ 1176              	.L95:
+ 116:mri/core/memory.c ****     case 4:
+ 1177              		.loc 1 116 9 is_stmt 1 view .LVU277
+ 116:mri/core/memory.c ****     case 4:
+ 1178              		.loc 1 116 16 is_stmt 0 view .LVU278
+ 1179 0010 FFF7FEFF 		bl	writeHexBufferToHalfWordMemory
+ 1180              	.LVL116:
+ 1181              	.L94:
+ 122:mri/core/memory.c **** 
+ 1182              		.loc 1 122 1 view .LVU279
+ 1183 0014 08BD     		pop	{r3, pc}
+ 1184              	.LVL117:
+ 1185              	.L96:
+ 118:mri/core/memory.c ****     default:
+ 1186              		.loc 1 118 9 is_stmt 1 view .LVU280
+ 118:mri/core/memory.c ****     default:
+ARM GAS  /tmp/ccZm76ny.s 			page 31
+
+
+ 1187              		.loc 1 118 16 is_stmt 0 view .LVU281
+ 1188 0016 FFF7FEFF 		bl	writeHexBufferToWordMemory
+ 1189              	.LVL118:
+ 118:mri/core/memory.c ****     default:
+ 1190              		.loc 1 118 16 view .LVU282
+ 1191 001a FBE7     		b	.L94
+ 1192              		.cfi_endproc
+ 1193              	.LFE10:
+ 1195              		.section	.text.mriMem_WriteBinaryBufferToMemory,"ax",%progbits
+ 1196              		.align	1
+ 1197              		.global	mriMem_WriteBinaryBufferToMemory
+ 1198              		.syntax unified
+ 1199              		.thumb
+ 1200              		.thumb_func
+ 1202              	mriMem_WriteBinaryBufferToMemory:
+ 1203              	.LVL119:
+ 1204              	.LFB15:
+ 198:mri/core/memory.c ****     switch (writeByteCount)
+ 1205              		.loc 1 198 1 is_stmt 1 view -0
+ 1206              		.cfi_startproc
+ 1207              		@ args = 0, pretend = 0, frame = 0
+ 1208              		@ frame_needed = 0, uses_anonymous_args = 0
+ 198:mri/core/memory.c ****     switch (writeByteCount)
+ 1209              		.loc 1 198 1 is_stmt 0 view .LVU284
+ 1210 0000 08B5     		push	{r3, lr}
+ 1211              	.LCFI32:
+ 1212              		.cfi_def_cfa_offset 8
+ 1213              		.cfi_offset 3, -8
+ 1214              		.cfi_offset 14, -4
+ 199:mri/core/memory.c ****     {
+ 1215              		.loc 1 199 5 is_stmt 1 view .LVU285
+ 1216 0002 022A     		cmp	r2, #2
+ 1217 0004 04D0     		beq	.L102
+ 1218 0006 042A     		cmp	r2, #4
+ 1219 0008 05D0     		beq	.L103
+ 206:mri/core/memory.c ****     }
+ 1220              		.loc 1 206 9 view .LVU286
+ 206:mri/core/memory.c ****     }
+ 1221              		.loc 1 206 16 is_stmt 0 view .LVU287
+ 1222 000a FFF7FEFF 		bl	writeBinaryBufferToByteMemory
+ 1223              	.LVL120:
+ 206:mri/core/memory.c ****     }
+ 1224              		.loc 1 206 16 view .LVU288
+ 1225 000e 01E0     		b	.L101
+ 1226              	.LVL121:
+ 1227              	.L102:
+ 202:mri/core/memory.c ****     case 4:
+ 1228              		.loc 1 202 9 is_stmt 1 view .LVU289
+ 202:mri/core/memory.c ****     case 4:
+ 1229              		.loc 1 202 16 is_stmt 0 view .LVU290
+ 1230 0010 FFF7FEFF 		bl	writeBinaryBufferToHalfWordMemory
+ 1231              	.LVL122:
+ 1232              	.L101:
+ 208:mri/core/memory.c **** 
+ 1233              		.loc 1 208 1 view .LVU291
+ 1234 0014 08BD     		pop	{r3, pc}
+ 1235              	.LVL123:
+ARM GAS  /tmp/ccZm76ny.s 			page 32
+
+
+ 1236              	.L103:
+ 204:mri/core/memory.c ****     default:
+ 1237              		.loc 1 204 9 is_stmt 1 view .LVU292
+ 204:mri/core/memory.c ****     default:
+ 1238              		.loc 1 204 16 is_stmt 0 view .LVU293
+ 1239 0016 FFF7FEFF 		bl	writeBinaryBufferToWordMemory
+ 1240              	.LVL124:
+ 204:mri/core/memory.c ****     default:
+ 1241              		.loc 1 204 16 view .LVU294
+ 1242 001a FBE7     		b	.L101
+ 1243              		.cfi_endproc
+ 1244              	.LFE15:
+ 1246              		.text
+ 1247              	.Letext0:
+ 1248              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1249              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1250              		.file 5 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ 1251              		.file 6 "mri/core/buffer.h"
+ 1252              		.file 7 "mri/core/platforms.h"
+ARM GAS  /tmp/ccZm76ny.s 			page 33
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 memory.c
+     /tmp/ccZm76ny.s:21     .text.isNotHalfWordAligned:0000000000000000 $t
+     /tmp/ccZm76ny.s:26     .text.isNotHalfWordAligned:0000000000000000 isNotHalfWordAligned
+     /tmp/ccZm76ny.s:44     .text.isNotWordAligned:0000000000000000 $t
+     /tmp/ccZm76ny.s:49     .text.isNotWordAligned:0000000000000000 isNotWordAligned
+     /tmp/ccZm76ny.s:67     .text.writeBytesToBufferAsHex:0000000000000000 $t
+     /tmp/ccZm76ny.s:72     .text.writeBytesToBufferAsHex:0000000000000000 writeBytesToBufferAsHex
+     /tmp/ccZm76ny.s:122    .text.readMemoryBytesIntoHexBuffer:0000000000000000 $t
+     /tmp/ccZm76ny.s:127    .text.readMemoryBytesIntoHexBuffer:0000000000000000 readMemoryBytesIntoHexBuffer
+     /tmp/ccZm76ny.s:209    .text.readMemoryHalfWordIntoHexBuffer:0000000000000000 $t
+     /tmp/ccZm76ny.s:214    .text.readMemoryHalfWordIntoHexBuffer:0000000000000000 readMemoryHalfWordIntoHexBuffer
+     /tmp/ccZm76ny.s:293    .text.readMemoryWordIntoHexBuffer:0000000000000000 $t
+     /tmp/ccZm76ny.s:298    .text.readMemoryWordIntoHexBuffer:0000000000000000 readMemoryWordIntoHexBuffer
+     /tmp/ccZm76ny.s:377    .text.readBytesFromHexBuffer:0000000000000000 $t
+     /tmp/ccZm76ny.s:382    .text.readBytesFromHexBuffer:0000000000000000 readBytesFromHexBuffer
+     /tmp/ccZm76ny.s:455    .text.readBytesFromHexBuffer:000000000000002c $d
+     /tmp/ccZm76ny.s:460    .text.writeHexBufferToByteMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:465    .text.writeHexBufferToByteMemory:0000000000000000 writeHexBufferToByteMemory
+     /tmp/ccZm76ny.s:558    .text.writeHexBufferToByteMemory:0000000000000044 $d
+     /tmp/ccZm76ny.s:564    .text.writeHexBufferToHalfWordMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:569    .text.writeHexBufferToHalfWordMemory:0000000000000000 writeHexBufferToHalfWordMemory
+     /tmp/ccZm76ny.s:650    .text.writeHexBufferToWordMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:655    .text.writeHexBufferToWordMemory:0000000000000000 writeHexBufferToWordMemory
+     /tmp/ccZm76ny.s:736    .text.readBytesFromBinaryBuffer:0000000000000000 $t
+     /tmp/ccZm76ny.s:741    .text.readBytesFromBinaryBuffer:0000000000000000 readBytesFromBinaryBuffer
+     /tmp/ccZm76ny.s:813    .text.readBytesFromBinaryBuffer:000000000000002c $d
+     /tmp/ccZm76ny.s:818    .text.writeBinaryBufferToByteMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:823    .text.writeBinaryBufferToByteMemory:0000000000000000 writeBinaryBufferToByteMemory
+     /tmp/ccZm76ny.s:916    .text.writeBinaryBufferToByteMemory:0000000000000044 $d
+     /tmp/ccZm76ny.s:922    .text.writeBinaryBufferToHalfWordMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:927    .text.writeBinaryBufferToHalfWordMemory:0000000000000000 writeBinaryBufferToHalfWordMemory
+     /tmp/ccZm76ny.s:1008   .text.writeBinaryBufferToWordMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:1013   .text.writeBinaryBufferToWordMemory:0000000000000000 writeBinaryBufferToWordMemory
+     /tmp/ccZm76ny.s:1094   .text.mriMem_ReadMemoryIntoHexBuffer:0000000000000000 $t
+     /tmp/ccZm76ny.s:1100   .text.mriMem_ReadMemoryIntoHexBuffer:0000000000000000 mriMem_ReadMemoryIntoHexBuffer
+     /tmp/ccZm76ny.s:1145   .text.mriMem_WriteHexBufferToMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:1151   .text.mriMem_WriteHexBufferToMemory:0000000000000000 mriMem_WriteHexBufferToMemory
+     /tmp/ccZm76ny.s:1196   .text.mriMem_WriteBinaryBufferToMemory:0000000000000000 $t
+     /tmp/ccZm76ny.s:1202   .text.mriMem_WriteBinaryBufferToMemory:0000000000000000 mriMem_WriteBinaryBufferToMemory
+
+UNDEFINED SYMBOLS
+mriBuffer_WriteByteAsHex
+mriPlatform_MemRead8
+mriPlatform_WasMemoryFaultEncountered
+mriPlatform_MemRead16
+mriPlatform_MemRead32
+mriBuffer_ReadByteAsHex
+mriExceptionCode
+mriPlatform_MemWrite8
+mriPlatform_MemWrite16
+mriPlatform_MemWrite32
+mriBuffer_ReadChar

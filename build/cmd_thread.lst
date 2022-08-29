@@ -1,0 +1,569 @@
+ARM GAS  /tmp/ccAlcyP8.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"cmd_thread.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/cmd_thread.c"
+  20              		.section	.rodata.mriCmd_HandleThreadContextCommand.str1.4,"aMS",%progbits,1
+  21              		.align	2
+  22              	.LC0:
+  23 0000 4F4B00   		.ascii	"OK\000"
+  24 0003 00       		.align	2
+  25              	.LC1:
+  26 0004 45303100 		.ascii	"E01\000"
+  27              		.section	.text.mriCmd_HandleThreadContextCommand,"ax",%progbits
+  28              		.align	1
+  29              		.global	mriCmd_HandleThreadContextCommand
+  30              		.syntax unified
+  31              		.thumb
+  32              		.thumb_func
+  34              	mriCmd_HandleThreadContextCommand:
+  35              	.LFB3:
+   1:mri/core/cmd_thread.c **** /* Copyright 2020 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/cmd_thread.c **** 
+   3:mri/core/cmd_thread.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/cmd_thread.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/cmd_thread.c ****    You may obtain a copy of the License at
+   6:mri/core/cmd_thread.c **** 
+   7:mri/core/cmd_thread.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/cmd_thread.c **** 
+   9:mri/core/cmd_thread.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/cmd_thread.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/cmd_thread.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/cmd_thread.c ****    See the License for the specific language governing permissions and
+  13:mri/core/cmd_thread.c ****    limitations under the License.
+  14:mri/core/cmd_thread.c **** */
+  15:mri/core/cmd_thread.c **** /* Command handler for gdb commands related to threads. */
+  16:mri/core/cmd_thread.c **** #include <core/mri.h>
+  17:mri/core/cmd_thread.c **** #include <core/core.h>
+  18:mri/core/cmd_thread.c **** #include <core/cmd_thread.h>
+  19:mri/core/cmd_thread.c **** #include <core/platforms.h>
+  20:mri/core/cmd_thread.c **** #include <core/try_catch.h>
+  21:mri/core/cmd_thread.c **** 
+  22:mri/core/cmd_thread.c **** 
+  23:mri/core/cmd_thread.c **** /* Handle the 'H' command which is sent to switch thread register context.
+ARM GAS  /tmp/ccAlcyP8.s 			page 2
+
+
+  24:mri/core/cmd_thread.c **** 
+  25:mri/core/cmd_thread.c ****     Command Format:     Hgxxxxxxxx
+  26:mri/core/cmd_thread.c ****     Response Format:    OK
+  27:mri/core/cmd_thread.c **** 
+  28:mri/core/cmd_thread.c ****     Where xxxxxxxx is the hexadecimal representation of the ID for the thread to use for future reg
+  29:mri/core/cmd_thread.c ****     commands.
+  30:mri/core/cmd_thread.c **** */
+  31:mri/core/cmd_thread.c **** uint32_t HandleThreadContextCommand(void)
+  32:mri/core/cmd_thread.c **** {
+  36              		.loc 1 32 1 view -0
+  37              		.cfi_startproc
+  38              		@ args = 0, pretend = 0, frame = 0
+  39              		@ frame_needed = 0, uses_anonymous_args = 0
+  40 0000 38B5     		push	{r3, r4, r5, lr}
+  41              	.LCFI0:
+  42              		.cfi_def_cfa_offset 16
+  43              		.cfi_offset 3, -16
+  44              		.cfi_offset 4, -12
+  45              		.cfi_offset 5, -8
+  46              		.cfi_offset 14, -4
+  33:mri/core/cmd_thread.c ****     Buffer*     pBuffer = GetBuffer();
+  47              		.loc 1 33 5 view .LVU1
+  48              		.loc 1 33 27 is_stmt 0 view .LVU2
+  49 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+  50              	.LVL0:
+  51 0006 0446     		mov	r4, r0
+  52              	.LVL1:
+  34:mri/core/cmd_thread.c **** 
+  35:mri/core/cmd_thread.c ****     __try
+  53              		.loc 1 35 5 is_stmt 1 view .LVU3
+  54              		.loc 1 35 5 view .LVU4
+  55              	.LBB14:
+  56              	.LBI14:
+  57              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+ARM GAS  /tmp/ccAlcyP8.s 			page 3
+
+
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+  58              		.loc 2 76 20 view .LVU5
+  59              	.LBB15:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+ARM GAS  /tmp/ccAlcyP8.s 			page 4
+
+
+  60              		.loc 2 78 5 view .LVU6
+  61              		.loc 2 78 22 is_stmt 0 view .LVU7
+  62 0008 164D     		ldr	r5, .L9
+  63 000a 0023     		movs	r3, #0
+  64 000c 2B60     		str	r3, [r5]
+  65              	.LBE15:
+  66              	.LBE14:
+  67              	.LBB16:
+  36:mri/core/cmd_thread.c ****     {
+  37:mri/core/cmd_thread.c ****         uint32_t    threadId = 0;
+  68              		.loc 1 37 9 is_stmt 1 view .LVU8
+  69              	.LVL2:
+  38:mri/core/cmd_thread.c ****         MriContext* pContext = NULL;
+  70              		.loc 1 38 9 view .LVU9
+  39:mri/core/cmd_thread.c ****         char        ch;
+  71              		.loc 1 39 9 view .LVU10
+  40:mri/core/cmd_thread.c **** 
+  41:mri/core/cmd_thread.c ****         __throwing_func( ch = Buffer_ReadChar(pBuffer) );
+  72              		.loc 1 41 9 view .LVU11
+  73 000e FFF7FEFF 		bl	mriBuffer_ReadChar
+  74              	.LVL3:
+  75              		.loc 1 41 9 view .LVU12
+  76 0012 2B68     		ldr	r3, [r5]
+  77 0014 2BB9     		cbnz	r3, .L2
+  78              		.loc 1 41 57 discriminator 1 view .LVU13
+  42:mri/core/cmd_thread.c ****         if (ch != 'g')
+  79              		.loc 1 42 9 discriminator 1 view .LVU14
+  80              		.loc 1 42 12 is_stmt 0 discriminator 1 view .LVU15
+  81 0016 6728     		cmp	r0, #103
+  82 0018 08D0     		beq	.L3
+  43:mri/core/cmd_thread.c ****         {
+  44:mri/core/cmd_thread.c ****             setExceptionCode(invalidArgumentException);
+  83              		.loc 1 44 13 is_stmt 1 view .LVU16
+  84              	.LVL4:
+  85              	.LBB17:
+  86              	.LBI17:
+  71:mri/core/try_catch.h **** {
+  87              		.loc 2 71 20 view .LVU17
+  88              	.LBB18:
+  73:mri/core/try_catch.h **** }
+  89              		.loc 2 73 5 view .LVU18
+  73:mri/core/try_catch.h **** }
+  90              		.loc 2 73 73 is_stmt 0 view .LVU19
+  91 001a 042B     		cmp	r3, #4
+  92 001c B8BF     		it	lt
+  93 001e 0423     		movlt	r3, #4
+  73:mri/core/try_catch.h **** }
+  94              		.loc 2 73 22 view .LVU20
+  95 0020 2B60     		str	r3, [r5]
+  96              	.LVL5:
+  97              	.L2:
+  73:mri/core/try_catch.h **** }
+  98              		.loc 2 73 22 view .LVU21
+  99              	.LBE18:
+ 100              	.LBE17:
+ 101              	.LBE16:
+  35:mri/core/cmd_thread.c ****     {
+ARM GAS  /tmp/ccAlcyP8.s 			page 5
+
+
+ 102              		.loc 1 35 5 is_stmt 1 view .LVU22
+  45:mri/core/cmd_thread.c ****             break;
+  46:mri/core/cmd_thread.c ****         }
+  47:mri/core/cmd_thread.c ****         __throwing_func( threadId = Buffer_ReadUIntegerAsHex(pBuffer) );
+  48:mri/core/cmd_thread.c ****         pContext = Platform_RtosGetThreadContext(threadId);
+  49:mri/core/cmd_thread.c ****         if (pContext == NULL)
+  50:mri/core/cmd_thread.c ****         {
+  51:mri/core/cmd_thread.c ****             setExceptionCode(invalidArgumentException);
+  52:mri/core/cmd_thread.c ****             break;
+  53:mri/core/cmd_thread.c ****         }
+  54:mri/core/cmd_thread.c ****         SetContext(pContext);
+  55:mri/core/cmd_thread.c ****         PrepareStringResponse("OK");
+  56:mri/core/cmd_thread.c ****     }
+  57:mri/core/cmd_thread.c ****     __catch
+ 103              		.loc 1 57 5 view .LVU23
+ 104 0022 104B     		ldr	r3, .L9
+ 105 0024 1B68     		ldr	r3, [r3]
+ 106 0026 C3B9     		cbnz	r3, .L7
+ 107              	.L5:
+  58:mri/core/cmd_thread.c ****     {
+  59:mri/core/cmd_thread.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+  60:mri/core/cmd_thread.c ****     }
+  61:mri/core/cmd_thread.c **** 
+  62:mri/core/cmd_thread.c ****     return 0;
+ 108              		.loc 1 62 5 view .LVU24
+  63:mri/core/cmd_thread.c **** }
+ 109              		.loc 1 63 1 is_stmt 0 view .LVU25
+ 110 0028 0020     		movs	r0, #0
+ 111 002a 38BD     		pop	{r3, r4, r5, pc}
+ 112              	.LVL6:
+ 113              	.L3:
+ 114              	.LBB21:
+  47:mri/core/cmd_thread.c ****         pContext = Platform_RtosGetThreadContext(threadId);
+ 115              		.loc 1 47 9 is_stmt 1 view .LVU26
+ 116 002c 2046     		mov	r0, r4
+ 117              	.LVL7:
+  47:mri/core/cmd_thread.c ****         pContext = Platform_RtosGetThreadContext(threadId);
+ 118              		.loc 1 47 9 is_stmt 0 view .LVU27
+ 119 002e FFF7FEFF 		bl	mriBuffer_ReadUIntegerAsHex
+ 120              	.LVL8:
+  47:mri/core/cmd_thread.c ****         pContext = Platform_RtosGetThreadContext(threadId);
+ 121              		.loc 1 47 9 is_stmt 1 view .LVU28
+ 122 0032 0C4B     		ldr	r3, .L9
+ 123 0034 1B68     		ldr	r3, [r3]
+ 124 0036 002B     		cmp	r3, #0
+ 125 0038 F3D1     		bne	.L2
+  47:mri/core/cmd_thread.c ****         pContext = Platform_RtosGetThreadContext(threadId);
+ 126              		.loc 1 47 72 discriminator 1 view .LVU29
+  48:mri/core/cmd_thread.c ****         if (pContext == NULL)
+ 127              		.loc 1 48 9 discriminator 1 view .LVU30
+  48:mri/core/cmd_thread.c ****         if (pContext == NULL)
+ 128              		.loc 1 48 20 is_stmt 0 discriminator 1 view .LVU31
+ 129 003a FFF7FEFF 		bl	mriPlatform_RtosGetThreadContext
+ 130              	.LVL9:
+  49:mri/core/cmd_thread.c ****         {
+ 131              		.loc 1 49 9 is_stmt 1 discriminator 1 view .LVU32
+  49:mri/core/cmd_thread.c ****         {
+ARM GAS  /tmp/ccAlcyP8.s 			page 6
+
+
+ 132              		.loc 1 49 12 is_stmt 0 discriminator 1 view .LVU33
+ 133 003e 28B1     		cbz	r0, .L8
+  54:mri/core/cmd_thread.c ****         PrepareStringResponse("OK");
+ 134              		.loc 1 54 9 is_stmt 1 view .LVU34
+ 135 0040 FFF7FEFF 		bl	mriCore_SetContext
+ 136              	.LVL10:
+  55:mri/core/cmd_thread.c ****     }
+ 137              		.loc 1 55 9 view .LVU35
+ 138 0044 0848     		ldr	r0, .L9+4
+ 139 0046 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 140              	.LVL11:
+ 141 004a EAE7     		b	.L2
+ 142              	.LVL12:
+ 143              	.L8:
+  51:mri/core/cmd_thread.c ****             break;
+ 144              		.loc 1 51 13 view .LVU36
+ 145              	.LBB19:
+ 146              	.LBI19:
+  71:mri/core/try_catch.h **** {
+ 147              		.loc 2 71 20 view .LVU37
+ 148              	.LBB20:
+  73:mri/core/try_catch.h **** }
+ 149              		.loc 2 73 5 view .LVU38
+  73:mri/core/try_catch.h **** }
+ 150              		.loc 2 73 73 is_stmt 0 view .LVU39
+ 151 004c 054A     		ldr	r2, .L9
+ 152 004e 1368     		ldr	r3, [r2]
+ 153 0050 042B     		cmp	r3, #4
+ 154 0052 B8BF     		it	lt
+ 155 0054 0423     		movlt	r3, #4
+  73:mri/core/try_catch.h **** }
+ 156              		.loc 2 73 22 view .LVU40
+ 157 0056 1360     		str	r3, [r2]
+  74:mri/core/try_catch.h **** 
+ 158              		.loc 2 74 1 view .LVU41
+ 159 0058 E3E7     		b	.L2
+ 160              	.LVL13:
+ 161              	.L7:
+  74:mri/core/try_catch.h **** 
+ 162              		.loc 2 74 1 view .LVU42
+ 163              	.LBE20:
+ 164              	.LBE19:
+ 165              	.LBE21:
+  59:mri/core/cmd_thread.c ****     }
+ 166              		.loc 1 59 9 is_stmt 1 view .LVU43
+ 167 005a 0448     		ldr	r0, .L9+8
+ 168 005c FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 169              	.LVL14:
+ 170 0060 E2E7     		b	.L5
+ 171              	.L10:
+ 172 0062 00BF     		.align	2
+ 173              	.L9:
+ 174 0064 00000000 		.word	mriExceptionCode
+ 175 0068 00000000 		.word	.LC0
+ 176 006c 04000000 		.word	.LC1
+ 177              		.cfi_endproc
+ 178              	.LFE3:
+ARM GAS  /tmp/ccAlcyP8.s 			page 7
+
+
+ 180              		.section	.text.mriCmd_HandleIsThreadActiveCommand,"ax",%progbits
+ 181              		.align	1
+ 182              		.global	mriCmd_HandleIsThreadActiveCommand
+ 183              		.syntax unified
+ 184              		.thumb
+ 185              		.thumb_func
+ 187              	mriCmd_HandleIsThreadActiveCommand:
+ 188              	.LFB4:
+  64:mri/core/cmd_thread.c **** 
+  65:mri/core/cmd_thread.c **** 
+  66:mri/core/cmd_thread.c **** /* Handle the 'T' command which is sent to see if a thread ID is still active.
+  67:mri/core/cmd_thread.c **** 
+  68:mri/core/cmd_thread.c ****     Command Format:     Txxxxxxxx
+  69:mri/core/cmd_thread.c ****     Response Format:    OK if thread is still active.
+  70:mri/core/cmd_thread.c ****                         E01 is thread isn't active.
+  71:mri/core/cmd_thread.c **** 
+  72:mri/core/cmd_thread.c ****     Where xxxxxxxx is the hexadecimal representation of the thread ID.
+  73:mri/core/cmd_thread.c **** */
+  74:mri/core/cmd_thread.c **** uint32_t HandleIsThreadActiveCommand(void)
+  75:mri/core/cmd_thread.c **** {
+ 189              		.loc 1 75 1 view -0
+ 190              		.cfi_startproc
+ 191              		@ args = 0, pretend = 0, frame = 0
+ 192              		@ frame_needed = 0, uses_anonymous_args = 0
+ 193 0000 10B5     		push	{r4, lr}
+ 194              	.LCFI1:
+ 195              		.cfi_def_cfa_offset 8
+ 196              		.cfi_offset 4, -8
+ 197              		.cfi_offset 14, -4
+  76:mri/core/cmd_thread.c ****     Buffer*     pBuffer = GetBuffer();
+ 198              		.loc 1 76 5 view .LVU45
+ 199              		.loc 1 76 27 is_stmt 0 view .LVU46
+ 200 0002 FFF7FEFF 		bl	mriCore_GetBuffer
+ 201              	.LVL15:
+  77:mri/core/cmd_thread.c **** 
+  78:mri/core/cmd_thread.c ****     __try
+ 202              		.loc 1 78 5 is_stmt 1 view .LVU47
+ 203              		.loc 1 78 5 view .LVU48
+ 204              	.LBB22:
+ 205              	.LBI22:
+  76:mri/core/try_catch.h **** {
+ 206              		.loc 2 76 20 view .LVU49
+ 207              	.LBB23:
+ 208              		.loc 2 78 5 view .LVU50
+ 209              		.loc 2 78 22 is_stmt 0 view .LVU51
+ 210 0006 0E4C     		ldr	r4, .L18
+ 211 0008 0023     		movs	r3, #0
+ 212 000a 2360     		str	r3, [r4]
+ 213              	.LBE23:
+ 214              	.LBE22:
+ 215              	.LBB24:
+  79:mri/core/cmd_thread.c ****     {
+  80:mri/core/cmd_thread.c ****         uint32_t    threadId = 0;
+ 216              		.loc 1 80 9 is_stmt 1 view .LVU52
+ 217              	.LVL16:
+  81:mri/core/cmd_thread.c ****         int         isActive = 0;
+ 218              		.loc 1 81 9 view .LVU53
+ARM GAS  /tmp/ccAlcyP8.s 			page 8
+
+
+  82:mri/core/cmd_thread.c **** 
+  83:mri/core/cmd_thread.c ****         __throwing_func( threadId = Buffer_ReadUIntegerAsHex(pBuffer) );
+ 219              		.loc 1 83 9 view .LVU54
+ 220 000c FFF7FEFF 		bl	mriBuffer_ReadUIntegerAsHex
+ 221              	.LVL17:
+ 222              		.loc 1 83 9 view .LVU55
+ 223 0010 2368     		ldr	r3, [r4]
+ 224 0012 23B1     		cbz	r3, .L16
+ 225              	.LVL18:
+ 226              	.L12:
+ 227              		.loc 1 83 9 is_stmt 0 view .LVU56
+ 228              	.LBE24:
+  78:mri/core/cmd_thread.c ****     {
+ 229              		.loc 1 78 5 is_stmt 1 view .LVU57
+  84:mri/core/cmd_thread.c ****         isActive = Platform_RtosIsThreadActive(threadId);
+  85:mri/core/cmd_thread.c ****         if (!isActive)
+  86:mri/core/cmd_thread.c ****         {
+  87:mri/core/cmd_thread.c ****             setExceptionCode(invalidArgumentException);
+  88:mri/core/cmd_thread.c ****             break;
+  89:mri/core/cmd_thread.c ****         }
+  90:mri/core/cmd_thread.c ****         PrepareStringResponse("OK");
+  91:mri/core/cmd_thread.c ****     }
+  92:mri/core/cmd_thread.c ****     __catch
+ 230              		.loc 1 92 5 view .LVU58
+ 231 0014 0A4B     		ldr	r3, .L18
+ 232 0016 1B68     		ldr	r3, [r3]
+ 233 0018 73B9     		cbnz	r3, .L17
+ 234              	.L14:
+  93:mri/core/cmd_thread.c ****     {
+  94:mri/core/cmd_thread.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+  95:mri/core/cmd_thread.c ****     }
+  96:mri/core/cmd_thread.c **** 
+  97:mri/core/cmd_thread.c ****     return 0;
+ 235              		.loc 1 97 5 view .LVU59
+  98:mri/core/cmd_thread.c **** }
+ 236              		.loc 1 98 1 is_stmt 0 view .LVU60
+ 237 001a 0020     		movs	r0, #0
+ 238 001c 10BD     		pop	{r4, pc}
+ 239              	.LVL19:
+ 240              	.L16:
+ 241              	.LBB27:
+  83:mri/core/cmd_thread.c ****         isActive = Platform_RtosIsThreadActive(threadId);
+ 242              		.loc 1 83 72 is_stmt 1 discriminator 1 view .LVU61
+  84:mri/core/cmd_thread.c ****         if (!isActive)
+ 243              		.loc 1 84 9 discriminator 1 view .LVU62
+  84:mri/core/cmd_thread.c ****         if (!isActive)
+ 244              		.loc 1 84 20 is_stmt 0 discriminator 1 view .LVU63
+ 245 001e FFF7FEFF 		bl	mriPlatform_RtosIsThreadActive
+ 246              	.LVL20:
+  85:mri/core/cmd_thread.c ****         {
+ 247              		.loc 1 85 9 is_stmt 1 discriminator 1 view .LVU64
+  85:mri/core/cmd_thread.c ****         {
+ 248              		.loc 1 85 12 is_stmt 0 discriminator 1 view .LVU65
+ 249 0022 28B9     		cbnz	r0, .L13
+  87:mri/core/cmd_thread.c ****             break;
+ 250              		.loc 1 87 13 is_stmt 1 view .LVU66
+ 251              	.LVL21:
+ARM GAS  /tmp/ccAlcyP8.s 			page 9
+
+
+ 252              	.LBB25:
+ 253              	.LBI25:
+  71:mri/core/try_catch.h **** {
+ 254              		.loc 2 71 20 view .LVU67
+ 255              	.LBB26:
+  73:mri/core/try_catch.h **** }
+ 256              		.loc 2 73 5 view .LVU68
+  73:mri/core/try_catch.h **** }
+ 257              		.loc 2 73 73 is_stmt 0 view .LVU69
+ 258 0024 2368     		ldr	r3, [r4]
+ 259 0026 042B     		cmp	r3, #4
+ 260 0028 B8BF     		it	lt
+ 261 002a 0423     		movlt	r3, #4
+  73:mri/core/try_catch.h **** }
+ 262              		.loc 2 73 22 view .LVU70
+ 263 002c 2360     		str	r3, [r4]
+  74:mri/core/try_catch.h **** 
+ 264              		.loc 2 74 1 view .LVU71
+ 265 002e F1E7     		b	.L12
+ 266              	.LVL22:
+ 267              	.L13:
+  74:mri/core/try_catch.h **** 
+ 268              		.loc 2 74 1 view .LVU72
+ 269              	.LBE26:
+ 270              	.LBE25:
+  90:mri/core/cmd_thread.c ****     }
+ 271              		.loc 1 90 9 is_stmt 1 view .LVU73
+ 272 0030 0448     		ldr	r0, .L18+4
+ 273              	.LVL23:
+  90:mri/core/cmd_thread.c ****     }
+ 274              		.loc 1 90 9 is_stmt 0 view .LVU74
+ 275 0032 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 276              	.LVL24:
+ 277 0036 EDE7     		b	.L12
+ 278              	.LVL25:
+ 279              	.L17:
+  90:mri/core/cmd_thread.c ****     }
+ 280              		.loc 1 90 9 view .LVU75
+ 281              	.LBE27:
+  94:mri/core/cmd_thread.c ****     }
+ 282              		.loc 1 94 9 is_stmt 1 view .LVU76
+ 283 0038 0348     		ldr	r0, .L18+8
+ 284 003a FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 285              	.LVL26:
+ 286 003e ECE7     		b	.L14
+ 287              	.L19:
+ 288              		.align	2
+ 289              	.L18:
+ 290 0040 00000000 		.word	mriExceptionCode
+ 291 0044 00000000 		.word	.LC0
+ 292 0048 04000000 		.word	.LC1
+ 293              		.cfi_endproc
+ 294              	.LFE4:
+ 296              		.text
+ 297              	.Letext0:
+ 298              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 299              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ARM GAS  /tmp/ccAlcyP8.s 			page 10
+
+
+ 300              		.file 5 "mri/core/buffer.h"
+ 301              		.file 6 "mri/core/context.h"
+ 302              		.file 7 "mri/core/core.h"
+ 303              		.file 8 "mri/core/platforms.h"
+ARM GAS  /tmp/ccAlcyP8.s 			page 11
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cmd_thread.c
+     /tmp/ccAlcyP8.s:21     .rodata.mriCmd_HandleThreadContextCommand.str1.4:0000000000000000 $d
+     /tmp/ccAlcyP8.s:28     .text.mriCmd_HandleThreadContextCommand:0000000000000000 $t
+     /tmp/ccAlcyP8.s:34     .text.mriCmd_HandleThreadContextCommand:0000000000000000 mriCmd_HandleThreadContextCommand
+     /tmp/ccAlcyP8.s:174    .text.mriCmd_HandleThreadContextCommand:0000000000000064 $d
+     /tmp/ccAlcyP8.s:181    .text.mriCmd_HandleIsThreadActiveCommand:0000000000000000 $t
+     /tmp/ccAlcyP8.s:187    .text.mriCmd_HandleIsThreadActiveCommand:0000000000000000 mriCmd_HandleIsThreadActiveCommand
+     /tmp/ccAlcyP8.s:290    .text.mriCmd_HandleIsThreadActiveCommand:0000000000000040 $d
+
+UNDEFINED SYMBOLS
+mriCore_GetBuffer
+mriBuffer_ReadChar
+mriBuffer_ReadUIntegerAsHex
+mriPlatform_RtosGetThreadContext
+mriCore_SetContext
+mriCore_PrepareStringResponse
+mriExceptionCode
+mriPlatform_RtosIsThreadActive

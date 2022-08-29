@@ -1,0 +1,664 @@
+ARM GAS  /tmp/cc8aCQVe.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"cmd_memory.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/core/cmd_memory.c"
+  20              		.section	.rodata.mriCmd_HandleMemoryReadCommand.str1.4,"aMS",%progbits,1
+  21              		.align	2
+  22              	.LC0:
+  23 0000 45303100 		.ascii	"E01\000"
+  24              		.align	2
+  25              	.LC1:
+  26 0004 45303300 		.ascii	"E03\000"
+  27              		.section	.text.mriCmd_HandleMemoryReadCommand,"ax",%progbits
+  28              		.align	1
+  29              		.global	mriCmd_HandleMemoryReadCommand
+  30              		.syntax unified
+  31              		.thumb
+  32              		.thumb_func
+  34              	mriCmd_HandleMemoryReadCommand:
+  35              	.LFB3:
+   1:mri/core/cmd_memory.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/cmd_memory.c **** 
+   3:mri/core/cmd_memory.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/cmd_memory.c ****    you may not use this file except in compliance with the License.
+   5:mri/core/cmd_memory.c ****    You may obtain a copy of the License at
+   6:mri/core/cmd_memory.c **** 
+   7:mri/core/cmd_memory.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/cmd_memory.c **** 
+   9:mri/core/cmd_memory.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/cmd_memory.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/cmd_memory.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/cmd_memory.c ****    See the License for the specific language governing permissions and
+  13:mri/core/cmd_memory.c ****    limitations under the License.
+  14:mri/core/cmd_memory.c **** */
+  15:mri/core/cmd_memory.c **** /* Handlers for memory related gdb commands. */
+  16:mri/core/cmd_memory.c **** #include <core/buffer.h>
+  17:mri/core/cmd_memory.c **** #include <core/core.h>
+  18:mri/core/cmd_memory.c **** #include <core/mri.h>
+  19:mri/core/cmd_memory.c **** #include <core/memory.h>
+  20:mri/core/cmd_memory.c **** #include <core/cmd_common.h>
+  21:mri/core/cmd_memory.c **** #include <core/cmd_memory.h>
+  22:mri/core/cmd_memory.c **** 
+  23:mri/core/cmd_memory.c **** 
+ARM GAS  /tmp/cc8aCQVe.s 			page 2
+
+
+  24:mri/core/cmd_memory.c **** /* Handle the 'm' command which is to read the specified address range from memory.
+  25:mri/core/cmd_memory.c **** 
+  26:mri/core/cmd_memory.c ****     Command Format:     mAAAAAAAA,LLLLLLLL
+  27:mri/core/cmd_memory.c ****     Response Format:    xx...
+  28:mri/core/cmd_memory.c **** 
+  29:mri/core/cmd_memory.c ****     Where AAAAAAAA is the hexadecimal representation of the address where the read is to start.
+  30:mri/core/cmd_memory.c ****           LLLLLLLL is the hexadecimal representation of the length (in bytes) of the read to be con
+  31:mri/core/cmd_memory.c ****           xx is the hexadecimal representation of the first byte read from the specified location.
+  32:mri/core/cmd_memory.c ****           ... continue returning the rest of LLLLLLLL-1 bytes in hexadecimal format.
+  33:mri/core/cmd_memory.c **** */
+  34:mri/core/cmd_memory.c **** uint32_t HandleMemoryReadCommand(void)
+  35:mri/core/cmd_memory.c **** {
+  36              		.loc 1 35 1 view -0
+  37              		.cfi_startproc
+  38              		@ args = 0, pretend = 0, frame = 8
+  39              		@ frame_needed = 0, uses_anonymous_args = 0
+  40 0000 30B5     		push	{r4, r5, lr}
+  41              	.LCFI0:
+  42              		.cfi_def_cfa_offset 12
+  43              		.cfi_offset 4, -12
+  44              		.cfi_offset 5, -8
+  45              		.cfi_offset 14, -4
+  46 0002 83B0     		sub	sp, sp, #12
+  47              	.LCFI1:
+  48              		.cfi_def_cfa_offset 24
+  36:mri/core/cmd_memory.c ****     Buffer*       pBuffer = GetBuffer();
+  49              		.loc 1 36 5 view .LVU1
+  50              		.loc 1 36 29 is_stmt 0 view .LVU2
+  51 0004 FFF7FEFF 		bl	mriCore_GetBuffer
+  52              	.LVL0:
+  53 0008 0446     		mov	r4, r0
+  54              	.LVL1:
+  37:mri/core/cmd_memory.c ****     AddressLength addressLength;
+  55              		.loc 1 37 5 is_stmt 1 view .LVU3
+  38:mri/core/cmd_memory.c ****     uint32_t      result;
+  56              		.loc 1 38 5 view .LVU4
+  39:mri/core/cmd_memory.c **** 
+  40:mri/core/cmd_memory.c ****     __try
+  57              		.loc 1 40 5 view .LVU5
+  58              		.loc 1 40 5 view .LVU6
+  59              	.LBB8:
+  60              	.LBI8:
+  61              		.file 2 "mri/core/try_catch.h"
+   1:mri/core/try_catch.h **** /* Copyright 2014 Adam Green (https://github.com/adamgreen/)
+   2:mri/core/try_catch.h **** 
+   3:mri/core/try_catch.h ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/core/try_catch.h ****    you may not use this file except in compliance with the License.
+   5:mri/core/try_catch.h ****    You may obtain a copy of the License at
+   6:mri/core/try_catch.h **** 
+   7:mri/core/try_catch.h ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/core/try_catch.h **** 
+   9:mri/core/try_catch.h ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/core/try_catch.h ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/core/try_catch.h ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/core/try_catch.h ****    See the License for the specific language governing permissions and
+  13:mri/core/try_catch.h ****    limitations under the License.
+  14:mri/core/try_catch.h **** */
+ARM GAS  /tmp/cc8aCQVe.s 			page 3
+
+
+  15:mri/core/try_catch.h **** /* Very rough exception handling like macros for C. */
+  16:mri/core/try_catch.h **** #ifndef MRI_TRY_CATCH_H_
+  17:mri/core/try_catch.h **** #define MRI_TRY_CATCH_H_
+  18:mri/core/try_catch.h **** 
+  19:mri/core/try_catch.h **** #define noException                         0
+  20:mri/core/try_catch.h **** #define bufferOverrunException              1
+  21:mri/core/try_catch.h **** #define invalidHexDigitException            2
+  22:mri/core/try_catch.h **** #define invalidValueException               3
+  23:mri/core/try_catch.h **** #define invalidArgumentException            4
+  24:mri/core/try_catch.h **** #define timeoutException                    5
+  25:mri/core/try_catch.h **** #define invalidIndexException               6
+  26:mri/core/try_catch.h **** #define notFoundException                   7
+  27:mri/core/try_catch.h **** #define exceededHardwareResourcesException  8
+  28:mri/core/try_catch.h **** #define invalidDecDigitException            9
+  29:mri/core/try_catch.h **** #define memFaultException                   10
+  30:mri/core/try_catch.h **** #define mriMaxException                     15
+  31:mri/core/try_catch.h **** 
+  32:mri/core/try_catch.h **** extern int mriExceptionCode;
+  33:mri/core/try_catch.h **** 
+  34:mri/core/try_catch.h **** 
+  35:mri/core/try_catch.h **** /* Allow an application including MRI to extend with their own exception codes and replace the belo
+  36:mri/core/try_catch.h **** #ifndef MRI_SKIP_TRY_CATCH_MACRO_DEFINES
+  37:mri/core/try_catch.h **** 
+  38:mri/core/try_catch.h **** /* On Linux, it is possible that __try and __catch are already defined. */
+  39:mri/core/try_catch.h **** #undef __try
+  40:mri/core/try_catch.h **** #undef __catch
+  41:mri/core/try_catch.h **** 
+  42:mri/core/try_catch.h **** #define __throws
+  43:mri/core/try_catch.h **** 
+  44:mri/core/try_catch.h **** #define __try \
+  45:mri/core/try_catch.h ****         do \
+  46:mri/core/try_catch.h ****         { \
+  47:mri/core/try_catch.h ****             clearExceptionCode();
+  48:mri/core/try_catch.h **** 
+  49:mri/core/try_catch.h **** #define __throwing_func(X) \
+  50:mri/core/try_catch.h ****             X; \
+  51:mri/core/try_catch.h ****             if (mriExceptionCode) \
+  52:mri/core/try_catch.h ****                 break;
+  53:mri/core/try_catch.h **** 
+  54:mri/core/try_catch.h **** #define __catch \
+  55:mri/core/try_catch.h ****         } while (0); \
+  56:mri/core/try_catch.h ****         if (mriExceptionCode)
+  57:mri/core/try_catch.h **** 
+  58:mri/core/try_catch.h **** #define __throw(EXCEPTION) return ((void)setExceptionCode(EXCEPTION))
+  59:mri/core/try_catch.h **** 
+  60:mri/core/try_catch.h **** #define __throw_and_return(EXCEPTION, RETURN) return (setExceptionCode(EXCEPTION), (RETURN))
+  61:mri/core/try_catch.h **** 
+  62:mri/core/try_catch.h **** #define __rethrow return
+  63:mri/core/try_catch.h **** 
+  64:mri/core/try_catch.h **** #define __rethrow_and_return(RETURN) return RETURN
+  65:mri/core/try_catch.h **** 
+  66:mri/core/try_catch.h **** static inline int getExceptionCode(void)
+  67:mri/core/try_catch.h **** {
+  68:mri/core/try_catch.h ****     return mriExceptionCode;
+  69:mri/core/try_catch.h **** }
+  70:mri/core/try_catch.h **** 
+  71:mri/core/try_catch.h **** static inline void setExceptionCode(int exceptionCode)
+ARM GAS  /tmp/cc8aCQVe.s 			page 4
+
+
+  72:mri/core/try_catch.h **** {
+  73:mri/core/try_catch.h ****     mriExceptionCode = exceptionCode > mriExceptionCode ? exceptionCode : mriExceptionCode;
+  74:mri/core/try_catch.h **** }
+  75:mri/core/try_catch.h **** 
+  76:mri/core/try_catch.h **** static inline void clearExceptionCode(void)
+  62              		.loc 2 76 20 view .LVU7
+  63              	.LBB9:
+  77:mri/core/try_catch.h **** {
+  78:mri/core/try_catch.h ****     mriExceptionCode = noException;
+  64              		.loc 2 78 5 view .LVU8
+  65              		.loc 2 78 22 is_stmt 0 view .LVU9
+  66 000a 0D4D     		ldr	r5, .L7
+  67 000c 0023     		movs	r3, #0
+  68 000e 2B60     		str	r3, [r5]
+  69              	.LBE9:
+  70              	.LBE8:
+  41:mri/core/cmd_memory.c ****     {
+  42:mri/core/cmd_memory.c ****         ReadAddressAndLengthArguments(pBuffer, &addressLength);
+  71              		.loc 1 42 9 is_stmt 1 view .LVU10
+  72 0010 6946     		mov	r1, sp
+  73 0012 FFF7FEFF 		bl	mriCmd_ReadAddressAndLengthArguments
+  74              	.LVL2:
+  40:mri/core/cmd_memory.c ****     {
+  75              		.loc 1 40 5 view .LVU11
+  43:mri/core/cmd_memory.c ****     }
+  44:mri/core/cmd_memory.c ****     __catch
+  76              		.loc 1 44 5 view .LVU12
+  77 0016 2B68     		ldr	r3, [r5]
+  78 0018 53B9     		cbnz	r3, .L5
+  45:mri/core/cmd_memory.c ****     {
+  46:mri/core/cmd_memory.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+  47:mri/core/cmd_memory.c ****         return 0;
+  48:mri/core/cmd_memory.c ****     }
+  49:mri/core/cmd_memory.c **** 
+  50:mri/core/cmd_memory.c ****     InitPacketBuffers();
+  79              		.loc 1 50 5 view .LVU13
+  80 001a FFF7FEFF 		bl	mriCore_InitPacketBuffers
+  81              	.LVL3:
+  51:mri/core/cmd_memory.c ****     result = ReadMemoryIntoHexBuffer(pBuffer, ADDR32_TO_POINTER(addressLength.address), addressLeng
+  82              		.loc 1 51 5 view .LVU14
+  83              		.loc 1 51 14 is_stmt 0 view .LVU15
+  84 001e 019A     		ldr	r2, [sp, #4]
+  85 0020 0099     		ldr	r1, [sp]
+  86 0022 2046     		mov	r0, r4
+  87 0024 FFF7FEFF 		bl	mriMem_ReadMemoryIntoHexBuffer
+  88              	.LVL4:
+  52:mri/core/cmd_memory.c ****     if (result == 0)
+  89              		.loc 1 52 5 is_stmt 1 view .LVU16
+  90              		.loc 1 52 8 is_stmt 0 view .LVU17
+  91 0028 30B1     		cbz	r0, .L6
+  92              	.LVL5:
+  93              	.L3:
+  53:mri/core/cmd_memory.c ****         PrepareStringResponse(MRI_ERROR_MEMORY_ACCESS_FAILURE);
+  54:mri/core/cmd_memory.c **** 
+  55:mri/core/cmd_memory.c ****     return 0;
+  56:mri/core/cmd_memory.c **** }
+  94              		.loc 1 56 1 view .LVU18
+ARM GAS  /tmp/cc8aCQVe.s 			page 5
+
+
+  95 002a 0020     		movs	r0, #0
+  96 002c 03B0     		add	sp, sp, #12
+  97              	.LCFI2:
+  98              		.cfi_remember_state
+  99              		.cfi_def_cfa_offset 12
+ 100              		@ sp needed
+ 101 002e 30BD     		pop	{r4, r5, pc}
+ 102              	.LVL6:
+ 103              	.L5:
+ 104              	.LCFI3:
+ 105              		.cfi_restore_state
+  46:mri/core/cmd_memory.c ****         return 0;
+ 106              		.loc 1 46 9 is_stmt 1 view .LVU19
+ 107 0030 0448     		ldr	r0, .L7+4
+ 108 0032 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 109              	.LVL7:
+  47:mri/core/cmd_memory.c ****     }
+ 110              		.loc 1 47 9 view .LVU20
+  47:mri/core/cmd_memory.c ****     }
+ 111              		.loc 1 47 16 is_stmt 0 view .LVU21
+ 112 0036 F8E7     		b	.L3
+ 113              	.LVL8:
+ 114              	.L6:
+  53:mri/core/cmd_memory.c ****         PrepareStringResponse(MRI_ERROR_MEMORY_ACCESS_FAILURE);
+ 115              		.loc 1 53 9 is_stmt 1 view .LVU22
+ 116 0038 0348     		ldr	r0, .L7+8
+ 117              	.LVL9:
+  53:mri/core/cmd_memory.c ****         PrepareStringResponse(MRI_ERROR_MEMORY_ACCESS_FAILURE);
+ 118              		.loc 1 53 9 is_stmt 0 view .LVU23
+ 119 003a FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 120              	.LVL10:
+ 121 003e F4E7     		b	.L3
+ 122              	.L8:
+ 123              		.align	2
+ 124              	.L7:
+ 125 0040 00000000 		.word	mriExceptionCode
+ 126 0044 00000000 		.word	.LC0
+ 127 0048 04000000 		.word	.LC1
+ 128              		.cfi_endproc
+ 129              	.LFE3:
+ 131              		.section	.rodata.mriCmd_HandleMemoryWriteCommand.str1.4,"aMS",%progbits,1
+ 132              		.align	2
+ 133              	.LC2:
+ 134 0000 4F4B00   		.ascii	"OK\000"
+ 135 0003 00       		.align	2
+ 136              	.LC3:
+ 137 0004 45303400 		.ascii	"E04\000"
+ 138              		.section	.text.mriCmd_HandleMemoryWriteCommand,"ax",%progbits
+ 139              		.align	1
+ 140              		.global	mriCmd_HandleMemoryWriteCommand
+ 141              		.syntax unified
+ 142              		.thumb
+ 143              		.thumb_func
+ 145              	mriCmd_HandleMemoryWriteCommand:
+ 146              	.LFB4:
+  57:mri/core/cmd_memory.c **** 
+  58:mri/core/cmd_memory.c **** 
+ARM GAS  /tmp/cc8aCQVe.s 			page 6
+
+
+  59:mri/core/cmd_memory.c **** /* Handle the 'M' command which is to write to the specified address range in memory.
+  60:mri/core/cmd_memory.c **** 
+  61:mri/core/cmd_memory.c ****     Command Format:     MAAAAAAAA,LLLLLLLL:xx...
+  62:mri/core/cmd_memory.c ****     Response Format:    OK
+  63:mri/core/cmd_memory.c **** 
+  64:mri/core/cmd_memory.c ****     Where AAAAAAAA is the hexadecimal representation of the address where the write is to start.
+  65:mri/core/cmd_memory.c ****           LLLLLLLL is the hexadecimal representation of the length (in bytes) of the write to be co
+  66:mri/core/cmd_memory.c ****           xx is the hexadecimal representation of the first byte to be written to the specified loc
+  67:mri/core/cmd_memory.c ****           ... continue returning the rest of LLLLLLLL-1 bytes in hexadecimal format.
+  68:mri/core/cmd_memory.c **** */
+  69:mri/core/cmd_memory.c **** uint32_t HandleMemoryWriteCommand(void)
+  70:mri/core/cmd_memory.c **** {
+ 147              		.loc 1 70 1 is_stmt 1 view -0
+ 148              		.cfi_startproc
+ 149              		@ args = 0, pretend = 0, frame = 8
+ 150              		@ frame_needed = 0, uses_anonymous_args = 0
+ 151 0000 30B5     		push	{r4, r5, lr}
+ 152              	.LCFI4:
+ 153              		.cfi_def_cfa_offset 12
+ 154              		.cfi_offset 4, -12
+ 155              		.cfi_offset 5, -8
+ 156              		.cfi_offset 14, -4
+ 157 0002 83B0     		sub	sp, sp, #12
+ 158              	.LCFI5:
+ 159              		.cfi_def_cfa_offset 24
+  71:mri/core/cmd_memory.c ****     Buffer*         pBuffer = GetBuffer();
+ 160              		.loc 1 71 5 view .LVU25
+ 161              		.loc 1 71 31 is_stmt 0 view .LVU26
+ 162 0004 FFF7FEFF 		bl	mriCore_GetBuffer
+ 163              	.LVL11:
+ 164 0008 0446     		mov	r4, r0
+ 165              	.LVL12:
+  72:mri/core/cmd_memory.c ****     AddressLength   addressLength;
+ 166              		.loc 1 72 5 is_stmt 1 view .LVU27
+  73:mri/core/cmd_memory.c **** 
+  74:mri/core/cmd_memory.c ****     __try
+ 167              		.loc 1 74 5 view .LVU28
+ 168              		.loc 1 74 5 view .LVU29
+ 169              	.LBB10:
+ 170              	.LBI10:
+  76:mri/core/try_catch.h **** {
+ 171              		.loc 2 76 20 view .LVU30
+ 172              	.LBB11:
+ 173              		.loc 2 78 5 view .LVU31
+ 174              		.loc 2 78 22 is_stmt 0 view .LVU32
+ 175 000a 124D     		ldr	r5, .L16
+ 176 000c 0023     		movs	r3, #0
+ 177 000e 2B60     		str	r3, [r5]
+ 178              	.LBE11:
+ 179              	.LBE10:
+  75:mri/core/cmd_memory.c ****     {
+  76:mri/core/cmd_memory.c ****         ReadAddressAndLengthArgumentsWithColon(pBuffer, &addressLength);
+ 180              		.loc 1 76 9 is_stmt 1 view .LVU33
+ 181 0010 6946     		mov	r1, sp
+ 182 0012 FFF7FEFF 		bl	mriCmd_ReadAddressAndLengthArgumentsWithColon
+ 183              	.LVL13:
+  74:mri/core/cmd_memory.c ****     {
+ARM GAS  /tmp/cc8aCQVe.s 			page 7
+
+
+ 184              		.loc 1 74 5 view .LVU34
+  77:mri/core/cmd_memory.c ****     }
+  78:mri/core/cmd_memory.c ****     __catch
+ 185              		.loc 1 78 5 view .LVU35
+ 186 0016 2B68     		ldr	r3, [r5]
+ 187 0018 4BB9     		cbnz	r3, .L15
+  79:mri/core/cmd_memory.c ****     {
+  80:mri/core/cmd_memory.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+  81:mri/core/cmd_memory.c ****         return 0;
+  82:mri/core/cmd_memory.c ****     }
+  83:mri/core/cmd_memory.c **** 
+  84:mri/core/cmd_memory.c ****     if (WriteHexBufferToMemory(pBuffer, ADDR32_TO_POINTER(addressLength.address), addressLength.len
+ 188              		.loc 1 84 5 view .LVU36
+ 189              		.loc 1 84 9 is_stmt 0 view .LVU37
+ 190 001a 019A     		ldr	r2, [sp, #4]
+ 191 001c 0099     		ldr	r1, [sp]
+ 192 001e 2046     		mov	r0, r4
+ 193 0020 FFF7FEFF 		bl	mriMem_WriteHexBufferToMemory
+ 194              	.LVL14:
+ 195              		.loc 1 84 8 view .LVU38
+ 196 0024 48B1     		cbz	r0, .L12
+  85:mri/core/cmd_memory.c ****     {
+  86:mri/core/cmd_memory.c ****         PrepareStringResponse("OK");
+ 197              		.loc 1 86 9 is_stmt 1 view .LVU39
+ 198 0026 0C48     		ldr	r0, .L16+4
+ 199 0028 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 200              	.LVL15:
+ 201 002c 02E0     		b	.L11
+ 202              	.L15:
+  80:mri/core/cmd_memory.c ****         return 0;
+ 203              		.loc 1 80 9 view .LVU40
+ 204 002e 0B48     		ldr	r0, .L16+8
+ 205 0030 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 206              	.LVL16:
+  81:mri/core/cmd_memory.c ****     }
+ 207              		.loc 1 81 9 view .LVU41
+ 208              	.L11:
+  87:mri/core/cmd_memory.c ****     }
+  88:mri/core/cmd_memory.c ****     else
+  89:mri/core/cmd_memory.c ****     {
+  90:mri/core/cmd_memory.c ****         if (Buffer_OverrunDetected(pBuffer))
+  91:mri/core/cmd_memory.c ****             PrepareStringResponse( MRI_ERROR_BUFFER_OVERRUN);
+  92:mri/core/cmd_memory.c ****         else
+  93:mri/core/cmd_memory.c ****             PrepareStringResponse(MRI_ERROR_MEMORY_ACCESS_FAILURE);
+  94:mri/core/cmd_memory.c ****     }
+  95:mri/core/cmd_memory.c **** 
+  96:mri/core/cmd_memory.c ****     return 0;
+  97:mri/core/cmd_memory.c **** }
+ 209              		.loc 1 97 1 is_stmt 0 view .LVU42
+ 210 0034 0020     		movs	r0, #0
+ 211 0036 03B0     		add	sp, sp, #12
+ 212              	.LCFI6:
+ 213              		.cfi_remember_state
+ 214              		.cfi_def_cfa_offset 12
+ 215              		@ sp needed
+ 216 0038 30BD     		pop	{r4, r5, pc}
+ 217              	.LVL17:
+ARM GAS  /tmp/cc8aCQVe.s 			page 8
+
+
+ 218              	.L12:
+ 219              	.LCFI7:
+ 220              		.cfi_restore_state
+  90:mri/core/cmd_memory.c ****             PrepareStringResponse( MRI_ERROR_BUFFER_OVERRUN);
+ 221              		.loc 1 90 9 is_stmt 1 view .LVU43
+  90:mri/core/cmd_memory.c ****             PrepareStringResponse( MRI_ERROR_BUFFER_OVERRUN);
+ 222              		.loc 1 90 13 is_stmt 0 view .LVU44
+ 223 003a 2046     		mov	r0, r4
+ 224 003c FFF7FEFF 		bl	mriBuffer_OverrunDetected
+ 225              	.LVL18:
+  90:mri/core/cmd_memory.c ****             PrepareStringResponse( MRI_ERROR_BUFFER_OVERRUN);
+ 226              		.loc 1 90 12 view .LVU45
+ 227 0040 18B1     		cbz	r0, .L13
+  91:mri/core/cmd_memory.c ****         else
+ 228              		.loc 1 91 13 is_stmt 1 view .LVU46
+ 229 0042 0748     		ldr	r0, .L16+12
+ 230 0044 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 231              	.LVL19:
+ 232 0048 F4E7     		b	.L11
+ 233              	.L13:
+  93:mri/core/cmd_memory.c ****     }
+ 234              		.loc 1 93 13 view .LVU47
+ 235 004a 0648     		ldr	r0, .L16+16
+ 236 004c FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 237              	.LVL20:
+ 238 0050 F0E7     		b	.L11
+ 239              	.L17:
+ 240 0052 00BF     		.align	2
+ 241              	.L16:
+ 242 0054 00000000 		.word	mriExceptionCode
+ 243 0058 00000000 		.word	.LC2
+ 244 005c 00000000 		.word	.LC0
+ 245 0060 04000000 		.word	.LC3
+ 246 0064 04000000 		.word	.LC1
+ 247              		.cfi_endproc
+ 248              	.LFE4:
+ 250              		.section	.text.mriCmd_HandleBinaryMemoryWriteCommand,"ax",%progbits
+ 251              		.align	1
+ 252              		.global	mriCmd_HandleBinaryMemoryWriteCommand
+ 253              		.syntax unified
+ 254              		.thumb
+ 255              		.thumb_func
+ 257              	mriCmd_HandleBinaryMemoryWriteCommand:
+ 258              	.LFB5:
+  98:mri/core/cmd_memory.c **** 
+  99:mri/core/cmd_memory.c **** 
+ 100:mri/core/cmd_memory.c **** /* Handle the 'X' command which is to write to the specified address range in memory.
+ 101:mri/core/cmd_memory.c **** 
+ 102:mri/core/cmd_memory.c ****     Command Format:     XAAAAAAAA,LLLLLLLL:xx...
+ 103:mri/core/cmd_memory.c ****     Response Format:    OK
+ 104:mri/core/cmd_memory.c **** 
+ 105:mri/core/cmd_memory.c ****     Where AAAAAAAA is the hexadecimal representation of the address where the write is to start.
+ 106:mri/core/cmd_memory.c ****           LLLLLLLL is the hexadecimal representation of the length (in bytes) of the write to be co
+ 107:mri/core/cmd_memory.c ****           xx is the hexadecimal representation of the first byte to be written to the specified loc
+ 108:mri/core/cmd_memory.c ****           ... continue returning the rest of LLLLLLLL-1 bytes in hexadecimal format.
+ 109:mri/core/cmd_memory.c **** */
+ 110:mri/core/cmd_memory.c **** uint32_t HandleBinaryMemoryWriteCommand(void)
+ARM GAS  /tmp/cc8aCQVe.s 			page 9
+
+
+ 111:mri/core/cmd_memory.c **** {
+ 259              		.loc 1 111 1 view -0
+ 260              		.cfi_startproc
+ 261              		@ args = 0, pretend = 0, frame = 8
+ 262              		@ frame_needed = 0, uses_anonymous_args = 0
+ 263 0000 30B5     		push	{r4, r5, lr}
+ 264              	.LCFI8:
+ 265              		.cfi_def_cfa_offset 12
+ 266              		.cfi_offset 4, -12
+ 267              		.cfi_offset 5, -8
+ 268              		.cfi_offset 14, -4
+ 269 0002 83B0     		sub	sp, sp, #12
+ 270              	.LCFI9:
+ 271              		.cfi_def_cfa_offset 24
+ 112:mri/core/cmd_memory.c ****     Buffer*        pBuffer = GetBuffer();
+ 272              		.loc 1 112 5 view .LVU49
+ 273              		.loc 1 112 30 is_stmt 0 view .LVU50
+ 274 0004 FFF7FEFF 		bl	mriCore_GetBuffer
+ 275              	.LVL21:
+ 276 0008 0446     		mov	r4, r0
+ 277              	.LVL22:
+ 113:mri/core/cmd_memory.c ****     AddressLength  addressLength;
+ 278              		.loc 1 113 5 is_stmt 1 view .LVU51
+ 114:mri/core/cmd_memory.c **** 
+ 115:mri/core/cmd_memory.c ****     __try
+ 279              		.loc 1 115 5 view .LVU52
+ 280              		.loc 1 115 5 view .LVU53
+ 281              	.LBB12:
+ 282              	.LBI12:
+  76:mri/core/try_catch.h **** {
+ 283              		.loc 2 76 20 view .LVU54
+ 284              	.LBB13:
+ 285              		.loc 2 78 5 view .LVU55
+ 286              		.loc 2 78 22 is_stmt 0 view .LVU56
+ 287 000a 124D     		ldr	r5, .L25
+ 288 000c 0023     		movs	r3, #0
+ 289 000e 2B60     		str	r3, [r5]
+ 290              	.LBE13:
+ 291              	.LBE12:
+ 116:mri/core/cmd_memory.c ****     {
+ 117:mri/core/cmd_memory.c ****         ReadAddressAndLengthArgumentsWithColon(pBuffer, &addressLength);
+ 292              		.loc 1 117 9 is_stmt 1 view .LVU57
+ 293 0010 6946     		mov	r1, sp
+ 294 0012 FFF7FEFF 		bl	mriCmd_ReadAddressAndLengthArgumentsWithColon
+ 295              	.LVL23:
+ 115:mri/core/cmd_memory.c ****     {
+ 296              		.loc 1 115 5 view .LVU58
+ 118:mri/core/cmd_memory.c ****     }
+ 119:mri/core/cmd_memory.c ****     __catch
+ 297              		.loc 1 119 5 view .LVU59
+ 298 0016 2B68     		ldr	r3, [r5]
+ 299 0018 4BB9     		cbnz	r3, .L24
+ 120:mri/core/cmd_memory.c ****     {
+ 121:mri/core/cmd_memory.c ****         PrepareStringResponse(MRI_ERROR_INVALID_ARGUMENT);
+ 122:mri/core/cmd_memory.c ****         return 0;
+ 123:mri/core/cmd_memory.c ****     }
+ 124:mri/core/cmd_memory.c **** 
+ARM GAS  /tmp/cc8aCQVe.s 			page 10
+
+
+ 125:mri/core/cmd_memory.c ****     if (WriteBinaryBufferToMemory(pBuffer, ADDR32_TO_POINTER(addressLength.address), addressLength.
+ 300              		.loc 1 125 5 view .LVU60
+ 301              		.loc 1 125 9 is_stmt 0 view .LVU61
+ 302 001a 019A     		ldr	r2, [sp, #4]
+ 303 001c 0099     		ldr	r1, [sp]
+ 304 001e 2046     		mov	r0, r4
+ 305 0020 FFF7FEFF 		bl	mriMem_WriteBinaryBufferToMemory
+ 306              	.LVL24:
+ 307              		.loc 1 125 8 view .LVU62
+ 308 0024 48B1     		cbz	r0, .L21
+ 126:mri/core/cmd_memory.c ****     {
+ 127:mri/core/cmd_memory.c ****         PrepareStringResponse("OK");
+ 309              		.loc 1 127 9 is_stmt 1 view .LVU63
+ 310 0026 0C48     		ldr	r0, .L25+4
+ 311 0028 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 312              	.LVL25:
+ 313 002c 02E0     		b	.L20
+ 314              	.L24:
+ 121:mri/core/cmd_memory.c ****         return 0;
+ 315              		.loc 1 121 9 view .LVU64
+ 316 002e 0B48     		ldr	r0, .L25+8
+ 317 0030 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 318              	.LVL26:
+ 122:mri/core/cmd_memory.c ****     }
+ 319              		.loc 1 122 9 view .LVU65
+ 320              	.L20:
+ 128:mri/core/cmd_memory.c ****     }
+ 129:mri/core/cmd_memory.c ****     else
+ 130:mri/core/cmd_memory.c ****     {
+ 131:mri/core/cmd_memory.c ****         if (Buffer_OverrunDetected(pBuffer))
+ 132:mri/core/cmd_memory.c ****             PrepareStringResponse(MRI_ERROR_BUFFER_OVERRUN);
+ 133:mri/core/cmd_memory.c ****         else
+ 134:mri/core/cmd_memory.c ****             PrepareStringResponse(MRI_ERROR_MEMORY_ACCESS_FAILURE);
+ 135:mri/core/cmd_memory.c ****     }
+ 136:mri/core/cmd_memory.c **** 
+ 137:mri/core/cmd_memory.c ****     return 0;
+ 138:mri/core/cmd_memory.c **** }
+ 321              		.loc 1 138 1 is_stmt 0 view .LVU66
+ 322 0034 0020     		movs	r0, #0
+ 323 0036 03B0     		add	sp, sp, #12
+ 324              	.LCFI10:
+ 325              		.cfi_remember_state
+ 326              		.cfi_def_cfa_offset 12
+ 327              		@ sp needed
+ 328 0038 30BD     		pop	{r4, r5, pc}
+ 329              	.LVL27:
+ 330              	.L21:
+ 331              	.LCFI11:
+ 332              		.cfi_restore_state
+ 131:mri/core/cmd_memory.c ****             PrepareStringResponse(MRI_ERROR_BUFFER_OVERRUN);
+ 333              		.loc 1 131 9 is_stmt 1 view .LVU67
+ 131:mri/core/cmd_memory.c ****             PrepareStringResponse(MRI_ERROR_BUFFER_OVERRUN);
+ 334              		.loc 1 131 13 is_stmt 0 view .LVU68
+ 335 003a 2046     		mov	r0, r4
+ 336 003c FFF7FEFF 		bl	mriBuffer_OverrunDetected
+ 337              	.LVL28:
+ 131:mri/core/cmd_memory.c ****             PrepareStringResponse(MRI_ERROR_BUFFER_OVERRUN);
+ARM GAS  /tmp/cc8aCQVe.s 			page 11
+
+
+ 338              		.loc 1 131 12 view .LVU69
+ 339 0040 18B1     		cbz	r0, .L22
+ 132:mri/core/cmd_memory.c ****         else
+ 340              		.loc 1 132 13 is_stmt 1 view .LVU70
+ 341 0042 0748     		ldr	r0, .L25+12
+ 342 0044 FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 343              	.LVL29:
+ 344 0048 F4E7     		b	.L20
+ 345              	.L22:
+ 134:mri/core/cmd_memory.c ****     }
+ 346              		.loc 1 134 13 view .LVU71
+ 347 004a 0648     		ldr	r0, .L25+16
+ 348 004c FFF7FEFF 		bl	mriCore_PrepareStringResponse
+ 349              	.LVL30:
+ 350 0050 F0E7     		b	.L20
+ 351              	.L26:
+ 352 0052 00BF     		.align	2
+ 353              	.L25:
+ 354 0054 00000000 		.word	mriExceptionCode
+ 355 0058 00000000 		.word	.LC2
+ 356 005c 00000000 		.word	.LC0
+ 357 0060 04000000 		.word	.LC3
+ 358 0064 04000000 		.word	.LC1
+ 359              		.cfi_endproc
+ 360              	.LFE5:
+ 362              		.text
+ 363              	.Letext0:
+ 364              		.file 3 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 365              		.file 4 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 366              		.file 5 "mri/core/buffer.h"
+ 367              		.file 6 "mri/core/cmd_common.h"
+ 368              		.file 7 "mri/core/memory.h"
+ 369              		.file 8 "mri/core/core.h"
+ARM GAS  /tmp/cc8aCQVe.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cmd_memory.c
+     /tmp/cc8aCQVe.s:21     .rodata.mriCmd_HandleMemoryReadCommand.str1.4:0000000000000000 $d
+     /tmp/cc8aCQVe.s:28     .text.mriCmd_HandleMemoryReadCommand:0000000000000000 $t
+     /tmp/cc8aCQVe.s:34     .text.mriCmd_HandleMemoryReadCommand:0000000000000000 mriCmd_HandleMemoryReadCommand
+     /tmp/cc8aCQVe.s:125    .text.mriCmd_HandleMemoryReadCommand:0000000000000040 $d
+     /tmp/cc8aCQVe.s:132    .rodata.mriCmd_HandleMemoryWriteCommand.str1.4:0000000000000000 $d
+     /tmp/cc8aCQVe.s:139    .text.mriCmd_HandleMemoryWriteCommand:0000000000000000 $t
+     /tmp/cc8aCQVe.s:145    .text.mriCmd_HandleMemoryWriteCommand:0000000000000000 mriCmd_HandleMemoryWriteCommand
+     /tmp/cc8aCQVe.s:242    .text.mriCmd_HandleMemoryWriteCommand:0000000000000054 $d
+     /tmp/cc8aCQVe.s:251    .text.mriCmd_HandleBinaryMemoryWriteCommand:0000000000000000 $t
+     /tmp/cc8aCQVe.s:257    .text.mriCmd_HandleBinaryMemoryWriteCommand:0000000000000000 mriCmd_HandleBinaryMemoryWriteCommand
+     /tmp/cc8aCQVe.s:354    .text.mriCmd_HandleBinaryMemoryWriteCommand:0000000000000054 $d
+
+UNDEFINED SYMBOLS
+mriCore_GetBuffer
+mriCmd_ReadAddressAndLengthArguments
+mriCore_InitPacketBuffers
+mriMem_ReadMemoryIntoHexBuffer
+mriCore_PrepareStringResponse
+mriExceptionCode
+mriCmd_ReadAddressAndLengthArgumentsWithColon
+mriMem_WriteHexBufferToMemory
+mriBuffer_OverrunDetected
+mriMem_WriteBinaryBufferToMemory

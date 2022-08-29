@@ -1,0 +1,393 @@
+ARM GAS  /tmp/cchTnshM.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"semihost.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "mri/semihost/semihost.c"
+  20              		.section	.text.writeToGdbConsole,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	writeToGdbConsole:
+  27              	.LVL0:
+  28              	.LFB6:
+   1:mri/semihost/semihost.c **** /* Copyright 2022 Adam Green (https://github.com/adamgreen/)
+   2:mri/semihost/semihost.c **** 
+   3:mri/semihost/semihost.c ****    Licensed under the Apache License, Version 2.0 (the "License");
+   4:mri/semihost/semihost.c ****    you may not use this file except in compliance with the License.
+   5:mri/semihost/semihost.c ****    You may obtain a copy of the License at
+   6:mri/semihost/semihost.c **** 
+   7:mri/semihost/semihost.c ****        http://www.apache.org/licenses/LICENSE-2.0
+   8:mri/semihost/semihost.c **** 
+   9:mri/semihost/semihost.c ****    Unless required by applicable law or agreed to in writing, software
+  10:mri/semihost/semihost.c ****    distributed under the License is distributed on an "AS IS" BASIS,
+  11:mri/semihost/semihost.c ****    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  12:mri/semihost/semihost.c ****    See the License for the specific language governing permissions and
+  13:mri/semihost/semihost.c ****    limitations under the License.
+  14:mri/semihost/semihost.c **** */
+  15:mri/semihost/semihost.c **** /* Semihost functionality for redirecting operations such as file I/O to the GNU debugger. */
+  16:mri/semihost/semihost.c **** #include <core/core.h>
+  17:mri/semihost/semihost.c **** #include <core/gdb_console.h>
+  18:mri/semihost/semihost.c **** #include <core/platforms.h>
+  19:mri/semihost/semihost.c **** #include <core/semihost.h>
+  20:mri/semihost/semihost.c **** #include <core/signal.h>
+  21:mri/semihost/semihost.c **** 
+  22:mri/semihost/semihost.c **** 
+  23:mri/semihost/semihost.c **** int Semihost_IsDebuggeeMakingSemihostCall(void)
+  24:mri/semihost/semihost.c **** {
+  25:mri/semihost/semihost.c ****     PlatformInstructionType instructionType = Platform_TypeOfCurrentInstruction();
+  26:mri/semihost/semihost.c **** 
+  27:mri/semihost/semihost.c ****     return (instructionType == MRI_PLATFORM_INSTRUCTION_MBED_SEMIHOST_CALL ||
+  28:mri/semihost/semihost.c ****             instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL);
+  29:mri/semihost/semihost.c **** }
+  30:mri/semihost/semihost.c **** 
+ARM GAS  /tmp/cchTnshM.s 			page 2
+
+
+  31:mri/semihost/semihost.c **** int Semihost_HandleSemihostRequest(void)
+  32:mri/semihost/semihost.c **** {
+  33:mri/semihost/semihost.c ****     PlatformInstructionType    instructionType = Platform_TypeOfCurrentInstruction();
+  34:mri/semihost/semihost.c ****     PlatformSemihostParameters parameters = Platform_GetSemihostCallParameters();
+  35:mri/semihost/semihost.c **** 
+  36:mri/semihost/semihost.c ****     if (instructionType == MRI_PLATFORM_INSTRUCTION_MBED_SEMIHOST_CALL)
+  37:mri/semihost/semihost.c ****         return Semihost_HandleMbedSemihostRequest(&parameters);
+  38:mri/semihost/semihost.c ****     else if (instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL)
+  39:mri/semihost/semihost.c ****         return Semihost_HandleNewlibSemihostRequest(&parameters);
+  40:mri/semihost/semihost.c ****     else
+  41:mri/semihost/semihost.c ****         return 0;
+  42:mri/semihost/semihost.c **** }
+  43:mri/semihost/semihost.c **** 
+  44:mri/semihost/semihost.c **** 
+  45:mri/semihost/semihost.c **** static int writeToGdbConsole(const TransferParameters* pParameters);
+  46:mri/semihost/semihost.c **** int Semihost_WriteToFileOrConsole(const TransferParameters* pParameters)
+  47:mri/semihost/semihost.c **** {
+  48:mri/semihost/semihost.c ****     const uint32_t STDOUT_FILE_NO = 1;
+  49:mri/semihost/semihost.c ****     if (pParameters->fileDescriptor == STDOUT_FILE_NO)
+  50:mri/semihost/semihost.c ****     {
+  51:mri/semihost/semihost.c ****         return writeToGdbConsole(pParameters);
+  52:mri/semihost/semihost.c ****     }
+  53:mri/semihost/semihost.c ****     return IssueGdbFileWriteRequest(pParameters);
+  54:mri/semihost/semihost.c **** }
+  55:mri/semihost/semihost.c **** 
+  56:mri/semihost/semihost.c **** static int writeToGdbConsole(const TransferParameters* pParameters)
+  57:mri/semihost/semihost.c **** {
+  29              		.loc 1 57 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 57 1 is_stmt 0 view .LVU1
+  34 0000 10B5     		push	{r4, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 8
+  37              		.cfi_offset 4, -8
+  38              		.cfi_offset 14, -4
+  58:mri/semihost/semihost.c ****     const char* pBuffer = (const char*)pParameters->bufferAddress;
+  39              		.loc 1 58 5 is_stmt 1 view .LVU2
+  40              	.LVL1:
+  59:mri/semihost/semihost.c ****     size_t length = pParameters->bufferSize;
+  41              		.loc 1 59 5 view .LVU3
+  42              		.loc 1 59 32 is_stmt 0 view .LVU4
+  43 0002 8468     		ldr	r4, [r0, #8]
+  44              	.LVL2:
+  60:mri/semihost/semihost.c **** 
+  61:mri/semihost/semihost.c ****     WriteSizedStringToGdbConsole(pBuffer, length);
+  45              		.loc 1 61 5 is_stmt 1 view .LVU5
+  46 0004 2146     		mov	r1, r4
+  47 0006 4068     		ldr	r0, [r0, #4]
+  48              	.LVL3:
+  49              		.loc 1 61 5 is_stmt 0 view .LVU6
+  50 0008 FFF7FEFF 		bl	mriGdbConsole_WriteSizedString
+  51              	.LVL4:
+  62:mri/semihost/semihost.c **** 
+  63:mri/semihost/semihost.c ****     SetSemihostReturnValues(length, 0);
+  52              		.loc 1 63 5 is_stmt 1 view .LVU7
+ARM GAS  /tmp/cchTnshM.s 			page 3
+
+
+  53 000c 0021     		movs	r1, #0
+  54 000e 2046     		mov	r0, r4
+  55 0010 FFF7FEFF 		bl	mriCore_SetSemihostReturnValues
+  56              	.LVL5:
+  64:mri/semihost/semihost.c ****     FlagSemihostCallAsHandled();
+  57              		.loc 1 64 5 view .LVU8
+  58 0014 FFF7FEFF 		bl	mriCore_FlagSemihostCallAsHandled
+  59              	.LVL6:
+  65:mri/semihost/semihost.c **** 
+  66:mri/semihost/semihost.c ****     if (WasControlCEncountered())
+  60              		.loc 1 66 5 view .LVU9
+  61              		.loc 1 66 9 is_stmt 0 view .LVU10
+  62 0018 FFF7FEFF 		bl	mriCore_WasControlCEncountered
+  63              	.LVL7:
+  64              		.loc 1 66 8 view .LVU11
+  65 001c 08B9     		cbnz	r0, .L5
+  67:mri/semihost/semihost.c ****     {
+  68:mri/semihost/semihost.c ****         SetSignalValue(SIGINT);
+  69:mri/semihost/semihost.c ****         return 0;
+  70:mri/semihost/semihost.c ****     }
+  71:mri/semihost/semihost.c ****     return 1;
+  66              		.loc 1 71 12 view .LVU12
+  67 001e 0120     		movs	r0, #1
+  68              	.L1:
+  72:mri/semihost/semihost.c **** }
+  69              		.loc 1 72 1 view .LVU13
+  70 0020 10BD     		pop	{r4, pc}
+  71              	.LVL8:
+  72              	.L5:
+  68:mri/semihost/semihost.c ****         return 0;
+  73              		.loc 1 68 9 is_stmt 1 view .LVU14
+  74 0022 0220     		movs	r0, #2
+  75 0024 FFF7FEFF 		bl	mriCore_SetSignalValue
+  76              	.LVL9:
+  69:mri/semihost/semihost.c ****     }
+  77              		.loc 1 69 9 view .LVU15
+  69:mri/semihost/semihost.c ****     }
+  78              		.loc 1 69 16 is_stmt 0 view .LVU16
+  79 0028 0020     		movs	r0, #0
+  80 002a F9E7     		b	.L1
+  81              		.cfi_endproc
+  82              	.LFE6:
+  84              		.section	.text.mriSemihost_IsDebuggeeMakingSemihostCall,"ax",%progbits
+  85              		.align	1
+  86              		.global	mriSemihost_IsDebuggeeMakingSemihostCall
+  87              		.syntax unified
+  88              		.thumb
+  89              		.thumb_func
+  91              	mriSemihost_IsDebuggeeMakingSemihostCall:
+  92              	.LFB3:
+  24:mri/semihost/semihost.c ****     PlatformInstructionType instructionType = Platform_TypeOfCurrentInstruction();
+  93              		.loc 1 24 1 is_stmt 1 view -0
+  94              		.cfi_startproc
+  95              		@ args = 0, pretend = 0, frame = 0
+  96              		@ frame_needed = 0, uses_anonymous_args = 0
+  97 0000 08B5     		push	{r3, lr}
+  98              	.LCFI1:
+ARM GAS  /tmp/cchTnshM.s 			page 4
+
+
+  99              		.cfi_def_cfa_offset 8
+ 100              		.cfi_offset 3, -8
+ 101              		.cfi_offset 14, -4
+  25:mri/semihost/semihost.c **** 
+ 102              		.loc 1 25 5 view .LVU18
+  25:mri/semihost/semihost.c **** 
+ 103              		.loc 1 25 47 is_stmt 0 view .LVU19
+ 104 0002 FFF7FEFF 		bl	mriPlatform_TypeOfCurrentInstruction
+ 105              	.LVL10:
+  27:mri/semihost/semihost.c ****             instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL);
+ 106              		.loc 1 27 5 is_stmt 1 view .LVU20
+  27:mri/semihost/semihost.c ****             instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL);
+ 107              		.loc 1 27 76 is_stmt 0 view .LVU21
+ 108 0006 0138     		subs	r0, r0, #1
+ 109              	.LVL11:
+  27:mri/semihost/semihost.c ****             instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL);
+ 110              		.loc 1 27 76 view .LVU22
+ 111 0008 C0B2     		uxtb	r0, r0
+  29:mri/semihost/semihost.c **** 
+ 112              		.loc 1 29 1 view .LVU23
+ 113 000a 0128     		cmp	r0, #1
+ 114 000c 8CBF     		ite	hi
+ 115 000e 0020     		movhi	r0, #0
+ 116 0010 0120     		movls	r0, #1
+ 117 0012 08BD     		pop	{r3, pc}
+ 118              		.cfi_endproc
+ 119              	.LFE3:
+ 121              		.section	.text.mriSemihost_HandleSemihostRequest,"ax",%progbits
+ 122              		.align	1
+ 123              		.global	mriSemihost_HandleSemihostRequest
+ 124              		.syntax unified
+ 125              		.thumb
+ 126              		.thumb_func
+ 128              	mriSemihost_HandleSemihostRequest:
+ 129              	.LFB4:
+  32:mri/semihost/semihost.c ****     PlatformInstructionType    instructionType = Platform_TypeOfCurrentInstruction();
+ 130              		.loc 1 32 1 is_stmt 1 view -0
+ 131              		.cfi_startproc
+ 132              		@ args = 0, pretend = 0, frame = 16
+ 133              		@ frame_needed = 0, uses_anonymous_args = 0
+ 134 0000 10B5     		push	{r4, lr}
+ 135              	.LCFI2:
+ 136              		.cfi_def_cfa_offset 8
+ 137              		.cfi_offset 4, -8
+ 138              		.cfi_offset 14, -4
+ 139 0002 84B0     		sub	sp, sp, #16
+ 140              	.LCFI3:
+ 141              		.cfi_def_cfa_offset 24
+  33:mri/semihost/semihost.c ****     PlatformSemihostParameters parameters = Platform_GetSemihostCallParameters();
+ 142              		.loc 1 33 5 view .LVU25
+  33:mri/semihost/semihost.c ****     PlatformSemihostParameters parameters = Platform_GetSemihostCallParameters();
+ 143              		.loc 1 33 50 is_stmt 0 view .LVU26
+ 144 0004 FFF7FEFF 		bl	mriPlatform_TypeOfCurrentInstruction
+ 145              	.LVL12:
+ 146 0008 0446     		mov	r4, r0
+ 147              	.LVL13:
+  34:mri/semihost/semihost.c **** 
+ARM GAS  /tmp/cchTnshM.s 			page 5
+
+
+ 148              		.loc 1 34 5 is_stmt 1 view .LVU27
+  34:mri/semihost/semihost.c **** 
+ 149              		.loc 1 34 45 is_stmt 0 view .LVU28
+ 150 000a 6846     		mov	r0, sp
+ 151 000c FFF7FEFF 		bl	mriPlatform_GetSemihostCallParameters
+ 152              	.LVL14:
+  36:mri/semihost/semihost.c ****         return Semihost_HandleMbedSemihostRequest(&parameters);
+ 153              		.loc 1 36 5 is_stmt 1 view .LVU29
+  36:mri/semihost/semihost.c ****         return Semihost_HandleMbedSemihostRequest(&parameters);
+ 154              		.loc 1 36 8 is_stmt 0 view .LVU30
+ 155 0010 012C     		cmp	r4, #1
+ 156 0012 04D0     		beq	.L13
+  38:mri/semihost/semihost.c ****         return Semihost_HandleNewlibSemihostRequest(&parameters);
+ 157              		.loc 1 38 10 is_stmt 1 view .LVU31
+  38:mri/semihost/semihost.c ****         return Semihost_HandleNewlibSemihostRequest(&parameters);
+ 158              		.loc 1 38 13 is_stmt 0 view .LVU32
+ 159 0014 022C     		cmp	r4, #2
+ 160 0016 06D0     		beq	.L14
+  41:mri/semihost/semihost.c **** }
+ 161              		.loc 1 41 16 view .LVU33
+ 162 0018 0020     		movs	r0, #0
+ 163              	.L8:
+  42:mri/semihost/semihost.c **** 
+ 164              		.loc 1 42 1 view .LVU34
+ 165 001a 04B0     		add	sp, sp, #16
+ 166              	.LCFI4:
+ 167              		.cfi_remember_state
+ 168              		.cfi_def_cfa_offset 8
+ 169              		@ sp needed
+ 170 001c 10BD     		pop	{r4, pc}
+ 171              	.LVL15:
+ 172              	.L13:
+ 173              	.LCFI5:
+ 174              		.cfi_restore_state
+  37:mri/semihost/semihost.c ****     else if (instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL)
+ 175              		.loc 1 37 9 is_stmt 1 view .LVU35
+  37:mri/semihost/semihost.c ****     else if (instructionType == MRI_PLATFORM_INSTRUCTION_NEWLIB_SEMIHOST_CALL)
+ 176              		.loc 1 37 16 is_stmt 0 view .LVU36
+ 177 001e 6846     		mov	r0, sp
+ 178 0020 FFF7FEFF 		bl	mriSemihost_HandleMbedSemihostRequest
+ 179              	.LVL16:
+ 180 0024 F9E7     		b	.L8
+ 181              	.L14:
+  39:mri/semihost/semihost.c ****     else
+ 182              		.loc 1 39 9 is_stmt 1 view .LVU37
+  39:mri/semihost/semihost.c ****     else
+ 183              		.loc 1 39 16 is_stmt 0 view .LVU38
+ 184 0026 6846     		mov	r0, sp
+ 185 0028 FFF7FEFF 		bl	mriSemihost_HandleNewlibSemihostRequest
+ 186              	.LVL17:
+ 187 002c F5E7     		b	.L8
+ 188              		.cfi_endproc
+ 189              	.LFE4:
+ 191              		.section	.text.mriSemihost_WriteToFileOrConsole,"ax",%progbits
+ 192              		.align	1
+ 193              		.global	mriSemihost_WriteToFileOrConsole
+ 194              		.syntax unified
+ARM GAS  /tmp/cchTnshM.s 			page 6
+
+
+ 195              		.thumb
+ 196              		.thumb_func
+ 198              	mriSemihost_WriteToFileOrConsole:
+ 199              	.LVL18:
+ 200              	.LFB5:
+  47:mri/semihost/semihost.c ****     const uint32_t STDOUT_FILE_NO = 1;
+ 201              		.loc 1 47 1 is_stmt 1 view -0
+ 202              		.cfi_startproc
+ 203              		@ args = 0, pretend = 0, frame = 0
+ 204              		@ frame_needed = 0, uses_anonymous_args = 0
+  47:mri/semihost/semihost.c ****     const uint32_t STDOUT_FILE_NO = 1;
+ 205              		.loc 1 47 1 is_stmt 0 view .LVU40
+ 206 0000 08B5     		push	{r3, lr}
+ 207              	.LCFI6:
+ 208              		.cfi_def_cfa_offset 8
+ 209              		.cfi_offset 3, -8
+ 210              		.cfi_offset 14, -4
+  48:mri/semihost/semihost.c ****     if (pParameters->fileDescriptor == STDOUT_FILE_NO)
+ 211              		.loc 1 48 5 is_stmt 1 view .LVU41
+ 212              	.LVL19:
+  49:mri/semihost/semihost.c ****     {
+ 213              		.loc 1 49 5 view .LVU42
+  49:mri/semihost/semihost.c ****     {
+ 214              		.loc 1 49 20 is_stmt 0 view .LVU43
+ 215 0002 0368     		ldr	r3, [r0]
+  49:mri/semihost/semihost.c ****     {
+ 216              		.loc 1 49 8 view .LVU44
+ 217 0004 012B     		cmp	r3, #1
+ 218 0006 02D0     		beq	.L19
+  53:mri/semihost/semihost.c **** }
+ 219              		.loc 1 53 5 is_stmt 1 view .LVU45
+  53:mri/semihost/semihost.c **** }
+ 220              		.loc 1 53 12 is_stmt 0 view .LVU46
+ 221 0008 FFF7FEFF 		bl	mriIssueGdbFileWriteRequest
+ 222              	.LVL20:
+ 223              	.L15:
+  54:mri/semihost/semihost.c **** 
+ 224              		.loc 1 54 1 view .LVU47
+ 225 000c 08BD     		pop	{r3, pc}
+ 226              	.LVL21:
+ 227              	.L19:
+  51:mri/semihost/semihost.c ****     }
+ 228              		.loc 1 51 9 is_stmt 1 view .LVU48
+  51:mri/semihost/semihost.c ****     }
+ 229              		.loc 1 51 16 is_stmt 0 view .LVU49
+ 230 000e FFF7FEFF 		bl	writeToGdbConsole
+ 231              	.LVL22:
+  51:mri/semihost/semihost.c ****     }
+ 232              		.loc 1 51 16 view .LVU50
+ 233 0012 FBE7     		b	.L15
+ 234              		.cfi_endproc
+ 235              	.LFE5:
+ 237              		.text
+ 238              	.Letext0:
+ 239              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 240              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 241              		.file 4 "/usr/lib/gcc/arm-none-eabi/12.2.0/include/stddef.h"
+ARM GAS  /tmp/cchTnshM.s 			page 7
+
+
+ 242              		.file 5 "mri/core/platforms.h"
+ 243              		.file 6 "mri/core/cmd_file.h"
+ 244              		.file 7 "mri/core/core.h"
+ 245              		.file 8 "mri/core/gdb_console.h"
+ 246              		.file 9 "mri/core/semihost.h"
+ARM GAS  /tmp/cchTnshM.s 			page 8
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 semihost.c
+     /tmp/cchTnshM.s:21     .text.writeToGdbConsole:0000000000000000 $t
+     /tmp/cchTnshM.s:26     .text.writeToGdbConsole:0000000000000000 writeToGdbConsole
+     /tmp/cchTnshM.s:85     .text.mriSemihost_IsDebuggeeMakingSemihostCall:0000000000000000 $t
+     /tmp/cchTnshM.s:91     .text.mriSemihost_IsDebuggeeMakingSemihostCall:0000000000000000 mriSemihost_IsDebuggeeMakingSemihostCall
+     /tmp/cchTnshM.s:122    .text.mriSemihost_HandleSemihostRequest:0000000000000000 $t
+     /tmp/cchTnshM.s:128    .text.mriSemihost_HandleSemihostRequest:0000000000000000 mriSemihost_HandleSemihostRequest
+     /tmp/cchTnshM.s:192    .text.mriSemihost_WriteToFileOrConsole:0000000000000000 $t
+     /tmp/cchTnshM.s:198    .text.mriSemihost_WriteToFileOrConsole:0000000000000000 mriSemihost_WriteToFileOrConsole
+
+UNDEFINED SYMBOLS
+mriGdbConsole_WriteSizedString
+mriCore_SetSemihostReturnValues
+mriCore_FlagSemihostCallAsHandled
+mriCore_WasControlCEncountered
+mriCore_SetSignalValue
+mriPlatform_TypeOfCurrentInstruction
+mriPlatform_GetSemihostCallParameters
+mriSemihost_HandleMbedSemihostRequest
+mriSemihost_HandleNewlibSemihostRequest
+mriIssueGdbFileWriteRequest
